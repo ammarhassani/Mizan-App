@@ -83,7 +83,7 @@ final class UserSettings {
         self.taskNotificationsEnabled = true
         self.prayerReminderMinutes = 10
         self.taskReminderMinutes = 5
-        self.selectedAdhanAudio = "default_adhan.mp3"
+        self.selectedAdhanAudio = "makkah_adhan.mp3"
 
         // Pro features
         self.isPro = false

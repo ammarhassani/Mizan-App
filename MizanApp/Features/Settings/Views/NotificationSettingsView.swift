@@ -551,15 +551,15 @@ struct AdhanOptionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Play button
+            // Play button (preview available for all users)
             Button {
-                if !isLocked && isAudioAvailable {
+                if isAudioAvailable {
                     onPlayToggle()
                 }
             } label: {
                 Image(systemName: isPlaying ? "stop.circle.fill" : "play.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(isLocked || !isAudioAvailable ? .gray.opacity(0.5) : themeManager.primaryColor)
+                    .foregroundColor(!isAudioAvailable ? .gray.opacity(0.5) : themeManager.primaryColor)
             }
             .buttonStyle(.plain)
             .disabled(!isAudioAvailable)

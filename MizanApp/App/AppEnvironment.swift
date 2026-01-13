@@ -99,6 +99,12 @@ final class AppEnvironment: ObservableObject {
         self.userSettings = loadedSettings
         self.onboardingCompleted = loadedSettings.hasCompletedOnboarding
 
+        // Migrate old default adhan to new default
+        if loadedSettings.selectedAdhanAudio == "default_adhan.mp3" {
+            loadedSettings.selectedAdhanAudio = "makkah_adhan.mp3"
+            try? modelContext.save()
+        }
+
         print("✅ AppEnvironment initialized")
     }
 

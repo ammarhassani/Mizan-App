@@ -209,20 +209,12 @@
   "sounds": {
     "adhan_options": [
       {
-        "id": "default_adhan",
-        "name_arabic": "الأذان الافتراضي",
-        "name_english": "Default Adhan",
-        "filename": "default_adhan.mp3",
-        "duration_seconds": 180,
-        "pro": false
-      },
-      {
         "id": "makkah_adhan",
         "name_arabic": "أذان مكة المكرمة",
         "name_english": "Makkah Adhan",
         "filename": "makkah_adhan.mp3",
         "duration_seconds": 200,
-        "pro": true
+        "pro": false
       },
       {
         "id": "madinah_adhan",

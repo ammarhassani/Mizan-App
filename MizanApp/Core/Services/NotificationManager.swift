@@ -21,7 +21,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     // MARK: - Notification Config
     private let config: NotificationConfiguration
-    private let audioPlayer: AVAudioPlayer?
+    private var audioPlayer: AVAudioPlayer?
 
     // MARK: - Notification Categories
     private enum Category: String {
@@ -379,9 +379,9 @@ final class NotificationManager: NSObject, ObservableObject {
         }
 
         do {
-            let player = try AVAudioPlayer(contentsOf: url)
-            player.prepareToPlay()
-            player.play()
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer?.prepareToPlay()
+            audioPlayer?.play()
             print("🔊 Playing adhan: \(style)")
         } catch {
             print("❌ Failed to play adhan: \(error)")
