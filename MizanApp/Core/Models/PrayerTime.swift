@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import Adhan
 
 @Model
 final class PrayerTime {
@@ -71,7 +72,7 @@ final class PrayerTime {
     /// Iqama offset in minutes (time between athan and iqama)
     var iqamaOffset: Int {
         if isJummah && prayerType == .dhuhr {
-            return 30 // Jummah has 30 min before khutbah starts
+            return 20 // Jummah khutba is ~20 min
         }
         let config = ConfigurationManager.shared.prayerConfig.defaults[prayerType.rawValue]
         return config?.iqamaOffsetMinutes ?? defaultIqamaOffset
@@ -163,9 +164,7 @@ final class PrayerTime {
         duration = jummahConfig.durationMinutes
         bufferBefore = jummahConfig.bufferBeforeMinutes
         bufferAfter = jummahConfig.bufferAfterMinutes
-
-        // Offset Jummah time from Dhuhr
-        adhanTime = adhanTime.addingTimeInterval(TimeInterval(jummahConfig.offsetFromDhuhrMinutes * 60))
+        // Jummah uses the same Dhuhr athan time - the offset period is for Khutba
     }
 
     /// Check if a given time range overlaps with this prayer block
@@ -333,5 +332,31 @@ extension PrayerTime {
     var isCurrently: Bool {
         let now = Date()
         return timeRange.contains(now)
+    }
+}
+
+// MARK: - Adhan-Swift Integration
+
+extension CalculationMethod {
+    /// Convert to Adhan-Swift CalculationParameters
+    var adhanParams: Adhan.CalculationParameters {
+        switch self {
+        case .mwl:
+            return Adhan.CalculationMethod.muslimWorldLeague.params
+        case .ummAlQura:
+            return Adhan.CalculationMethod.ummAlQura.params
+        case .egyptian:
+            return Adhan.CalculationMethod.egyptian.params
+        case .karachi:
+            return Adhan.CalculationMethod.karachi.params
+        case .isna:
+            return Adhan.CalculationMethod.northAmerica.params
+        case .dubai:
+            return Adhan.CalculationMethod.dubai.params
+        case .singapore:
+            return Adhan.CalculationMethod.singapore.params
+        case .turkey:
+            return Adhan.CalculationMethod.turkey.params
+        }
     }
 }

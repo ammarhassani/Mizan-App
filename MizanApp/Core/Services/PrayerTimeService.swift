@@ -22,6 +22,7 @@ final class PrayerTimeService: ObservableObject {
     private let networkClient: NetworkClient
     private let cacheManager: CacheManager
     private let modelContext: ModelContext
+    private let localCalculator = LocalPrayerCalculator()
 
     // MARK: - Initialization
     init(networkClient: NetworkClient, cacheManager: CacheManager, modelContext: ModelContext) {
@@ -32,72 +33,52 @@ final class PrayerTimeService: ObservableObject {
 
     // MARK: - Public API
 
-    /// Fetch prayer times for a specific date
+    /// Fetch prayer times for a specific date using local astronomical calculation
     func fetchPrayerTimes(
         for date: Date,
         latitude: Double,
         longitude: Double,
         method: CalculationMethod
     ) async throws -> [PrayerTime] {
-        // 1. Try to load from SwiftData cache first (offline-first)
+        // 1. Try to load from SwiftData cache first
         if let cached = try? fetchCachedPrayers(for: date, latitude: latitude, longitude: longitude, method: method) {
             print("✅ Loaded prayer times from SwiftData cache")
             return cached
         }
 
-        // 2. Try to load from file cache
-        let cacheKey = CacheManager.prayerTimesKey(date: date, latitude: latitude, longitude: longitude, method: method)
-        if let cachedResponse = cacheManager.load(forKey: cacheKey, as: AladhanResponse.self) {
-            print("✅ Loaded prayer times from file cache")
-            let prayers = try parsePrayerTimes(from: cachedResponse, date: date, method: method, latitude: latitude, longitude: longitude)
-            try savePrayers(prayers)
-            return prayers
-        }
-
-        // 3. Fetch from API
+        // 2. Calculate locally using Adhan-Swift (offline-first, works for any date)
         isLoading = true
-        isOfflineMode = false
         error = nil
 
-        do {
-            let endpoint = APIEndpoint.prayerTimes(
-                date: date,
-                latitude: latitude,
-                longitude: longitude,
-                method: method.apiCode
-            )
-
-            let response: AladhanResponse = try await networkClient.request(endpoint)
-
-            // 4. Save to file cache
-            cacheManager.save(response, forKey: cacheKey)
-
-            // 5. Parse and save to SwiftData
-            let prayers = try parsePrayerTimes(from: response, date: date, method: method, latitude: latitude, longitude: longitude)
-            try savePrayers(prayers)
-
-            lastUpdateTime = Date()
+        guard let times = localCalculator.calculatePrayerTimes(
+            for: date,
+            latitude: latitude,
+            longitude: longitude,
+            method: method
+        ) else {
             isLoading = false
-
-            print("✅ Fetched and cached prayer times for \(date)")
-            return prayers
-
-        } catch {
-            isLoading = false
-            self.error = error as? APIError ?? .networkError(error)
-
-            // Try to return cached data on error
-            if let cached = try? fetchCachedPrayers(for: date, latitude: latitude, longitude: longitude, method: method) {
-                isOfflineMode = true
-                print("⚠️ API failed, using offline cache")
-                return cached
-            }
-
-            throw error
+            throw APIError.invalidResponse
         }
+
+        // 3. Create PrayerTime models
+        let prayers = createPrayerTimeModels(from: times, date: date, method: method, latitude: latitude, longitude: longitude)
+
+        // 4. Save to SwiftData cache
+        try savePrayers(prayers)
+
+        lastUpdateTime = Date()
+        isLoading = false
+
+        // Debug: Log the actual times to verify they're different per day
+        let dateStr = date.formatted(date: .abbreviated, time: .omitted)
+        let fajrTime = prayers.first { $0.prayerType == .fajr }?.adhanTime.formatted(date: .omitted, time: .shortened) ?? "N/A"
+        let maghribTime = prayers.first { $0.prayerType == .maghrib }?.adhanTime.formatted(date: .omitted, time: .shortened) ?? "N/A"
+        print("✅ Calculated prayers for \(dateStr): Fajr=\(fajrTime), Maghrib=\(maghribTime)")
+
+        return prayers
     }
 
-    /// Prefetch prayer times for the next N days (for offline support)
+    /// Prefetch prayer times for the next N days (pre-calculate and cache)
     func prefetchPrayerTimes(
         days: Int = 30,
         latitude: Double,
@@ -116,18 +97,15 @@ final class PrayerTimeService: ObservableObject {
                 continue
             }
 
-            // Fetch with delay to avoid rate limiting
-            try? await _Concurrency.Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
-
+            // Local calculation is instant - no delay needed
             do {
                 _ = try await fetchPrayerTimes(for: date, latitude: latitude, longitude: longitude, method: method)
-                print("✅ Prefetched day \(dayOffset + 1)/\(days)")
             } catch {
                 print("⚠️ Failed to prefetch day \(dayOffset + 1): \(error)")
             }
         }
 
-        print("✅ Prefetch completed")
+        print("✅ Prefetch completed for \(days) days")
     }
 
     /// Get today's prayer times
@@ -281,6 +259,50 @@ final class PrayerTimeService: ObservableObject {
         }
 
         try modelContext.save()
+    }
+
+    /// Create PrayerTime models from locally calculated times
+    private func createPrayerTimeModels(
+        from times: [PrayerType: Date],
+        date: Date,
+        method: CalculationMethod,
+        latitude: Double,
+        longitude: Double
+    ) -> [PrayerTime] {
+        let calendar = Calendar.current
+        let isFriday = calendar.component(.weekday, from: date) == 6 // 6 = Friday
+
+        var prayers: [PrayerTime] = []
+
+        for prayerType in PrayerType.allCases {
+            guard let adhanTime = times[prayerType] else { continue }
+
+            let prayer = PrayerTime(
+                date: date,
+                prayerType: prayerType,
+                adhanTime: adhanTime,
+                calculationMethod: method,
+                latitude: latitude,
+                longitude: longitude
+            )
+
+            // Apply durations and buffers from config
+            let config = ConfigurationManager.shared.prayerConfig.defaults[prayerType.rawValue]
+            if let config = config {
+                prayer.duration = config.durationMinutes
+                prayer.bufferBefore = config.bufferBeforeMinutes
+                prayer.bufferAfter = config.bufferAfterMinutes
+            }
+
+            // Convert to Jummah if Friday and Dhuhr
+            if isFriday && prayerType == .dhuhr {
+                prayer.convertToJummah()
+            }
+
+            prayers.append(prayer)
+        }
+
+        return prayers.sorted { $0.adhanTime < $1.adhanTime }
     }
 
     /// Calculate distance between two coordinates (Haversine formula)

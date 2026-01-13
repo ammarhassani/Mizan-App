@@ -143,7 +143,20 @@ struct SettingsView: View {
 
         // Refresh prayers
         _Concurrency.Task {
+            // First refresh today's prayers
             await appEnvironment.refreshPrayerTimes()
+
+            // Also prefetch next 7 days so user can navigate
+            if let lat = appEnvironment.userSettings.lastKnownLatitude,
+               let lon = appEnvironment.userSettings.lastKnownLongitude {
+                await appEnvironment.prayerTimeService.prefetchPrayerTimes(
+                    days: 7,
+                    latitude: lat,
+                    longitude: lon,
+                    method: appEnvironment.userSettings.calculationMethod
+                )
+            }
+
             // Regenerate nawafil
             appEnvironment.refreshNawafil()
         }

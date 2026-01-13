@@ -38,8 +38,8 @@ enum APIEndpoint {
     var queryItems: [URLQueryItem] {
         switch self {
         case .prayerTimes(let date, let latitude, let longitude, let method):
-            let dateFormatter = ISO8601DateFormatter()
-            dateFormatter.formatOptions = [.withFullDate, .withDashSeparatorInDate]
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "dd-MM-yyyy"  // Aladhan API requires DD-MM-YYYY format
             let dateString = dateFormatter.string(from: date)
 
             return [

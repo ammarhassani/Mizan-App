@@ -218,10 +218,13 @@ struct TimelineView: View {
             }
             .onChange(of: selectedDate) { _, newDate in
                 scrollToCurrentPrayer(proxy: proxy)
-                // Generate nawafil for the selected date if needed
-                generateNawafilIfNeeded(for: newDate)
+                // Fetch prayers and generate nawafil for the selected date if needed
+                fetchPrayersAndNawafilIfNeeded(for: newDate)
             }
             .onAppear {
+                // Always check if prayers need to be fetched when view appears
+                fetchPrayersAndNawafilIfNeeded(for: selectedDate)
+
                 if scrollToNowOnAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         scrollToCurrentPrayer(proxy: proxy)
@@ -242,7 +245,8 @@ struct TimelineView: View {
         case .prayer:
             if let prayer = segment.prayer {
                 // Find attached pre and post nawafil for this prayer
-                let preNawafil = todayNawafil.first { nawafil in
+                // Jummah has no pre-sunnah, only post-sunnah
+                let preNawafil: NawafilPrayer? = prayer.isJummah ? nil : todayNawafil.first { nawafil in
                     nawafil.attachedToPrayer == prayer.prayerType &&
                     nawafil.attachmentPosition == .before &&
                     !nawafil.isDismissed
@@ -288,6 +292,42 @@ struct TimelineView: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 proxy.scrollTo(currentSegment.id, anchor: .center)
             }
+        }
+    }
+
+    /// Fetch prayers and generate nawafil for a specific date if needed
+    private func fetchPrayersAndNawafilIfNeeded(for date: Date) {
+        let calendar = Calendar.current
+
+        // Check if prayers already exist for this date
+        let prayersForDate = allPrayers.filter { prayer in
+            calendar.isDate(prayer.date, inSameDayAs: date)
+        }
+
+        if prayersForDate.isEmpty {
+            // No prayers for this date - fetch them
+            _Concurrency.Task {
+                guard let lat = appEnvironment.userSettings.lastKnownLatitude,
+                      let lon = appEnvironment.userSettings.lastKnownLongitude else {
+                    return
+                }
+
+                do {
+                    _ = try await appEnvironment.prayerTimeService.fetchPrayerTimes(
+                        for: date,
+                        latitude: lat,
+                        longitude: lon,
+                        method: appEnvironment.userSettings.calculationMethod
+                    )
+                    // After fetching prayers, generate nawafil
+                    generateNawafilIfNeeded(for: date)
+                } catch {
+                    print("❌ Failed to fetch prayers for \(date): \(error)")
+                }
+            }
+        } else {
+            // Prayers exist, just generate nawafil if needed
+            generateNawafilIfNeeded(for: date)
         }
     }
 
@@ -375,7 +415,7 @@ struct TimelinePrayerBlock: View {
                         .font(.system(size: 11, weight: .medium))
                     Text("•")
                         .font(.system(size: 8))
-                    Text("\(prayer.iqamaOffset) د انتظار")
+                    Text("\(prayer.iqamaOffset) د \(prayer.isJummah ? "خطبة" : "انتظار")")
                         .font(.system(size: 10))
                     Spacer()
                 }
