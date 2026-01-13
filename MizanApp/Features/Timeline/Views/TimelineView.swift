@@ -118,7 +118,7 @@ struct TimelineView: View {
                 }
             }
             .navigationTitle("الجدول")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -216,8 +216,10 @@ struct TimelineView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
-            .onChange(of: selectedDate) { _, _ in
+            .onChange(of: selectedDate) { _, newDate in
                 scrollToCurrentPrayer(proxy: proxy)
+                // Generate nawafil for the selected date if needed
+                generateNawafilIfNeeded(for: newDate)
             }
             .onAppear {
                 if scrollToNowOnAppear {
@@ -287,6 +289,32 @@ struct TimelineView: View {
                 proxy.scrollTo(currentSegment.id, anchor: .center)
             }
         }
+    }
+
+    /// Generate nawafil for a specific date if they don't already exist
+    private func generateNawafilIfNeeded(for date: Date) {
+        // Check if nawafil already exist for this date
+        let calendar = Calendar.current
+        let existingForDate = allNawafil.filter { nawafil in
+            calendar.isDate(nawafil.date, inSameDayAs: date)
+        }
+
+        // Skip if nawafil already exist for this date
+        guard existingForDate.isEmpty else { return }
+
+        // Skip if not Pro or nawafil not enabled
+        guard appEnvironment.userSettings.isPro && appEnvironment.userSettings.nawafilEnabled else { return }
+
+        // Get prayers for this date
+        let prayersForDate = allPrayers.filter { prayer in
+            calendar.isDate(prayer.date, inSameDayAs: date)
+        }
+
+        // Skip if no prayers for this date
+        guard !prayersForDate.isEmpty else { return }
+
+        // Generate nawafil for this date
+        appEnvironment.generateNawafilForDate(date, prayerTimes: prayersForDate)
     }
 
 }
