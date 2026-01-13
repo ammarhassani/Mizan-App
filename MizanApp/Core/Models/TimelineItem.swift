@@ -241,20 +241,15 @@ struct TimelineHelper {
         return nil
     }
 
-    /// Get timeline start and end times for a date
+    /// Get timeline start and end times for a date (12:00 AM to 11:59 PM)
     static func timelineBounds(for date: Date, prayers: [PrayerTime]) -> (start: Date, end: Date) {
         let calendar = Calendar.current
 
-        // Start at Fajr time if available, otherwise start of day
-        let startTime: Date
-        if let fajr = prayers.first(where: { $0.prayerType == .fajr }) {
-            startTime = fajr.adhanTime.addingTimeInterval(-TimeInterval(30 * 60)) // 30 min before Fajr
-        } else {
-            startTime = calendar.startOfDay(for: date)
-        }
+        // Start at 12:00 AM (midnight)
+        let startTime = calendar.startOfDay(for: date)
 
-        // End at midnight
-        let endTime = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))!
+        // End at 11:59 PM (1 minute before next midnight)
+        let endTime = calendar.date(byAdding: .day, value: 1, to: startTime)!.addingTimeInterval(-60)
 
         return (startTime, endTime)
     }

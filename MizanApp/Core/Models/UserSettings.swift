@@ -46,6 +46,8 @@ final class UserSettings {
     var proSubscriptionType: String? // "monthly", "annual", "lifetime"
     var nawafilEnabled: Bool
     var enabledNawafil: [String] // NawafilType IDs
+    var nawafilRakaatPreferences: [String: Int] = [:] // nawafil type -> user's chosen rakaat count
+    var nawafilTimePreferences: [String: Int] = [:] // nawafil type -> minutes since midnight (e.g., 9:30 AM = 570)
     var calendarSyncEnabled: Bool
 
     // MARK: - Onboarding
@@ -89,6 +91,8 @@ final class UserSettings {
         self.proSubscriptionType = nil
         self.nawafilEnabled = false
         self.enabledNawafil = []
+        self.nawafilRakaatPreferences = [:]
+        self.nawafilTimePreferences = [:]
         self.calendarSyncEnabled = false
 
         // Onboarding
@@ -166,6 +170,61 @@ final class UserSettings {
 
     func isNawafilEnabled(type: String) -> Bool {
         return nawafilEnabled && enabledNawafil.contains(type)
+    }
+
+    /// Get the user's preferred rakaat count for a nawafil type
+    func getRakaatForNawafil(_ type: String) -> Int? {
+        return nawafilRakaatPreferences[type]
+    }
+
+    /// Set the user's preferred rakaat count for a nawafil type
+    func setRakaatForNawafil(_ type: String, rakaat: Int) {
+        nawafilRakaatPreferences[type] = rakaat
+        lastUpdated = Date()
+    }
+
+    /// Get rakaat with fallback to config default
+    func getEffectiveRakaatForNawafil(_ type: String, config: NawafilType) -> Int {
+        // User preference takes priority
+        if let userPref = nawafilRakaatPreferences[type] {
+            return userPref
+        }
+        // Fallback to config default
+        return config.rakaat.default ?? config.rakaat.fixed ?? 2
+    }
+
+    /// Get the user's preferred time for a nawafil (minutes since midnight)
+    func getTimeForNawafil(_ type: String) -> Int? {
+        return nawafilTimePreferences[type]
+    }
+
+    /// Set the user's preferred time for a nawafil (minutes since midnight)
+    func setTimeForNawafil(_ type: String, minutesSinceMidnight: Int) {
+        nawafilTimePreferences[type] = minutesSinceMidnight
+        lastUpdated = Date()
+    }
+
+    /// Convert minutes since midnight to Date for a given day
+    func getTimeAsDate(_ type: String, for date: Date) -> Date? {
+        guard let minutes = nawafilTimePreferences[type] else { return nil }
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        return startOfDay.addingTimeInterval(TimeInterval(minutes * 60))
+    }
+
+    /// Convert Date to minutes since midnight
+    static func dateToMinutesSinceMidnight(_ date: Date) -> Int {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return (components.hour ?? 0) * 60 + (components.minute ?? 0)
+    }
+
+    /// Convert minutes since midnight to formatted time string
+    static func minutesToTimeString(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let mins = minutes % 60
+        let date = Calendar.current.date(bySettingHour: hours, minute: mins, second: 0, of: Date())!
+        return date.formatted(date: .omitted, time: .shortened)
     }
 
     func completeOnboarding() {

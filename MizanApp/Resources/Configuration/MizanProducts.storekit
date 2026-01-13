@@ -1,0 +1,179 @@
+{
+  "identifier" : "8A2F3B4C-1234-5678-9ABC-DEF012345678",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "69.99",
+      "familyShareable" : false,
+      "internalID" : "lifetime_001",
+      "localizations" : [
+        {
+          "description" : "Unlock all Pro features forever with a single purchase",
+          "displayName" : "Mizan Pro Lifetime",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "افتح جميع ميزات Pro للأبد بدفعة واحدة",
+          "displayName" : "ميزان Pro مدى الحياة",
+          "locale" : "ar"
+        }
+      ],
+      "productID" : "com.mizan.pro.lifetime",
+      "referenceName" : "Mizan Pro Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "1234567890",
+    "_developerTeamID" : "XXXXXXXXXX",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 756518400,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "mizan_pro_group",
+      "localizations" : [
+        {
+          "description" : "Access all premium features",
+          "displayName" : "Mizan Pro",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "الوصول لجميع الميزات المميزة",
+          "displayName" : "ميزان Pro",
+          "locale" : "ar"
+        }
+      ],
+      "name" : "Mizan Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "monthly_001",
+          "introductoryOffer" : {
+            "displayPrice" : "0",
+            "internalID" : "free_trial_001",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Full access to all Pro features, billed monthly",
+              "displayName" : "Monthly",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "الوصول الكامل لجميع ميزات Pro، فوترة شهرية",
+              "displayName" : "شهري",
+              "locale" : "ar"
+            }
+          ],
+          "productID" : "com.mizan.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Mizan Pro Monthly",
+          "subscriptionGroupID" : "mizan_pro_group",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "29.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "annual_001",
+          "introductoryOffer" : {
+            "displayPrice" : "0",
+            "internalID" : "free_trial_002",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Full access to all Pro features, billed annually. Save 50%!",
+              "displayName" : "Annual",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "الوصول الكامل لجميع ميزات Pro، فوترة سنوية. وفّر 50%!",
+              "displayName" : "سنوي",
+              "locale" : "ar"
+            }
+          ],
+          "productID" : "com.mizan.pro.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Mizan Pro Annual",
+          "subscriptionGroupID" : "mizan_pro_group",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

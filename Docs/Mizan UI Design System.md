@@ -2,7 +2,7 @@
 
 ## Overview
 
-Mizan is an Islamic daily planner app that seamlessly integrates prayer times with task management. This design system draws inspiration from successful planner apps like Structured while incorporating Islamic design elements and ensuring excellent readability for Arabic text.
+Mizan is a daily planner app that seamlessly integrates special event times with task management. This design system draws inspiration from successful planner apps while creating an awesome, delightful user experience with dynamic theming and impressive animations.
 
 ## Design Philosophy
 
@@ -49,6 +49,36 @@ struct PrimaryButton: View {
                 )
         }
         .buttonStyle(DramaticButtonStyle())
+    }
+}
+
+// MARK: - Dramatic Button Styles
+struct DramaticButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.white)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(
+                        LinearGradient(
+                            colors: configuration.isPressed ?
+                                [Color.red.opacity(0.8), Color.orange.opacity(0.6)] :
+                                [Color.blue, Color.cyan],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(
+                        color: configuration.isPressed ?
+                            Color.red.opacity(0.6) :
+                            Color.blue.opacity(0.4),
+                        radius: configuration.isPressed ? 16 : 8,
+                        x: 0,
+                        y: configuration.isPressed ? 8 : 4
+                    )
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.7))
     }
 }
 ```
@@ -219,10 +249,10 @@ struct TaskCard: View {
 }
 ```
 
-#### Prayer Block
+#### Event Block
 ```swift
-struct PrayerBlock: View {
-    let prayer: PrayerTime
+struct EventBlock: View {
+    let event: EventTime
     
     @EnvironmentObject var themeManager: ThemeManager
     
@@ -231,8 +261,8 @@ struct PrayerBlock: View {
             // Background gradient
             LinearGradient(
                 colors: [
-                    Color(hex: prayer.colorHex),
-                    Color(hex: prayer.colorHex).opacity(0.8)
+                    Color(hex: event.colorHex),
+                    Color(hex: event.colorHex).opacity(0.8)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -241,18 +271,18 @@ struct PrayerBlock: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Image(systemName: prayer.prayerType.icon)
+                    Image(systemName: event.eventType.icon)
                         .font(.system(size: 20))
                         .foregroundColor(.white)
                     
-                    Text(prayer.displayName)
+                    Text(event.displayName)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     
                     Spacer()
                     
-                    if prayer.isJummah {
-                        Text("جمعة")
+                    if event.isSpecial {
+                        Text("خاص")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
@@ -262,11 +292,11 @@ struct PrayerBlock: View {
                     }
                 }
                 
-                Text(prayer.adhanTime.formatted(date: .omitted, time: .shortened))
+                Text(event.startTime.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white.opacity(0.9))
                 
-                Text("\(prayer.duration) دقيقة")
+                Text("\(event.duration) دقيقة")
                     .font(.system(size: 14))
                     .foregroundColor(.white.opacity(0.8))
                 
@@ -353,14 +383,14 @@ struct DurationPicker: View {
 
 ### 2.1 Timeline Layout
 
-The timeline is the core of Mizan, displaying a 24-hour view with integrated prayers and tasks.
+The timeline is the core of Mizan, displaying a 24-hour view with integrated events and tasks.
 
 #### Key Principles:
 - **Vertical Scrolling**: Natural for time-based content
 - **15-minute Grid**: Fine-grained scheduling precision
-- **Visual Hierarchy**: Prayers prominently displayed
+- **Visual Hierarchy**: Events prominently displayed
 - **Current Time Indicator**: Always visible red line
-- **Smart Bounds**: Timeline adjusts based on first/last prayer
+- **Smart Bounds**: Timeline adjusts based on first/last event
 
 #### Implementation Pattern:
 ```swift
@@ -491,8 +521,8 @@ struct NoorTheme: Theme {
         textPrimary: "#000000",
         textSecondary: "#8E8E93",
         textTertiary: "#C7C7CC",
-        prayerGradientStart: "#007AFF",
-        prayerGradientEnd: "#4D94FF",
+        eventGradientStart: "#007AFF",
+        eventGradientEnd: "#4D94FF",
         success: "#34C759",
         warning: "#FF9500",
         error: "#FF3B30",
@@ -529,8 +559,8 @@ struct LaylTheme: Theme {
         textPrimary: "#FFFFFF",
         textSecondary: "#8E8E93",
         textTertiary: "#48484A",
-        prayerGradientStart: "#007AFF",
-        prayerGradientEnd: "#4D94FF",
+        eventGradientStart: "#007AFF",
+        eventGradientEnd: "#4D94FF",
         success: "#34C759",
         warning: "#FF9500",
         error: "#FF3B30",
@@ -542,12 +572,12 @@ struct LaylTheme: Theme {
 }
 ```
 
-### 3.4 Fajr (Dawn Theme)
+### 3.4 Sunrise (Dawn Theme)
 
 A soft, gradient theme inspired by the colors of dawn.
 
 ```swift
-struct FajrTheme: Theme {
+struct SunriseTheme: Theme {
     let colors = ColorPalette(
         background: "#E8DFF5",
         surface: "#FFFFFF",
@@ -560,8 +590,8 @@ struct FajrTheme: Theme {
         textPrimary: "#2D2A4A",
         textSecondary: "#6B5B95",
         textTertiary: "#9B8FB6",
-        prayerGradientStart: "#6C63FF",
-        prayerGradientEnd: "#E879F9",
+        eventGradientStart: "#6C63FF",
+        eventGradientEnd: "#E879F9",
         success: "#A78BFA",
         warning: "#FBBF24",
         error: "#F87171",
@@ -574,12 +604,12 @@ struct FajrTheme: Theme {
 }
 ```
 
-### 3.5 Sahara (Desert Theme)
+### 3.5 Dusk (Desert Theme)
 
 Warm, earthy tones inspired by desert landscapes.
 
 ```swift
-struct SaharaTheme: Theme {
+struct DuskTheme: Theme {
     let colors = ColorPalette(
         background: "#E9D5C1",
         surface: "#F5EAD8",
@@ -592,8 +622,8 @@ struct SaharaTheme: Theme {
         textPrimary: "#3D2817",
         textSecondary: "#705437",
         textTertiary: "#9A7B5B",
-        prayerGradientStart: "#D4734C",
-        prayerGradientEnd: "#C88F5C",
+        eventGradientStart: "#D4734C",
+        eventGradientEnd: "#C88F5C",
         success: "#8B6F47",
         warning: "#E89668",
         error: "#C45A30",
@@ -609,12 +639,12 @@ struct SaharaTheme: Theme {
 }
 ```
 
-### 3.6 Ramadan (Special Theme)
+### 3.6 Celebration (Special Theme)
 
-A festive theme that automatically activates during Ramadan.
+A festive theme that automatically activates during special occasions.
 
 ```swift
-struct RamadanTheme: Theme {
+struct CelebrationTheme: Theme {
     let colors = ColorPalette(
         background: "#1E1B4B",
         surface: "#312E81",
@@ -627,8 +657,8 @@ struct RamadanTheme: Theme {
         textPrimary: "#FFFFFF",
         textSecondary: "#E0E7FF",
         textTertiary: "#C7D2FE",
-        prayerGradientStart: "#FFD700",
-        prayerGradientEnd: "#FFA500",
+        eventGradientStart: "#FFD700",
+        eventGradientEnd: "#FFA500",
         success: "#A78BFA",
         warning: "#FDE047",
         error: "#F87171",
@@ -740,7 +770,7 @@ Mizan uses SF Symbols with custom Islamic-themed icons for religious elements.
 
 #### Core Icons
 - **Task Categories**: Each category has a distinct icon
-- **Prayer Times**: Custom icons for each prayer
+- **Event Times**: Custom icons for each event
 - **Navigation**: Standard iOS navigation icons
 - **Actions**: Clear, universally understood action icons
 
@@ -843,6 +873,37 @@ struct AnimationSprings {
 }
 ```
 
+// MARK: - Button Styles
+struct DramaticButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.white)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(
+                        LinearGradient(
+                            colors: configuration.isPressed ?
+                                [Color.red.opacity(0.8), Color.orange.opacity(0.6)] :
+                                [Color.blue, Color.cyan],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(
+                        color: configuration.isPressed ?
+                            Color.red.opacity(0.6) :
+                            Color.blue.opacity(0.4),
+                        radius: configuration.isPressed ? 16 : 8,
+                        x: 0,
+                        y: configuration.isPressed ? 8 : 4
+                    )
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.7))
+    }
+}
+```
+
 ### 6.2 Signature Animations
 
 #### App Launch Animation
@@ -917,10 +978,10 @@ struct PrayerAlertAnimation: View {
     @State private var glowOpacity: Double = 0.3
     
     var body: some View {
-        PrayerBlock(prayer: prayer)
+        EventBlock(event: event)
             .scaleEffect(pulseScale)
             .shadow(
-                color: Color(hex: prayer.colorHex).opacity(glowOpacity),
+                color: Color(hex: event.colorHex).opacity(glowOpacity),
                 radius: 20,
                 x: 0,
                 y: 0
@@ -1388,4 +1449,4 @@ This design system provides a comprehensive foundation for Mizan's UI, ensuring:
 5. **Cultural Authenticity**: Respectful incorporation of Islamic design elements
 6. **Maintainability**: Clear structure for future development
 
-The system draws inspiration from successful planner apps while maintaining its unique Islamic identity and focus on prayer integration. The careful attention to typography, color, and interaction patterns creates a delightful user experience that helps users balance their spiritual and daily responsibilities.
+The system draws inspiration from successful planner apps while maintaining its unique identity and focus on event integration. The careful attention to typography, color, and interaction patterns creates a delightful user experience that helps users balance their special events and daily responsibilities.

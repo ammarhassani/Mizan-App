@@ -83,12 +83,14 @@ final class NawafilPrayer {
         config?.isTimeBlock ?? false
     }
 
-    var endTime: Date {
-        suggestedTime.addingTimeInterval(TimeInterval(duration * 60))
+    /// Whether this nawafil is attached to a prayer (rawatib) vs standalone (duha, witr, tahajjud)
+    var isAttachedToPrayer: Bool {
+        attachedToPrayer != nil
     }
 
-    var timeRange: ClosedRange<Date> {
-        suggestedTime...endTime
+    /// Whether this is a standalone nawafil that should appear as separate segment
+    var isStandalone: Bool {
+        attachedToPrayer == nil
     }
 
     // MARK: - Methods
@@ -117,27 +119,27 @@ final class NawafilPrayer {
     }
 
     /// Calculate duration based on rakaat count
+    /// Uses 3 minutes per rakaa, snaps to nearest 10 if > 5
     static func calculateDuration(for nawafilType: String, rakaat: Int) -> Int {
         let config = ConfigurationManager.shared.nawafilConfig
-        guard let nawafil = config?.nawafilTypes.first(where: { $0.type == nawafilType }) else {
-            return 10 // default
+        let nawafil = config?.nawafilTypes.first(where: { $0.type == nawafilType })
+
+        // Check if this is a time block (e.g., Qiyam al-Layl) with fixed duration
+        if let nawafil = nawafil, nawafil.isTimeBlock == true {
+            return nawafil.durationMinutes ?? 30
         }
 
-        // For types with duration per 2 rakaat
-        if let durationPer2Rakaat = nawafil.durationPer2RakaatMinutes {
-            return (rakaat / 2) * durationPer2Rakaat
-        }
+        // Calculate duration: 3 minutes per rakaa
+        let rawDuration = rakaat * 3
 
-        // For types with duration calculation dictionary
-        if let durationCalc = nawafil.durationCalculation {
-            let key = "\(rakaat)_rakaat"
-            if let duration = durationCalc[key] {
-                return duration
-            }
+        // If total <= 5 min: use actual value
+        // If total > 5 min: snap to nearest 10
+        if rawDuration <= 5 {
+            return rawDuration
+        } else {
+            // Snap to nearest 10 (round to nearest)
+            return Int(round(Double(rawDuration) / 10.0)) * 10
         }
-
-        // Default duration
-        return nawafil.durationMinutes ?? 10
     }
 
     /// Check if this nawafil overlaps with a time range
@@ -173,7 +175,9 @@ extension NawafilPrayer {
     static func generateForDate(
         _ date: Date,
         prayerTimes: [PrayerTime],
-        enabledNawafilTypes: [String]
+        enabledNawafilTypes: [String],
+        rakaatPreferences: [String: Int] = [:],
+        timePreferences: [String: Int] = [:] // minutes since midnight
     ) -> [NawafilPrayer] {
         var nawafil: [NawafilPrayer] = []
         let config = ConfigurationManager.shared.nawafilConfig
@@ -183,61 +187,79 @@ extension NawafilPrayer {
             guard enabledNawafilTypes.contains(nawafilType.type) else { continue }
 
             // Calculate suggested time based on timing rules
-            if let suggestedTime = calculateSuggestedTime(
+            guard let defaultTime = calculateSuggestedTime(
                 for: nawafilType,
                 date: date,
                 prayerTimes: prayerTimes
-            ) {
-                // Get rakaat count (use default if user-configurable)
-                let rakaat = nawafilType.rakaat.default ?? nawafilType.rakaat.fixed ?? 2
+            ) else { continue }
 
-                // Calculate duration
-                let duration = calculateDuration(for: nawafilType.type, rakaat: rakaat)
-
-                let prayer = NawafilPrayer(
-                    date: date,
-                    nawafilType: nawafilType.type,
-                    suggestedTime: suggestedTime,
-                    duration: duration,
-                    rakaat: rakaat
-                )
-
-                // Attach to prayer if it's a rawatib type
-                if let attachment = nawafilType.timing.attachment,
-                   let position = nawafilType.timing.position,
-                   let prayerType = PrayerType(rawValue: attachment),
-                   let attachPos = AttachmentPosition(rawValue: position) {
-                    prayer.attachToPrayer(prayerType, position: attachPos)
-                }
-
-                nawafil.append(prayer)
+            // Use user's preferred time if set, otherwise use calculated default
+            let suggestedTime: Date
+            if let userMinutes = timePreferences[nawafilType.type] {
+                // Convert user's preferred minutes since midnight to Date
+                let calendar = Calendar.current
+                let startOfDay = calendar.startOfDay(for: date)
+                suggestedTime = startOfDay.addingTimeInterval(TimeInterval(userMinutes * 60))
+            } else {
+                suggestedTime = defaultTime
             }
+
+            // Get rakaat count: user preference > config default > fixed > fallback
+            let rakaat: Int
+            if let userPref = rakaatPreferences[nawafilType.type] {
+                rakaat = userPref
+            } else {
+                rakaat = nawafilType.rakaat.default ?? nawafilType.rakaat.fixed ?? 2
+            }
+
+            // Calculate duration based on actual rakaat count
+            let duration = calculateDuration(for: nawafilType.type, rakaat: rakaat)
+
+            let prayer = NawafilPrayer(
+                date: date,
+                nawafilType: nawafilType.type,
+                suggestedTime: suggestedTime,
+                duration: duration,
+                rakaat: rakaat
+            )
+
+            // Attach to prayer if it's a rawatib type
+            if let attachment = nawafilType.timing.attachment,
+               let position = nawafilType.timing.position,
+               let prayerType = PrayerType(rawValue: attachment),
+               let attachPos = AttachmentPosition(rawValue: position) {
+                prayer.attachToPrayer(prayerType, position: attachPos)
+            }
+
+            nawafil.append(prayer)
         }
 
         return nawafil.sorted()
     }
 
     /// Calculate suggested time for a nawafil based on its timing rules
+    /// Pre-prayer nawafil: positioned AFTER athan, BEFORE iqama
+    /// Post-prayer nawafil: positioned AFTER prayer ends
     private static func calculateSuggestedTime(
         for nawafilType: NawafilType,
         date: Date,
         prayerTimes: [PrayerTime]
     ) -> Date? {
         let timing = nawafilType.timing
-        let calendar = Calendar.current
 
         // Attached to a specific prayer
         if let attachmentPrayer = timing.attachment,
-           let offsetMinutes = timing.offsetMinutes,
            let prayerType = PrayerType(rawValue: attachmentPrayer),
            let prayer = prayerTimes.first(where: { $0.prayerType == prayerType }) {
 
             if timing.position == "before" {
-                // Schedule before the prayer adhan
-                return prayer.adhanTime.addingTimeInterval(TimeInterval(offsetMinutes * 60))
+                // Pre-prayer nawafil: starts AFTER athan, during the waiting period before iqama
+                // User prays sunnah rawatib during the athan-to-iqama gap
+                // Start a few minutes after athan to allow time to settle
+                return prayer.effectiveStartTime.addingTimeInterval(TimeInterval(2 * 60)) // 2 min after athan
             } else if timing.position == "after" {
-                // Schedule after the prayer ends
-                return prayer.prayerEndTime.addingTimeInterval(TimeInterval(offsetMinutes * 60))
+                // Post-prayer nawafil: starts immediately after iqama ends (prayer completed)
+                return prayer.iqamaEndTime
             }
         }
 
@@ -247,7 +269,19 @@ extension NawafilPrayer {
             if let maghrib = prayerTimes.first(where: { $0.prayerType == .maghrib }),
                let fajr = prayerTimes.first(where: { $0.prayerType == .fajr }) {
 
-                let nightDuration = fajr.adhanTime.timeIntervalSince(maghrib.adhanTime)
+                // Fix: When Fajr and Maghrib are from the same calendar day,
+                // Fajr (5:30 AM) appears before Maghrib (5:00 PM) chronologically.
+                // But Fajr actually represents the NEXT morning's prayer.
+                // We need to add 24 hours to get the correct night duration.
+                var nightDuration: TimeInterval
+                if fajr.adhanTime < maghrib.adhanTime {
+                    // Fajr is "before" Maghrib = it's actually next day's Fajr
+                    let nextDayFajr = fajr.adhanTime.addingTimeInterval(24 * 60 * 60)
+                    nightDuration = nextDayFajr.timeIntervalSince(maghrib.adhanTime)
+                } else {
+                    nightDuration = fajr.adhanTime.timeIntervalSince(maghrib.adhanTime)
+                }
+
                 let lastThirdStart = maghrib.adhanTime.addingTimeInterval(nightDuration * 2 / 3)
                 return lastThirdStart
             }

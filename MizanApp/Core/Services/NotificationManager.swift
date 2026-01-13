@@ -144,7 +144,7 @@ final class NotificationManager: NSObject, ObservableObject {
             minutesOffset: beforeNotif.defaultMinutes ?? 10,
             template: beforeNotif.titleTemplateArabic,
             bodyTemplate: beforeNotif.bodyTemplateArabic,
-            sound: beforeNotif.sound ?? "notification_soft.mp3"
+            sound: beforeNotif.sound
         )
 
         // At adhan time
@@ -155,7 +155,7 @@ final class NotificationManager: NSObject, ObservableObject {
             minutesOffset: 0,
             template: atTimeNotif.titleTemplateArabic,
             bodyTemplate: atTimeNotif.bodyTemplateArabic,
-            sound: atTimeNotif.sound ?? "adhan_selected_by_user"
+            sound: atTimeNotif.sound
         )
 
         // 5 minutes after
@@ -166,7 +166,7 @@ final class NotificationManager: NSObject, ObservableObject {
             minutesOffset: afterNotif.defaultMinutes ?? 5,
             template: afterNotif.titleTemplateArabic,
             bodyTemplate: afterNotif.bodyTemplateArabic,
-            sound: afterNotif.sound ?? "notification_alert.mp3"
+            sound: afterNotif.sound
         )
     }
 
@@ -317,15 +317,18 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Remove notifications for a specific task
     func removeTaskNotifications(for task: Task) {
+        // Capture only the needed values to avoid Sendable warnings
+        let taskIdString = task.id.uuidString
+        let taskTitle = task.title
         UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
             let taskIdentifiers = requests
-                .filter { $0.identifier.contains(task.id.uuidString) }
+                .filter { $0.identifier.contains(taskIdString) }
                 .map { $0.identifier }
 
             UNUserNotificationCenter.current().removePendingNotificationRequests(
                 withIdentifiers: taskIdentifiers
             )
-            print("🗑️ Removed notifications for task: \(task.title)")
+            print("🗑️ Removed notifications for task: \(taskTitle)")
         }
     }
 
@@ -345,15 +348,44 @@ final class NotificationManager: NSObject, ObservableObject {
 
     // MARK: - Adhan Playback
 
+    /// Check if a specific adhan audio file is available
+    func isAdhanAvailable(id: String) -> Bool {
+        // Try multiple filename patterns
+        let possibleNames = [id, "\(id)_adhan", "adhan_\(id)", id.replacingOccurrences(of: "_adhan", with: "")]
+        for name in possibleNames {
+            if Bundle.main.url(forResource: name, withExtension: "mp3") != nil {
+                return true
+            }
+        }
+        return false
+    }
+
     /// Play adhan audio
     func playAdhan(style: String = "makkah") {
-        guard let player = audioPlayer else {
-            print("⚠️ Audio player not initialized")
+        // Try to load the specific adhan file
+        let possibleNames = [style, "\(style)_adhan", "adhan_\(style)", style.replacingOccurrences(of: "_adhan", with: "")]
+        var audioURL: URL?
+
+        for name in possibleNames {
+            if let url = Bundle.main.url(forResource: name, withExtension: "mp3") {
+                audioURL = url
+                break
+            }
+        }
+
+        guard let url = audioURL else {
+            print("⚠️ Adhan audio file not found for: \(style)")
             return
         }
 
-        player.play()
-        print("🔊 Playing adhan: \(style)")
+        do {
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.prepareToPlay()
+            player.play()
+            print("🔊 Playing adhan: \(style)")
+        } catch {
+            print("❌ Failed to play adhan: \(error)")
+        }
     }
 
     /// Stop adhan audio

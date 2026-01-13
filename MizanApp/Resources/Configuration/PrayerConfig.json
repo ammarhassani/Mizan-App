@@ -2,9 +2,10 @@
   "version": "1.0",
   "defaults": {
     "fajr": {
+      "iqama_offset_minutes": 25,
       "duration_minutes": 15,
-      "buffer_before_minutes": 10,
-      "buffer_after_minutes": 5,
+      "buffer_before_minutes": 0,
+      "buffer_after_minutes": 0,
       "color_hex": "#14746F",
       "color_hex_light": "#52B788",
       "icon": "sunrise.fill",
@@ -12,9 +13,10 @@
       "english_name": "Fajr"
     },
     "dhuhr": {
-      "duration_minutes": 20,
-      "buffer_before_minutes": 5,
-      "buffer_after_minutes": 5,
+      "iqama_offset_minutes": 20,
+      "duration_minutes": 15,
+      "buffer_before_minutes": 0,
+      "buffer_after_minutes": 0,
       "color_hex": "#0E8F8B",
       "color_hex_light": "#52B788",
       "icon": "sun.max.fill",
@@ -22,9 +24,10 @@
       "english_name": "Dhuhr"
     },
     "asr": {
-      "duration_minutes": 20,
-      "buffer_before_minutes": 5,
-      "buffer_after_minutes": 5,
+      "iqama_offset_minutes": 20,
+      "duration_minutes": 15,
+      "buffer_before_minutes": 0,
+      "buffer_after_minutes": 0,
       "color_hex": "#0E8F8B",
       "color_hex_light": "#52B788",
       "icon": "sun.min.fill",
@@ -32,9 +35,10 @@
       "english_name": "Asr"
     },
     "maghrib": {
+      "iqama_offset_minutes": 10,
       "duration_minutes": 15,
-      "buffer_before_minutes": 5,
-      "buffer_after_minutes": 5,
+      "buffer_before_minutes": 0,
+      "buffer_after_minutes": 0,
       "color_hex": "#D4734C",
       "color_hex_light": "#F59E0B",
       "icon": "sunset.fill",
@@ -42,9 +46,10 @@
       "english_name": "Maghrib"
     },
     "isha": {
-      "duration_minutes": 20,
-      "buffer_before_minutes": 5,
-      "buffer_after_minutes": 5,
+      "iqama_offset_minutes": 20,
+      "duration_minutes": 15,
+      "buffer_before_minutes": 0,
+      "buffer_after_minutes": 0,
       "color_hex": "#6C63FF",
       "color_hex_light": "#8B5CF6",
       "icon": "moon.stars.fill",

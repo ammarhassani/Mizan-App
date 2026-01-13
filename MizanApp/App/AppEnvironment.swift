@@ -35,6 +35,7 @@ final class AppEnvironment: ObservableObject {
     @Published var isInitialized = false
     @Published var initializationError: Error?
     @Published var onboardingCompleted = false
+    @Published var nawafilRefreshTrigger = 0
 
     // MARK: - Initialization
     private init() {
@@ -142,18 +143,17 @@ final class AppEnvironment: ObservableObject {
                         longitude: lon,
                         method: userSettings.calculationMethod
                     )
-                }
 
-                // Start prefetching prayer times in background
-                _Concurrency.Task.detached(priority: .background) { [weak self] in
-                    guard let self = self else { return }
-                    if let lat = await self.userSettings.lastKnownLatitude,
-                       let lon = await self.userSettings.lastKnownLongitude {
+                    // Start prefetching prayer times in background
+                    // Capture values before entering detached task to avoid Sendable warnings
+                    let prefetchMethod = userSettings.calculationMethod
+                    _Concurrency.Task.detached(priority: .background) { [weak self] in
+                        guard let self = self else { return }
                         await self.prayerTimeService.prefetchPrayerTimes(
                             days: 30,
                             latitude: lat,
                             longitude: lon,
-                            method: await self.userSettings.calculationMethod
+                            method: prefetchMethod
                         )
                     }
                 }
@@ -172,7 +172,12 @@ final class AppEnvironment: ObservableObject {
         // 4. Apply saved theme
         themeManager.switchTheme(to: userSettings.selectedTheme, userSettings: userSettings)
 
-        // 5. Check notification authorization and schedule notifications
+        // 5. Generate nawafil for today (Pro feature)
+        if userSettings.isPro && userSettings.nawafilEnabled {
+            generateNawafilForDate(Date(), prayerTimes: prayerTimeService.todayPrayers)
+        }
+
+        // 6. Check notification authorization and schedule notifications
         await notificationManager.checkAuthorizationStatus()
         if notificationManager.isEnabled && userSettings.notificationsEnabled {
             // Schedule notifications for today's prayers
@@ -254,6 +259,129 @@ final class AppEnvironment: ObservableObject {
         print("⚠️ Pro features deactivated")
     }
 
+    // MARK: - Nawafil Generation
+
+    /// Generate nawafil for a specific date based on user settings
+    func generateNawafilForDate(_ date: Date, prayerTimes: [PrayerTime]) {
+        // Only generate if Pro and nawafil are enabled
+        guard userSettings.isPro && userSettings.nawafilEnabled else {
+            print("⏭️ Nawafil skipped (Pro: \(userSettings.isPro), Enabled: \(userSettings.nawafilEnabled))")
+            return
+        }
+
+        // Skip if no enabled nawafil
+        guard !userSettings.enabledNawafil.isEmpty else {
+            print("⏭️ No nawafil types enabled")
+            return
+        }
+
+        // Delete existing nawafil for this date to avoid duplicates
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        let descriptor = FetchDescriptor<NawafilPrayer>()
+        if let existingNawafil = try? modelContext.fetch(descriptor) {
+            let toDelete = existingNawafil.filter { $0.date >= startOfDay && $0.date < endOfDay }
+            for nawafil in toDelete {
+                modelContext.delete(nawafil)
+            }
+        }
+
+        // Generate new nawafil based on enabled types and user's rakaat/time preferences
+        let newNawafil = NawafilPrayer.generateForDate(
+            date,
+            prayerTimes: prayerTimes,
+            enabledNawafilTypes: userSettings.enabledNawafil,
+            rakaatPreferences: userSettings.nawafilRakaatPreferences,
+            timePreferences: userSettings.nawafilTimePreferences
+        )
+
+        // Insert into SwiftData
+        for nawafil in newNawafil {
+            modelContext.insert(nawafil)
+        }
+
+        do {
+            try modelContext.save()
+            print("✅ Generated \(newNawafil.count) nawafil for \(date.formatted(date: .abbreviated, time: .omitted))")
+        } catch {
+            print("❌ Failed to save nawafil: \(error)")
+        }
+    }
+
+    /// Refresh nawafil for today when settings change
+    func refreshNawafil() {
+        // IMPORTANT: Notify observers FIRST to ensure UI updates
+        objectWillChange.send()
+
+        let today = Date()
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: today)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        // Delete ALL nawafil for today first (regardless of enabled state)
+        let nawafilDescriptor = FetchDescriptor<NawafilPrayer>()
+        if let existingNawafil = try? modelContext.fetch(nawafilDescriptor) {
+            let toDelete = existingNawafil.filter { $0.date >= startOfDay && $0.date < endOfDay }
+            for nawafil in toDelete {
+                modelContext.delete(nawafil)
+            }
+            // Save deletion immediately
+            try? modelContext.save()
+            print("🗑️ Deleted \(toDelete.count) nawafil for today")
+        }
+
+        // Only regenerate if nawafil is enabled AND there are enabled types
+        guard userSettings.nawafilEnabled && !userSettings.enabledNawafil.isEmpty else {
+            print("⏭️ Nawafil disabled or no types enabled - skipping generation")
+            nawafilRefreshTrigger += 1
+            return
+        }
+
+        // Get today's prayers from SwiftData
+        let prayerDescriptor = FetchDescriptor<PrayerTime>(
+            sortBy: [SortDescriptor(\.adhanTime)]
+        )
+
+        guard let allPrayers = try? modelContext.fetch(prayerDescriptor) else {
+            print("❌ Could not fetch prayers for nawafil generation")
+            nawafilRefreshTrigger += 1
+            return
+        }
+
+        let todayPrayers = allPrayers.filter { $0.date >= startOfDay && $0.date < endOfDay }
+
+        guard !todayPrayers.isEmpty else {
+            print("⚠️ No prayers found for today - nawafil generation skipped")
+            nawafilRefreshTrigger += 1
+            return
+        }
+
+        // Generate new nawafil with user's rakaat and time preferences
+        let newNawafil = NawafilPrayer.generateForDate(
+            today,
+            prayerTimes: todayPrayers,
+            enabledNawafilTypes: userSettings.enabledNawafil,
+            rakaatPreferences: userSettings.nawafilRakaatPreferences,
+            timePreferences: userSettings.nawafilTimePreferences
+        )
+
+        for nawafil in newNawafil {
+            modelContext.insert(nawafil)
+        }
+
+        do {
+            try modelContext.save()
+            print("✅ Generated \(newNawafil.count) nawafil for today")
+        } catch {
+            print("❌ Failed to save nawafil: \(error)")
+        }
+
+        // Trigger view refresh
+        nawafilRefreshTrigger += 1
+    }
+
     /// Save context
     func save() {
         do {
@@ -317,13 +445,15 @@ final class AppEnvironment: ObservableObject {
             }
 
             // Prefetch next 30 days in background
+            // Capture method before entering detached task to avoid Sendable warnings
+            let prefetchMethod = userSettings.calculationMethod
             _Concurrency.Task.detached(priority: .background) { [weak self] in
                 guard let self = self else { return }
                 await self.prayerTimeService.prefetchPrayerTimes(
                     days: 30,
                     latitude: lat,
                     longitude: lon,
-                    method: await self.userSettings.calculationMethod
+                    method: prefetchMethod
                 )
             }
         } catch {

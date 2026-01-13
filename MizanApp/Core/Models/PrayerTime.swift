@@ -68,27 +68,62 @@ final class PrayerTime {
 
     // MARK: - Computed Properties
 
-    /// Effective start time including buffer before
+    /// Iqama offset in minutes (time between athan and iqama)
+    var iqamaOffset: Int {
+        if isJummah && prayerType == .dhuhr {
+            return 30 // Jummah has 30 min before khutbah starts
+        }
+        let config = ConfigurationManager.shared.prayerConfig.defaults[prayerType.rawValue]
+        return config?.iqamaOffsetMinutes ?? defaultIqamaOffset
+    }
+
+    /// Default iqama offset if not in config
+    private var defaultIqamaOffset: Int {
+        switch prayerType {
+        case .fajr: return 25
+        case .dhuhr: return 20
+        case .asr: return 20
+        case .maghrib: return 10
+        case .isha: return 20
+        }
+    }
+
+    /// Iqama time (when the actual prayer starts)
+    var iqamaStartTime: Date {
+        adhanTime.addingTimeInterval(TimeInterval((manualOffset + iqamaOffset) * 60))
+    }
+
+    /// Iqama end time (prayer ends after 15 minutes)
+    var iqamaEndTime: Date {
+        iqamaStartTime.addingTimeInterval(TimeInterval(duration * 60))
+    }
+
+    /// Total block height in minutes (iqama offset + prayer duration)
+    var totalBlockDuration: Int {
+        iqamaOffset + duration
+    }
+
+    /// Effective start time (block starts at athan time)
     var effectiveStartTime: Date {
-        adhanTime.addingTimeInterval(TimeInterval((manualOffset - bufferBefore) * 60))
+        adhanTime.addingTimeInterval(TimeInterval(manualOffset * 60))
     }
 
-    /// Effective end time including prayer duration and buffer after
+    /// Effective end time (block ends after iqama + prayer duration)
     var effectiveEndTime: Date {
-        adhanTime.addingTimeInterval(TimeInterval((manualOffset + duration + bufferAfter) * 60))
+        iqamaEndTime
     }
 
-    /// Actual prayer start time (with manual offset applied)
+    /// Actual prayer start time (with manual offset applied) - same as athan time for timeline positioning
     var actualPrayerTime: Date {
         adhanTime.addingTimeInterval(TimeInterval(manualOffset * 60))
     }
 
     /// Prayer end time (without buffer)
     var prayerEndTime: Date {
-        actualPrayerTime.addingTimeInterval(TimeInterval(duration * 60))
+        iqamaEndTime
     }
 
-    /// Time range for the entire prayer block (including buffers)
+    /// Time range for the entire prayer block
     var timeRange: ClosedRange<Date> {
         effectiveStartTime...effectiveEndTime
     }

@@ -259,6 +259,8 @@ final class PrayerTimeService: ObservableObject {
             let descriptor = FetchDescriptor<PrayerTime>()
 
             let allPrayers = try modelContext.fetch(descriptor)
+            // Delete ALL prayers for this date/location (regardless of calculation method)
+            // This ensures we don't accumulate old prayers when user changes methods
             let existing = allPrayers.filter { prayer in
                 prayer.date >= startOfDay &&
                 prayer.date < endOfDay &&
@@ -268,6 +270,9 @@ final class PrayerTimeService: ObservableObject {
             for prayer in existing {
                 modelContext.delete(prayer)
             }
+
+            // Save deletion before inserting new
+            try modelContext.save()
         }
 
         // Insert new prayers

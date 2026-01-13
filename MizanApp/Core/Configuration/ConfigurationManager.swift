@@ -94,6 +94,7 @@ struct PrayerConfiguration: Codable {
 }
 
 struct PrayerDefaults: Codable {
+    let iqamaOffsetMinutes: Int
     let durationMinutes: Int
     let bufferBeforeMinutes: Int
     let bufferAfterMinutes: Int

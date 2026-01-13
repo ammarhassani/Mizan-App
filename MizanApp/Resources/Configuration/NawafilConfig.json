@@ -210,65 +210,6 @@
         "default_rakaat": 11,
         "last_10_nights_reminder": true
       }
-    },
-    {
-      "type": "qiyam_al_layl",
-      "arabic_name": "قيام الليل",
-      "english_name": "Qiyam al-Layl",
-      "is_time_block": true,
-      "rakaat": {
-        "user_choice": true,
-        "not_fixed": true
-      },
-      "duration_minutes": 60,
-      "duration_options": [30, 60, 90, 120],
-      "timing": {
-        "calculation": "last_third_of_night",
-        "based_on": ["maghrib", "fajr"],
-        "formula": "maghrib_to_fajr_duration * 2/3 + maghrib_time"
-      },
-      "importance": "time_for_worship",
-      "auto_schedule_if_enabled": false,
-      "user_must_enable": true,
-      "icon": "moon.stars.circle.fill",
-      "color_hex": "#8B5CF6",
-      "color_opacity": 0.75,
-      "description_arabic": "أفضل وقت للعبادة",
-      "description_english": "Best time for worship",
-      "special_styling": true,
-      "display": {
-        "icon_emoji": "🌙✨",
-        "description_arabic": "أفضل وقت للعبادة - صلِّ، اقرأ القرآن، أو ادعُ",
-        "description_english": "Best time for worship - pray, read Quran, or make dua",
-        "show_activities_suggestion": true
-      },
-      "activities": [
-        {
-          "arabic": "صلاة التهجد",
-          "english": "Tahajjud prayer"
-        },
-        {
-          "arabic": "قراءة القرآن",
-          "english": "Quran recitation"
-        },
-        {
-          "arabic": "الدعاء",
-          "english": "Dua (supplication)"
-        },
-        {
-          "arabic": "الذكر",
-          "english": "Dhikr (remembrance)"
-        }
-      ],
-      "ramadan": {
-        "emphasize": true,
-        "default_duration_minutes": 90,
-        "last_10_nights": {
-          "extra_emphasis": true,
-          "laylat_al_qadr_suggestion": true,
-          "odd_nights": [21, 23, 25, 27, 29]
-        }
-      }
     }
   ],
   "rawatib": {

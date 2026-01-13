@@ -272,13 +272,18 @@ extension CLAuthorizationStatus {
 // MARK: - Manual Location Selection
 
 struct ManualLocation: Codable, Identifiable {
-    let id = UUID()
+    var id: UUID = UUID()
     let name: String
     let nameArabic: String
     let latitude: Double
     let longitude: Double
     let countryCode: String
     let timezone: String
+
+    // Exclude id from Codable to avoid "immutable property will not be decoded" warning
+    enum CodingKeys: String, CodingKey {
+        case name, nameArabic, latitude, longitude, countryCode, timezone
+    }
 }
 
 extension LocationManager {
