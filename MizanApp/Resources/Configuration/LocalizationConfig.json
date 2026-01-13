@@ -1,0 +1,509 @@
+{
+  "version": "1.0",
+  "default_language": "arabic",
+  "supported_languages": ["arabic", "english"],
+  "strings": {
+    "app": {
+      "name": {
+        "arabic": "ميزان",
+        "english": "Mizan"
+      },
+      "tagline": {
+        "arabic": "خطط يومك حول ما يهم حقًا",
+        "english": "Plan your day around what matters most"
+      }
+    },
+    "common": {
+      "save": {
+        "arabic": "حفظ",
+        "english": "Save"
+      },
+      "cancel": {
+        "arabic": "إلغاء",
+        "english": "Cancel"
+      },
+      "delete": {
+        "arabic": "حذف",
+        "english": "Delete"
+      },
+      "edit": {
+        "arabic": "تعديل",
+        "english": "Edit"
+      },
+      "done": {
+        "arabic": "تم",
+        "english": "Done"
+      },
+      "close": {
+        "arabic": "إغلاق",
+        "english": "Close"
+      },
+      "continue": {
+        "arabic": "متابعة",
+        "english": "Continue"
+      },
+      "skip": {
+        "arabic": "تخطي",
+        "english": "Skip"
+      },
+      "next": {
+        "arabic": "التالي",
+        "english": "Next"
+      },
+      "back": {
+        "arabic": "رجوع",
+        "english": "Back"
+      },
+      "enable": {
+        "arabic": "تفعيل",
+        "english": "Enable"
+      },
+      "disable": {
+        "arabic": "تعطيل",
+        "english": "Disable"
+      },
+      "settings": {
+        "arabic": "الإعدادات",
+        "english": "Settings"
+      },
+      "error": {
+        "arabic": "خطأ",
+        "english": "Error"
+      },
+      "loading": {
+        "arabic": "جارٍ التحميل...",
+        "english": "Loading..."
+      },
+      "retry": {
+        "arabic": "إعادة المحاولة",
+        "english": "Retry"
+      }
+    },
+    "onboarding": {
+      "welcome_title": {
+        "arabic": "مرحبًا بك في ميزان",
+        "english": "Welcome to Mizan"
+      },
+      "welcome_subtitle": {
+        "arabic": "التطبيق الأول لتنظيم يومك حول أوقات الصلاة",
+        "english": "The first app to organize your day around prayer times"
+      },
+      "location_title": {
+        "arabic": "تحديد الموقع",
+        "english": "Location"
+      },
+      "location_subtitle": {
+        "arabic": "نحتاج موقعك لحساب أوقات الصلاة الدقيقة",
+        "english": "We need your location for accurate prayer times"
+      },
+      "location_privacy": {
+        "arabic": "موقعك يبقى على جهازك",
+        "english": "Your location stays on your device"
+      },
+      "calculation_method_title": {
+        "arabic": "طريقة الحساب",
+        "english": "Calculation Method"
+      },
+      "calculation_method_subtitle": {
+        "arabic": "اختر طريقة حساب أوقات الصلاة المناسبة لمنطقتك",
+        "english": "Choose the prayer time calculation method for your region"
+      },
+      "notifications_title": {
+        "arabic": "التنبيهات",
+        "english": "Notifications"
+      },
+      "notifications_subtitle": {
+        "arabic": "احصل على تذكير بأوقات الصلاة والمهام",
+        "english": "Get reminders for prayers and tasks"
+      },
+      "get_started": {
+        "arabic": "ابدأ الآن",
+        "english": "Get Started"
+      }
+    },
+    "timeline": {
+      "title": {
+        "arabic": "الجدول",
+        "english": "Timeline"
+      },
+      "current_time": {
+        "arabic": "الوقت الحالي",
+        "english": "Current Time"
+      },
+      "next_prayer": {
+        "arabic": "الصلاة القادمة",
+        "english": "Next Prayer"
+      },
+      "in_minutes": {
+        "arabic": "بعد {minutes} دقيقة",
+        "english": "In {minutes} minutes"
+      },
+      "empty_state_title": {
+        "arabic": "لا توجد مهام مجدولة",
+        "english": "No tasks scheduled"
+      },
+      "empty_state_subtitle": {
+        "arabic": "اسحب المهام من القائمة لجدولتها",
+        "english": "Drag tasks from inbox to schedule them"
+      }
+    },
+    "tasks": {
+      "inbox": {
+        "arabic": "قائمة المهام",
+        "english": "Inbox"
+      },
+      "new_task": {
+        "arabic": "مهمة جديدة",
+        "english": "New Task"
+      },
+      "title": {
+        "arabic": "العنوان",
+        "english": "Title"
+      },
+      "title_placeholder": {
+        "arabic": "ماذا تريد أن تفعل؟",
+        "english": "What do you want to do?"
+      },
+      "duration": {
+        "arabic": "المدة",
+        "english": "Duration"
+      },
+      "category": {
+        "arabic": "الفئة",
+        "english": "Category"
+      },
+      "notes": {
+        "arabic": "ملاحظات",
+        "english": "Notes"
+      },
+      "notes_placeholder": {
+        "arabic": "أضف ملاحظات (اختياري)",
+        "english": "Add notes (optional)"
+      },
+      "completed": {
+        "arabic": "مكتملة",
+        "english": "Completed"
+      },
+      "mark_complete": {
+        "arabic": "وضع علامة مكتمل",
+        "english": "Mark Complete"
+      },
+      "delete_confirmation": {
+        "arabic": "هل أنت متأكد من حذف هذه المهمة؟",
+        "english": "Are you sure you want to delete this task?"
+      }
+    },
+    "task_categories": {
+      "work": {
+        "arabic": "عمل",
+        "english": "Work"
+      },
+      "personal": {
+        "arabic": "شخصي",
+        "english": "Personal"
+      },
+      "study": {
+        "arabic": "دراسة",
+        "english": "Study"
+      },
+      "health": {
+        "arabic": "صحة",
+        "english": "Health"
+      },
+      "social": {
+        "arabic": "اجتماعي",
+        "english": "Social"
+      },
+      "worship": {
+        "arabic": "عبادة",
+        "english": "Worship"
+      }
+    },
+    "prayer": {
+      "settings_title": {
+        "arabic": "إعدادات الصلاة",
+        "english": "Prayer Settings"
+      },
+      "calculation_method": {
+        "arabic": "طريقة الحساب",
+        "english": "Calculation Method"
+      },
+      "adjust_times": {
+        "arabic": "ضبط الأوقات يدويًا",
+        "english": "Adjust Times Manually"
+      },
+      "adjustment_minutes": {
+        "arabic": "{minutes} دقيقة",
+        "english": "{minutes} minutes"
+      },
+      "duration": {
+        "arabic": "مدة الصلاة",
+        "english": "Prayer Duration"
+      },
+      "buffer_before": {
+        "arabic": "وقت التحضير",
+        "english": "Buffer Before"
+      },
+      "buffer_after": {
+        "arabic": "وقت بعد الصلاة",
+        "english": "Buffer After"
+      },
+      "adhan_sound": {
+        "arabic": "صوت الأذان",
+        "english": "Adhan Sound"
+      }
+    },
+    "nawafil": {
+      "title": {
+        "arabic": "النوافل",
+        "english": "Nawafil"
+      },
+      "subtitle": {
+        "arabic": "الصلوات المستحبة",
+        "english": "Voluntary Prayers"
+      },
+      "enable_rawatib": {
+        "arabic": "تفعيل السنن الرواتب",
+        "english": "Enable Regular Sunnah"
+      },
+      "rawatib_description": {
+        "arabic": "السنن الرواتب هي صلوات مؤكدة قبل وبعد الصلوات المفروضة",
+        "english": "Regular sunnah prayers before and after obligatory prayers"
+      },
+      "pro_feature": {
+        "arabic": "ميزة احترافية",
+        "english": "Pro Feature"
+      },
+      "badge": {
+        "arabic": "نافلة",
+        "english": "Nafil"
+      },
+      "optional": {
+        "arabic": "اختيارية",
+        "english": "Optional"
+      }
+    },
+    "settings": {
+      "title": {
+        "arabic": "الإعدادات",
+        "english": "Settings"
+      },
+      "appearance": {
+        "arabic": "المظهر",
+        "english": "Appearance"
+      },
+      "theme": {
+        "arabic": "السمة",
+        "english": "Theme"
+      },
+      "language": {
+        "arabic": "اللغة",
+        "english": "Language"
+      },
+      "numerals": {
+        "arabic": "نوع الأرقام",
+        "english": "Numeral Type"
+      },
+      "arabic_numerals": {
+        "arabic": "أرقام عربية (١٢٣)",
+        "english": "Arabic Numerals (١٢٣)"
+      },
+      "western_numerals": {
+        "arabic": "أرقام غربية (123)",
+        "english": "Western Numerals (123)"
+      },
+      "show_hijri_date": {
+        "arabic": "إظهار التاريخ الهجري",
+        "english": "Show Hijri Date"
+      },
+      "notifications": {
+        "arabic": "التنبيهات",
+        "english": "Notifications"
+      },
+      "prayer_notifications": {
+        "arabic": "تنبيهات الصلاة",
+        "english": "Prayer Notifications"
+      },
+      "task_notifications": {
+        "arabic": "تنبيهات المهام",
+        "english": "Task Notifications"
+      },
+      "about": {
+        "arabic": "حول التطبيق",
+        "english": "About"
+      },
+      "version": {
+        "arabic": "الإصدار",
+        "english": "Version"
+      },
+      "privacy_policy": {
+        "arabic": "سياسة الخصوصية",
+        "english": "Privacy Policy"
+      },
+      "terms_of_service": {
+        "arabic": "شروط الاستخدام",
+        "english": "Terms of Service"
+      },
+      "support": {
+        "arabic": "الدعم",
+        "english": "Support"
+      },
+      "upgrade_to_pro": {
+        "arabic": "الترقية إلى النسخة الاحترافية",
+        "english": "Upgrade to Pro"
+      }
+    },
+    "pro": {
+      "title": {
+        "arabic": "ميزان الاحترافي",
+        "english": "Mizan Pro"
+      },
+      "tagline": {
+        "arabic": "اكتشف إمكانياتك الكاملة",
+        "english": "Unlock Your Full Potential"
+      },
+      "features_title": {
+        "arabic": "الميزات الاحترافية",
+        "english": "Pro Features"
+      },
+      "feature_themes": {
+        "arabic": "4 سمات إضافية جميلة",
+        "english": "4 Beautiful Premium Themes"
+      },
+      "feature_nawafil": {
+        "arabic": "تتبع النوافل والسنن",
+        "english": "Nawafil & Sunnah Tracking"
+      },
+      "feature_recurring": {
+        "arabic": "مهام متكررة",
+        "english": "Recurring Tasks"
+      },
+      "feature_notifications": {
+        "arabic": "تنبيهات متقدمة",
+        "english": "Advanced Notifications"
+      },
+      "feature_calendar_sync": {
+        "arabic": "مزامنة التقويم",
+        "english": "Calendar Sync"
+      },
+      "feature_adhan": {
+        "arabic": "أصوات أذان متعددة",
+        "english": "Multiple Adhan Sounds"
+      },
+      "pricing_monthly": {
+        "arabic": "شهريًا",
+        "english": "Monthly"
+      },
+      "pricing_annual": {
+        "arabic": "سنويًا",
+        "english": "Annual"
+      },
+      "pricing_lifetime": {
+        "arabic": "مدى الحياة",
+        "english": "Lifetime"
+      },
+      "save_percentage": {
+        "arabic": "وفر {percent}٪",
+        "english": "Save {percent}%"
+      },
+      "start_free_trial": {
+        "arabic": "بدء تجربة مجانية",
+        "english": "Start Free Trial"
+      },
+      "trial_duration": {
+        "arabic": "تجربة مجانية لمدة 7 أيام",
+        "english": "7-day free trial"
+      },
+      "restore_purchase": {
+        "arabic": "استعادة المشتريات",
+        "english": "Restore Purchase"
+      }
+    },
+    "errors": {
+      "network_error": {
+        "arabic": "خطأ في الاتصال بالإنترنت",
+        "english": "Network connection error"
+      },
+      "location_denied": {
+        "arabic": "تم رفض إذن الموقع",
+        "english": "Location permission denied"
+      },
+      "location_unavailable": {
+        "arabic": "لا يمكن تحديد الموقع",
+        "english": "Location unavailable"
+      },
+      "prayer_times_failed": {
+        "arabic": "فشل تحميل أوقات الصلاة",
+        "english": "Failed to load prayer times"
+      },
+      "using_cached_times": {
+        "arabic": "استخدام أوقات محفوظة",
+        "english": "Using cached times"
+      },
+      "offline_mode": {
+        "arabic": "وضع عدم الاتصال",
+        "english": "Offline Mode"
+      },
+      "invalid_task_time": {
+        "arabic": "لا يمكن جدولة المهمة في وقت الصلاة",
+        "english": "Cannot schedule task during prayer time"
+      },
+      "task_conflict": {
+        "arabic": "تعارض مع الصلاة",
+        "english": "Conflicts with prayer"
+      }
+    },
+    "date_time": {
+      "today": {
+        "arabic": "اليوم",
+        "english": "Today"
+      },
+      "tomorrow": {
+        "arabic": "غدًا",
+        "english": "Tomorrow"
+      },
+      "yesterday": {
+        "arabic": "أمس",
+        "english": "Yesterday"
+      },
+      "minutes_short": {
+        "arabic": "د",
+        "english": "m"
+      },
+      "hours_short": {
+        "arabic": "س",
+        "english": "h"
+      },
+      "days": {
+        "saturday": {
+          "arabic": "السبت",
+          "english": "Saturday"
+        },
+        "sunday": {
+          "arabic": "الأحد",
+          "english": "Sunday"
+        },
+        "monday": {
+          "arabic": "الاثنين",
+          "english": "Monday"
+        },
+        "tuesday": {
+          "arabic": "الثلاثاء",
+          "english": "Tuesday"
+        },
+        "wednesday": {
+          "arabic": "الأربعاء",
+          "english": "Wednesday"
+        },
+        "thursday": {
+          "arabic": "الخميس",
+          "english": "Thursday"
+        },
+        "friday": {
+          "arabic": "الجمعة",
+          "english": "Friday"
+        }
+      }
+    }
+  }
+}

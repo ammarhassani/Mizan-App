@@ -1,0 +1,338 @@
+{
+  "version": "1.0",
+  "springs": {
+    "gentle": {
+      "response": 0.5,
+      "damping_fraction": 0.8,
+      "blend_duration": 0.2,
+      "description": "Smooth, calm animations for general UI transitions"
+    },
+    "bouncy": {
+      "response": 0.4,
+      "damping_fraction": 0.6,
+      "blend_duration": 0.15,
+      "description": "Playful spring with overshoot for attention-grabbing actions"
+    },
+    "snappy": {
+      "response": 0.3,
+      "damping_fraction": 0.9,
+      "blend_duration": 0.1,
+      "description": "Quick, precise animations for responsive feedback"
+    },
+    "soft": {
+      "response": 0.6,
+      "damping_fraction": 0.85,
+      "blend_duration": 0.25,
+      "description": "Very gentle for subtle state changes"
+    },
+    "stiff": {
+      "response": 0.2,
+      "damping_fraction": 0.95,
+      "blend_duration": 0.08,
+      "description": "Tight, fast animations for immediate response"
+    }
+  },
+  "durations": {
+    "instant": 0.0,
+    "very_fast": 0.15,
+    "fast": 0.2,
+    "medium": 0.4,
+    "slow": 0.6,
+    "very_slow": 0.8,
+    "app_launch": 1.2
+  },
+  "easing": {
+    "linear": [0.0, 0.0, 1.0, 1.0],
+    "ease_in": [0.42, 0.0, 1.0, 1.0],
+    "ease_out": [0.0, 0.0, 0.58, 1.0],
+    "ease_in_out": [0.42, 0.0, 0.58, 1.0],
+    "ease_in_back": [0.6, -0.28, 0.735, 0.045],
+    "ease_out_back": [0.175, 0.885, 0.32, 1.275],
+    "ease_in_out_back": [0.68, -0.55, 0.265, 1.55],
+    "anticipation": [0.68, -0.55, 0.265, 1.55]
+  },
+  "haptics": {
+    "light": {
+      "intensity": 0.5,
+      "sharpness": 0.5,
+      "usage": "Toggle switches, selecting items, scrolling snap points"
+    },
+    "medium": {
+      "intensity": 0.7,
+      "sharpness": 0.7,
+      "usage": "Task creation, drag start, navigation transitions"
+    },
+    "heavy": {
+      "intensity": 1.0,
+      "sharpness": 1.0,
+      "usage": "Prayer alert, collision detection, theme change"
+    },
+    "success": {
+      "type": "notification",
+      "notification_type": "success",
+      "usage": "Task completion, prayer marked, settings saved"
+    },
+    "warning": {
+      "type": "notification",
+      "notification_type": "warning",
+      "usage": "Prayer conflict, validation error, unsaved changes"
+    },
+    "error": {
+      "type": "notification",
+      "notification_type": "error",
+      "usage": "Failed action, network error, invalid input"
+    },
+    "selection": {
+      "type": "selection",
+      "usage": "Time scrubbing, duration adjustment, category picker"
+    }
+  },
+  "haptic_settings": {
+    "min_interval_ms": 100
+  },
+  "signature_animations": {
+    "app_launch": {
+      "total_duration": 1.2,
+      "sequence": [
+        {
+          "action": "splash_fade_out",
+          "duration": 0.3,
+          "delay": 0.0,
+          "easing": "ease_out"
+        },
+        {
+          "action": "prayer_countdown_scale_in",
+          "duration": 0.4,
+          "delay": 0.3,
+          "spring": "bouncy",
+          "haptic": "medium",
+          "scale_from": 0.8,
+          "scale_to": 1.0
+        },
+        {
+          "action": "timeline_stagger_fade_in",
+          "duration": 0.5,
+          "delay": 0.5,
+          "easing": "ease_out",
+          "stagger_interval": 0.05
+        }
+      ]
+    },
+    "task_creation": {
+      "total_duration": 0.9,
+      "sequence": [
+        {
+          "action": "button_scale_down",
+          "duration": 0.1,
+          "delay": 0.0,
+          "haptic": "light",
+          "scale_to": 0.95
+        },
+        {
+          "action": "sheet_slide_up",
+          "duration": 0.4,
+          "delay": 0.1,
+          "spring": "bouncy",
+          "overshoot": true
+        },
+        {
+          "action": "keyboard_appear",
+          "duration": 0.3,
+          "delay": 0.2
+        },
+        {
+          "action": "title_field_pulse",
+          "duration": 0.3,
+          "delay": 0.4,
+          "pulse_scale": 1.02
+        }
+      ]
+    },
+    "drag_lift": {
+      "duration": 0.2,
+      "spring": "snappy",
+      "haptic": "medium",
+      "scale": 1.05,
+      "shadow_radius": 16.0,
+      "shadow_opacity": 0.3,
+      "rotate_degrees": 2.0
+    },
+    "drag_drop": {
+      "duration": 0.3,
+      "spring": "bouncy",
+      "haptic": "success",
+      "scale_from": 1.05,
+      "scale_to": 1.0
+    },
+    "collision_warning": {
+      "glow_color": "#EF4444",
+      "glow_radius": 12.0,
+      "pulse_duration": 1.0,
+      "pulse_min_opacity": 0.3,
+      "pulse_max_opacity": 0.7,
+      "wobble_angle": 3.0,
+      "wobble_duration": 0.2,
+      "haptic": "warning"
+    },
+    "collision_bounce_back": {
+      "duration": 0.4,
+      "spring": "bouncy",
+      "haptic": "error",
+      "overshoot": true
+    },
+    "task_completion": {
+      "sequence": [
+        {
+          "action": "checkmark_scale",
+          "duration": 0.4,
+          "spring": "bouncy",
+          "scale_from": 0.0,
+          "scale_to": 1.2,
+          "scale_settle": 1.0
+        },
+        {
+          "action": "task_fade_out",
+          "duration": 0.3,
+          "delay": 0.1,
+          "easing": "ease_in"
+        },
+        {
+          "action": "confetti_burst",
+          "duration": 0.5,
+          "delay": 0.1,
+          "pro_only": true
+        }
+      ],
+      "haptic": "success"
+    },
+    "theme_switch": {
+      "total_duration": 1.1,
+      "sequence": [
+        {
+          "action": "current_theme_scale_out",
+          "duration": 0.3,
+          "easing": "ease_in",
+          "scale_to": 0.95,
+          "blur_radius": 10.0
+        },
+        {
+          "action": "color_wave_transition",
+          "duration": 0.5,
+          "delay": 0.3,
+          "easing": "ease_in_out"
+        },
+        {
+          "action": "new_theme_scale_in",
+          "duration": 0.3,
+          "delay": 0.8,
+          "spring": "gentle",
+          "scale_from": 0.95,
+          "scale_to": 1.0
+        }
+      ],
+      "haptic": "heavy",
+      "haptic_delay": 0.5
+    },
+    "prayer_time_approach": {
+      "ten_minutes_before": {
+        "action": "pulse_glow",
+        "pulse_duration": 3.0,
+        "continuous": true
+      },
+      "five_minutes_before": {
+        "action": "pulse_glow_intense",
+        "pulse_duration": 2.0,
+        "continuous": true
+      },
+      "one_minute_before": {
+        "action": "background_gradient_shift",
+        "duration": 1.0
+      },
+      "at_prayer_time": {
+        "action": "fullscreen_expansion",
+        "duration": 0.6,
+        "spring": "bouncy",
+        "haptic": "heavy"
+      }
+    },
+    "sheet_presentation": {
+      "appear": {
+        "duration": 0.4,
+        "spring": "bouncy",
+        "overshoot": true
+      },
+      "dismiss": {
+        "duration": 0.3,
+        "easing": "ease_in"
+      }
+    },
+    "button_press": {
+      "press_duration": 0.1,
+      "release_duration": 0.2,
+      "press_scale": 0.95,
+      "press_opacity": 0.8,
+      "haptic": "light"
+    }
+  },
+  "performance": {
+    "target_fps": 60,
+    "minimum_acceptable_fps": 45,
+    "enable_frame_rate_monitoring": true,
+    "reduce_motion_threshold": 0.5,
+    "lazy_loading_threshold_hours": 3,
+    "debounce_haptic_ms": 100
+  },
+  "micro_interactions": {
+    "toggle_switch": {
+      "slide_duration": 0.3,
+      "spring": "snappy",
+      "haptic": "light"
+    },
+    "slider": {
+      "drag_spring": "stiff",
+      "haptic_on_snap": "selection",
+      "snap_interval": 15
+    },
+    "picker": {
+      "scroll_spring": "gentle",
+      "haptic_on_change": "selection"
+    },
+    "navigation_transition": {
+      "push_duration": 0.4,
+      "pop_duration": 0.3,
+      "spring": "gentle"
+    },
+    "loading_spinner": {
+      "rotation_duration": 1.0,
+      "easing": "linear",
+      "continuous": true
+    },
+    "skeleton_shimmer": {
+      "duration": 1.5,
+      "easing": "ease_in_out",
+      "continuous": true
+    },
+    "empty_state": {
+      "sequence": [
+        {
+          "action": "icon_scale_bounce",
+          "duration": 0.5,
+          "delay": 0.0,
+          "spring": "bouncy"
+        },
+        {
+          "action": "text_fade_slide_up",
+          "duration": 0.4,
+          "delay": 0.2,
+          "stagger": true
+        },
+        {
+          "action": "button_pop",
+          "duration": 0.3,
+          "delay": 0.5,
+          "spring": "bouncy"
+        }
+      ]
+    }
+  }
+}

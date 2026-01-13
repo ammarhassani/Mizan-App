@@ -1,0 +1,275 @@
+{
+  "version": "1.0",
+  "prayer_notifications": {
+    "before_prayer": {
+      "default_minutes": 10,
+      "title_template_arabic": "حان وقت {prayer_name}",
+      "title_template_english": "Time for {prayer_name}",
+      "body_template_arabic": "متبقي {minutes} دقيقة على الصلاة",
+      "body_template_english": "{minutes} minutes until prayer",
+      "sound": "notification_soft.mp3",
+      "category": "PRAYER_REMINDER",
+      "critical": false,
+      "badge_increment": 0
+    },
+    "at_prayer_time": {
+      "title_template_arabic": "{prayer_name}",
+      "title_template_english": "{prayer_name}",
+      "body_template_arabic": "حان الآن وقت {prayer_name}",
+      "body_template_english": "It's time for {prayer_name}",
+      "sound": "adhan_selected_by_user",
+      "category": "PRAYER_TIME",
+      "critical": true,
+      "badge_increment": 1,
+      "full_screen": true
+    },
+    "after_prayer": {
+      "default_minutes": 5,
+      "title_template_arabic": "لا تنسَ صلاة {prayer_name}",
+      "title_template_english": "Don't forget {prayer_name}",
+      "body_template_arabic": "مضى {minutes} دقيقة على وقت الصلاة",
+      "body_template_english": "{minutes} minutes since prayer time",
+      "sound": "notification_alert.mp3",
+      "category": "PRAYER_REMINDER_LATE",
+      "critical": false,
+      "badge_increment": 0
+    }
+  },
+  "task_notifications": {
+    "at_task_start": {
+      "enabled_for": ["free", "pro"],
+      "title_template_arabic": "حان وقت: {task_title}",
+      "title_template_english": "Time for: {task_title}",
+      "body_template_arabic": "مدة المهمة: {duration} دقيقة",
+      "body_template_english": "Duration: {duration} minutes",
+      "sound": "notification_soft.mp3",
+      "category": "TASK_START",
+      "critical": false,
+      "badge_increment": 1
+    },
+    "before_task_start": {
+      "pro_only": true,
+      "default_minutes": 5,
+      "options": [5, 10, 15, 30],
+      "title_template_arabic": "قريبًا: {task_title}",
+      "title_template_english": "Coming up: {task_title}",
+      "body_template_arabic": "ستبدأ بعد {minutes} دقيقة",
+      "body_template_english": "Starts in {minutes} minutes",
+      "sound": "notification_soft.mp3",
+      "category": "TASK_REMINDER",
+      "critical": false,
+      "badge_increment": 0
+    },
+    "after_task_end": {
+      "pro_only": true,
+      "default_minutes": 10,
+      "title_template_arabic": "انتهت مدة: {task_title}",
+      "title_template_english": "Time's up: {task_title}",
+      "body_template_arabic": "هل أنجزت المهمة؟",
+      "body_template_english": "Did you finish the task?",
+      "sound": "notification_alert.mp3",
+      "category": "TASK_OVERRUN",
+      "critical": false,
+      "badge_increment": 0
+    }
+  },
+  "nawafil_notifications": {
+    "reminder": {
+      "pro_only": true,
+      "enabled_by_default": true,
+      "minutes_before": 5,
+      "title_template_arabic": "وقت {nawafil_name}",
+      "title_template_english": "Time for {nawafil_name}",
+      "body_template_arabic": "نافلة مقترحة - اختيارية",
+      "body_template_english": "Suggested voluntary prayer - optional",
+      "sound": "soft_bell.mp3",
+      "category": "NAWAFIL_REMINDER",
+      "critical": false,
+      "badge_increment": 0,
+      "gentle_tone": true
+    }
+  },
+  "special_notifications": {
+    "jummah": {
+      "one_hour_before": {
+        "title_arabic": "صلاة الجمعة خلال ساعة",
+        "title_english": "Jummah in 1 hour",
+        "body_arabic": "لا تنسَ الاستعداد للجمعة",
+        "body_english": "Don't forget to prepare for Jummah",
+        "enabled_by_default": true
+      },
+      "thirty_minutes_before": {
+        "title_arabic": "حان وقت التوجه للمسجد",
+        "title_english": "Time to head to the mosque",
+        "body_arabic": "صلاة الجمعة بعد 30 دقيقة",
+        "body_english": "Jummah prayer in 30 minutes"
+      }
+    },
+    "ramadan": {
+      "suhoor_reminder": {
+        "title_arabic": "استيقظ للسحور",
+        "title_english": "Wake up for Suhoor",
+        "body_arabic": "الفجر بعد {minutes} دقيقة",
+        "body_english": "Fajr in {minutes} minutes",
+        "minutes_before_fajr": 60
+      },
+      "iftar": {
+        "title_arabic": "حان وقت الإفطار! 🌙",
+        "title_english": "Time to break your fast! 🌙",
+        "body_arabic": "اللهم لك صمت وعلى رزقك أفطرت",
+        "body_english": "Allahumma laka sumtu wa ala rizqika aftartu"
+      },
+      "last_10_nights": {
+        "title_arabic": "ليلة من العشر الأواخر",
+        "title_english": "One of the last 10 nights",
+        "body_arabic": "وقت مثالي لقيام الليل والدعاء",
+        "body_english": "Perfect time for Qiyam and dua"
+      }
+    }
+  },
+  "notification_actions": {
+    "task_complete": {
+      "identifier": "COMPLETE_TASK",
+      "title_arabic": "تم",
+      "title_english": "Complete",
+      "foreground": false,
+      "destructive": false
+    },
+    "task_snooze": {
+      "identifier": "SNOOZE_TASK",
+      "title_arabic": "غفوة 10 د",
+      "title_english": "Snooze 10m",
+      "foreground": false,
+      "destructive": false,
+      "snooze_minutes": 10
+    },
+    "task_extend": {
+      "identifier": "EXTEND_TASK",
+      "title_arabic": "تمديد 15 د",
+      "title_english": "Extend 15m",
+      "foreground": false,
+      "destructive": false,
+      "pro_only": true,
+      "extend_minutes": 15
+    },
+    "prayer_mark_prayed": {
+      "identifier": "MARK_PRAYED",
+      "title_arabic": "صليت",
+      "title_english": "Prayed",
+      "foreground": false,
+      "destructive": false,
+      "optional": true
+    },
+    "nawafil_skip": {
+      "identifier": "SKIP_NAWAFIL",
+      "title_arabic": "تخطي",
+      "title_english": "Skip",
+      "foreground": false,
+      "destructive": false,
+      "pro_only": true
+    }
+  },
+  "notification_categories": {
+    "PRAYER_REMINDER": {
+      "actions": ["prayer_mark_prayed"],
+      "intent_identifiers": [],
+      "options": ["customDismissAction"]
+    },
+    "PRAYER_TIME": {
+      "actions": ["prayer_mark_prayed"],
+      "intent_identifiers": [],
+      "options": ["customDismissAction", "allowInCarPlay"]
+    },
+    "PRAYER_REMINDER_LATE": {
+      "actions": ["prayer_mark_prayed"],
+      "intent_identifiers": [],
+      "options": []
+    },
+    "TASK_START": {
+      "actions": ["task_complete", "task_snooze", "task_extend"],
+      "intent_identifiers": [],
+      "options": []
+    },
+    "TASK_REMINDER": {
+      "actions": ["task_snooze"],
+      "intent_identifiers": [],
+      "options": []
+    },
+    "TASK_OVERRUN": {
+      "actions": ["task_complete", "task_extend"],
+      "intent_identifiers": [],
+      "options": []
+    },
+    "NAWAFIL_REMINDER": {
+      "actions": ["nawafil_skip"],
+      "intent_identifiers": [],
+      "options": ["customDismissAction"]
+    }
+  },
+  "sounds": {
+    "adhan_options": [
+      {
+        "id": "default_adhan",
+        "name_arabic": "الأذان الافتراضي",
+        "name_english": "Default Adhan",
+        "filename": "default_adhan.mp3",
+        "duration_seconds": 180,
+        "pro": false
+      },
+      {
+        "id": "makkah_adhan",
+        "name_arabic": "أذان مكة المكرمة",
+        "name_english": "Makkah Adhan",
+        "filename": "makkah_adhan.mp3",
+        "duration_seconds": 200,
+        "pro": true
+      },
+      {
+        "id": "madinah_adhan",
+        "name_arabic": "أذان المدينة المنورة",
+        "name_english": "Madinah Adhan",
+        "filename": "madinah_adhan.mp3",
+        "duration_seconds": 190,
+        "pro": true
+      },
+      {
+        "id": "egypt_adhan",
+        "name_arabic": "أذان مصر",
+        "name_english": "Egypt Adhan",
+        "filename": "egypt_adhan.mp3",
+        "duration_seconds": 210,
+        "pro": true
+      }
+    ],
+    "notification_sounds": [
+      {
+        "id": "soft",
+        "filename": "notification_soft.mp3"
+      },
+      {
+        "id": "alert",
+        "filename": "notification_alert.mp3"
+      },
+      {
+        "id": "bell",
+        "filename": "soft_bell.mp3"
+      }
+    ]
+  },
+  "settings": {
+    "do_not_disturb": {
+      "respect_system_dnd": true,
+      "override_for_prayer": false,
+      "override_for_critical": true
+    },
+    "badge": {
+      "show_pending_tasks": true,
+      "show_prayer_count": false,
+      "max_badge_number": 99
+    },
+    "delivery": {
+      "immediate": true,
+      "provisional_auth_if_declined": true
+    }
+  }
+}

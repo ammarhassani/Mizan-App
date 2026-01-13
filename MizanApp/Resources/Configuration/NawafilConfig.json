@@ -1,0 +1,313 @@
+{
+  "version": "1.0",
+  "pro_feature": true,
+  "nawafil_types": [
+    {
+      "type": "before_fajr",
+      "arabic_name": "ركعتا الفجر",
+      "english_name": "Sunnah Before Fajr",
+      "rakaat": {
+        "fixed": 2,
+        "user_configurable": false
+      },
+      "duration_minutes": 10,
+      "timing": {
+        "attachment": "fajr",
+        "position": "before",
+        "offset_minutes": -15,
+        "relative_to": "adhan"
+      },
+      "importance": "highly_emphasized",
+      "auto_schedule_if_rawatib_enabled": true,
+      "icon": "sunrise.fill",
+      "color_hex": "#52B788",
+      "color_opacity": 0.7,
+      "description_arabic": "سنة مؤكدة قبل الفجر",
+      "description_english": "Highly emphasized sunnah before Fajr"
+    },
+    {
+      "type": "duha",
+      "arabic_name": "صلاة الضحى",
+      "english_name": "Duha Prayer",
+      "rakaat": {
+        "min": 2,
+        "max": 12,
+        "default": 4,
+        "must_be_even": true,
+        "user_configurable": true
+      },
+      "duration_per_2_rakaat_minutes": 5,
+      "timing": {
+        "earliest": "15_min_after_sunrise",
+        "latest": "10_min_before_dhuhr",
+        "suggested_time": "mid_morning",
+        "suggested_time_formula": "sunrise + 2.5 hours"
+      },
+      "importance": "recommended",
+      "auto_schedule_if_enabled": false,
+      "user_must_enable": true,
+      "icon": "sun.max.fill",
+      "color_hex": "#F59E0B",
+      "color_opacity": 0.7,
+      "description_arabic": "صلاة الضحى - من أفضل النوافل",
+      "description_english": "Forenoon prayer - among the best voluntary prayers"
+    },
+    {
+      "type": "before_dhuhr",
+      "arabic_name": "أربع ركعات قبل الظهر",
+      "english_name": "Four Rakaat Before Dhuhr",
+      "rakaat": {
+        "fixed": 4,
+        "user_configurable": false
+      },
+      "duration_minutes": 15,
+      "timing": {
+        "attachment": "dhuhr",
+        "position": "before",
+        "offset_minutes": -20,
+        "relative_to": "adhan"
+      },
+      "importance": "rawatib",
+      "auto_schedule_if_rawatib_enabled": true,
+      "icon": "sun.max.fill",
+      "color_hex": "#0E8F8B",
+      "color_opacity": 0.6,
+      "description_arabic": "من السنن الرواتب",
+      "description_english": "Regular sunnah prayer"
+    },
+    {
+      "type": "after_dhuhr",
+      "arabic_name": "ركعتان بعد الظهر",
+      "english_name": "Two Rakaat After Dhuhr",
+      "rakaat": {
+        "fixed": 2,
+        "user_configurable": false
+      },
+      "duration_minutes": 10,
+      "timing": {
+        "attachment": "dhuhr",
+        "position": "after",
+        "offset_minutes": 0,
+        "relative_to": "end_of_prayer"
+      },
+      "importance": "rawatib",
+      "auto_schedule_if_rawatib_enabled": true,
+      "icon": "sun.max.fill",
+      "color_hex": "#0E8F8B",
+      "color_opacity": 0.6,
+      "description_arabic": "من السنن الرواتب",
+      "description_english": "Regular sunnah prayer"
+    },
+    {
+      "type": "after_maghrib",
+      "arabic_name": "ركعتان بعد المغرب",
+      "english_name": "Two Rakaat After Maghrib",
+      "rakaat": {
+        "fixed": 2,
+        "user_configurable": false
+      },
+      "duration_minutes": 10,
+      "timing": {
+        "attachment": "maghrib",
+        "position": "after",
+        "offset_minutes": 0,
+        "relative_to": "end_of_prayer"
+      },
+      "importance": "rawatib",
+      "auto_schedule_if_rawatib_enabled": true,
+      "icon": "sunset.fill",
+      "color_hex": "#D4734C",
+      "color_opacity": 0.6,
+      "description_arabic": "من السنن الرواتب",
+      "description_english": "Regular sunnah prayer"
+    },
+    {
+      "type": "after_isha",
+      "arabic_name": "ركعتان بعد العشاء",
+      "english_name": "Two Rakaat After Isha",
+      "rakaat": {
+        "fixed": 2,
+        "user_configurable": false
+      },
+      "duration_minutes": 10,
+      "timing": {
+        "attachment": "isha",
+        "position": "after",
+        "offset_minutes": 0,
+        "relative_to": "end_of_prayer"
+      },
+      "importance": "rawatib",
+      "auto_schedule_if_rawatib_enabled": true,
+      "icon": "moon.stars.fill",
+      "color_hex": "#6C63FF",
+      "color_opacity": 0.6,
+      "description_arabic": "من السنن الرواتب",
+      "description_english": "Regular sunnah prayer"
+    },
+    {
+      "type": "witr",
+      "arabic_name": "صلاة الوتر",
+      "english_name": "Witr Prayer",
+      "rakaat": {
+        "options": [1, 3, 5, 7, 9, 11],
+        "default": 3,
+        "must_be_odd": true,
+        "user_configurable": true
+      },
+      "duration_calculation": {
+        "1_rakaat": 7,
+        "3_rakaat": 10,
+        "5_rakaat": 15,
+        "7_rakaat": 20,
+        "9_rakaat": 25,
+        "11_rakaat": 30
+      },
+      "timing": {
+        "attachment": "isha",
+        "position": "after",
+        "offset_minutes": 30,
+        "relative_to": "end_of_prayer",
+        "alternative": "before_fajr",
+        "preferred": "last_prayer_of_night"
+      },
+      "importance": "highly_emphasized",
+      "auto_schedule_if_enabled": false,
+      "user_must_enable": true,
+      "icon": "moon.stars.fill",
+      "color_hex": "#8B5CF6",
+      "color_opacity": 0.7,
+      "description_arabic": "صلاة الوتر - آخر صلاة في الليل",
+      "description_english": "Witr prayer - last prayer of the night"
+    },
+    {
+      "type": "tahajjud",
+      "arabic_name": "صلاة التهجد",
+      "english_name": "Tahajjud Prayer",
+      "rakaat": {
+        "min": 2,
+        "max": 20,
+        "default": 8,
+        "must_be_even": true,
+        "user_configurable": true
+      },
+      "duration_per_2_rakaat_minutes": 7,
+      "timing": {
+        "calculation": "last_third_of_night",
+        "based_on": ["maghrib", "fajr"],
+        "formula": "maghrib_to_fajr_duration * 2/3 + maghrib_time",
+        "default_time_before_fajr_hours": 2.0
+      },
+      "importance": "highly_rewarded",
+      "auto_schedule_if_enabled": false,
+      "user_must_enable": true,
+      "icon": "moon.zzz.fill",
+      "color_hex": "#6366F1",
+      "color_opacity": 0.8,
+      "description_arabic": "قيام الليل - أفضل الصلاة بعد الفريضة",
+      "description_english": "Night vigil - best prayer after obligatory",
+      "ramadan": {
+        "emphasize": true,
+        "default_rakaat": 11,
+        "last_10_nights_reminder": true
+      }
+    },
+    {
+      "type": "qiyam_al_layl",
+      "arabic_name": "قيام الليل",
+      "english_name": "Qiyam al-Layl",
+      "is_time_block": true,
+      "rakaat": {
+        "user_choice": true,
+        "not_fixed": true
+      },
+      "duration_minutes": 60,
+      "duration_options": [30, 60, 90, 120],
+      "timing": {
+        "calculation": "last_third_of_night",
+        "based_on": ["maghrib", "fajr"],
+        "formula": "maghrib_to_fajr_duration * 2/3 + maghrib_time"
+      },
+      "importance": "time_for_worship",
+      "auto_schedule_if_enabled": false,
+      "user_must_enable": true,
+      "icon": "moon.stars.circle.fill",
+      "color_hex": "#8B5CF6",
+      "color_opacity": 0.75,
+      "description_arabic": "أفضل وقت للعبادة",
+      "description_english": "Best time for worship",
+      "special_styling": true,
+      "display": {
+        "icon_emoji": "🌙✨",
+        "description_arabic": "أفضل وقت للعبادة - صلِّ، اقرأ القرآن، أو ادعُ",
+        "description_english": "Best time for worship - pray, read Quran, or make dua",
+        "show_activities_suggestion": true
+      },
+      "activities": [
+        {
+          "arabic": "صلاة التهجد",
+          "english": "Tahajjud prayer"
+        },
+        {
+          "arabic": "قراءة القرآن",
+          "english": "Quran recitation"
+        },
+        {
+          "arabic": "الدعاء",
+          "english": "Dua (supplication)"
+        },
+        {
+          "arabic": "الذكر",
+          "english": "Dhikr (remembrance)"
+        }
+      ],
+      "ramadan": {
+        "emphasize": true,
+        "default_duration_minutes": 90,
+        "last_10_nights": {
+          "extra_emphasis": true,
+          "laylat_al_qadr_suggestion": true,
+          "odd_nights": [21, 23, 25, 27, 29]
+        }
+      }
+    }
+  ],
+  "rawatib": {
+    "description_arabic": "السنن الرواتب",
+    "description_english": "Regular Sunnah Prayers",
+    "enabled_by_default": false,
+    "types": [
+      "before_fajr",
+      "before_dhuhr",
+      "after_dhuhr",
+      "after_maghrib",
+      "after_isha"
+    ],
+    "granular_control": true,
+    "toggle_all_option": true
+  },
+  "display_settings": {
+    "badge_text_arabic": "نافلة",
+    "badge_text_english": "Nafil",
+    "opacity_compared_to_fard": 0.7,
+    "border_style": "dashed",
+    "completion_tracking": {
+      "enabled": true,
+      "optional": true,
+      "user_configurable": true
+    },
+    "dismissal": {
+      "can_skip_today": true,
+      "skip_text_arabic": "تخطي اليوم",
+      "skip_text_english": "Skip today",
+      "does_not_affect_streak": true
+    },
+    "no_guilt_messaging": true
+  },
+  "notifications": {
+    "enabled": true,
+    "gentle_reminders": true,
+    "time_before_suggested_time_minutes": 5,
+    "can_be_disabled_per_type": true,
+    "notification_tone": "soft_bell.mp3"
+  }
+}

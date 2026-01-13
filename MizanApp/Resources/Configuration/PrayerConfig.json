@@ -1,0 +1,245 @@
+{
+  "version": "1.0",
+  "defaults": {
+    "fajr": {
+      "duration_minutes": 15,
+      "buffer_before_minutes": 10,
+      "buffer_after_minutes": 5,
+      "color_hex": "#14746F",
+      "color_hex_light": "#52B788",
+      "icon": "sunrise.fill",
+      "arabic_name": "الفجر",
+      "english_name": "Fajr"
+    },
+    "dhuhr": {
+      "duration_minutes": 20,
+      "buffer_before_minutes": 5,
+      "buffer_after_minutes": 5,
+      "color_hex": "#0E8F8B",
+      "color_hex_light": "#52B788",
+      "icon": "sun.max.fill",
+      "arabic_name": "الظهر",
+      "english_name": "Dhuhr"
+    },
+    "asr": {
+      "duration_minutes": 20,
+      "buffer_before_minutes": 5,
+      "buffer_after_minutes": 5,
+      "color_hex": "#0E8F8B",
+      "color_hex_light": "#52B788",
+      "icon": "sun.min.fill",
+      "arabic_name": "العصر",
+      "english_name": "Asr"
+    },
+    "maghrib": {
+      "duration_minutes": 15,
+      "buffer_before_minutes": 5,
+      "buffer_after_minutes": 5,
+      "color_hex": "#D4734C",
+      "color_hex_light": "#F59E0B",
+      "icon": "sunset.fill",
+      "arabic_name": "المغرب",
+      "english_name": "Maghrib"
+    },
+    "isha": {
+      "duration_minutes": 20,
+      "buffer_before_minutes": 5,
+      "buffer_after_minutes": 5,
+      "color_hex": "#6C63FF",
+      "color_hex_light": "#8B5CF6",
+      "icon": "moon.stars.fill",
+      "arabic_name": "العشاء",
+      "english_name": "Isha"
+    }
+  },
+  "jummah": {
+    "enabled": true,
+    "duration_minutes": 60,
+    "buffer_before_minutes": 15,
+    "buffer_after_minutes": 5,
+    "offset_from_dhuhr_minutes": 30,
+    "color_hex": "#D4A373",
+    "color_hex_light": "#FFA500",
+    "icon": "building.columns.fill",
+    "arabic_name": "صلاة الجمعة",
+    "english_name": "Jummah",
+    "notification_arabic": "صلاة الجمعة - لا تنسَ!",
+    "notification_english": "Jummah prayer - Don't forget!"
+  },
+  "ramadan": {
+    "suhoor": {
+      "offset_before_fajr_minutes": 45,
+      "duration_minutes": 30,
+      "color_hex": "#6366F1",
+      "arabic_name": "السحور",
+      "english_name": "Suhoor",
+      "icon": "moon.fill"
+    },
+    "iftar": {
+      "offset_from_maghrib_minutes": 0,
+      "duration_minutes": 15,
+      "color_hex": "#F59E0B",
+      "arabic_name": "الإفطار",
+      "english_name": "Iftar",
+      "icon": "sun.horizon.fill"
+    },
+    "tarawih": {
+      "offset_after_isha_minutes": 20,
+      "default_rakaat": 20,
+      "rakaat_options": [8, 20],
+      "duration_per_rakaat_minutes": 3,
+      "color_hex": "#8B5CF6",
+      "arabic_name": "صلاة التراويح",
+      "english_name": "Tarawih",
+      "icon": "moon.stars.circle.fill"
+    }
+  },
+  "calculation_methods": {
+    "methods": [
+      {
+        "id": "mwl",
+        "api_code": 3,
+        "name_arabic": "رابطة العالم الإسلامي",
+        "name_english": "Muslim World League",
+        "fajr_angle": 18.0,
+        "isha_angle": 17.0,
+        "region_arabic": "أوروبا، الشرق الأوسط",
+        "region_english": "Europe, Middle East"
+      },
+      {
+        "id": "umm_al_qura",
+        "api_code": 4,
+        "name_arabic": "أم القرى (مكة)",
+        "name_english": "Umm al-Qura (Makkah)",
+        "fajr_angle": 18.5,
+        "isha_angle": 0,
+        "isha_minutes_after_maghrib": 90,
+        "region_arabic": "السعودية",
+        "region_english": "Saudi Arabia"
+      },
+      {
+        "id": "egyptian",
+        "api_code": 5,
+        "name_arabic": "الهيئة المصرية العامة",
+        "name_english": "Egyptian General Authority",
+        "fajr_angle": 19.5,
+        "isha_angle": 17.5,
+        "region_arabic": "مصر، السودان، ليبيا",
+        "region_english": "Egypt, Sudan, Libya"
+      },
+      {
+        "id": "karachi",
+        "api_code": 1,
+        "name_arabic": "جامعة العلوم الإسلامية، كراتشي",
+        "name_english": "University of Islamic Sciences, Karachi",
+        "fajr_angle": 18.0,
+        "isha_angle": 18.0,
+        "region_arabic": "باكستان، بنغلاديش، الهند",
+        "region_english": "Pakistan, Bangladesh, India"
+      },
+      {
+        "id": "isna",
+        "api_code": 2,
+        "name_arabic": "الجمعية الإسلامية لأمريكا الشمالية",
+        "name_english": "Islamic Society of North America",
+        "fajr_angle": 15.0,
+        "isha_angle": 15.0,
+        "region_arabic": "الولايات المتحدة، كندا",
+        "region_english": "USA, Canada"
+      },
+      {
+        "id": "dubai",
+        "api_code": 8,
+        "name_arabic": "دبي (الإمارات)",
+        "name_english": "Dubai (UAE)",
+        "fajr_angle": 18.2,
+        "isha_angle": 18.2,
+        "region_arabic": "الإمارات",
+        "region_english": "UAE"
+      },
+      {
+        "id": "singapore",
+        "api_code": 11,
+        "name_arabic": "مجلس الشؤون الإسلامية سنغافورة",
+        "name_english": "Majlis Ugama Islam Singapura",
+        "fajr_angle": 20.0,
+        "isha_angle": 18.0,
+        "region_arabic": "سنغافورة، ماليزيا",
+        "region_english": "Singapore, Malaysia"
+      },
+      {
+        "id": "turkey",
+        "api_code": 13,
+        "name_arabic": "الديانة التركية",
+        "name_english": "Diyanet (Turkey)",
+        "fajr_angle": 18.0,
+        "isha_angle": 17.0,
+        "region_arabic": "تركيا",
+        "region_english": "Turkey"
+      }
+    ],
+    "regional_defaults": {
+      "SA": "umm_al_qura",
+      "AE": "dubai",
+      "US": "isna",
+      "CA": "isna",
+      "GB": "mwl",
+      "FR": "mwl",
+      "DE": "mwl",
+      "TR": "turkey",
+      "EG": "egyptian",
+      "PK": "karachi",
+      "IN": "karachi",
+      "BD": "karachi",
+      "SG": "singapore",
+      "MY": "singapore"
+    }
+  },
+  "high_latitude": {
+    "threshold_degrees": 48.0,
+    "methods": [
+      {
+        "id": "nearest_latitude",
+        "name_arabic": "أقرب خط عرض",
+        "name_english": "Nearest Latitude",
+        "description_arabic": "استخدام أوقات من خط عرض 48 درجة",
+        "description_english": "Use times from 48° latitude"
+      },
+      {
+        "id": "middle_of_night",
+        "name_arabic": "منتصف الليل",
+        "name_english": "Middle of Night",
+        "description_arabic": "أوقات ثابتة للفجر والعشاء",
+        "description_english": "Fixed times for Fajr and Isha",
+        "fajr_offset_hours": 1.5,
+        "isha_offset_hours": 1.5
+      },
+      {
+        "id": "nearest_valid_day",
+        "name_arabic": "أقرب يوم صحيح",
+        "name_english": "Nearest Valid Day",
+        "description_arabic": "استخدام أوقات من أقرب يوم عادي",
+        "description_english": "Use times from nearest normal day",
+        "search_window_days": 7
+      }
+    ],
+    "default_method": "nearest_latitude"
+  },
+  "api": {
+    "base_url": "https://api.aladhan.com/v1",
+    "endpoints": {
+      "timings": "/timings",
+      "calendar": "/calendar",
+      "hijri_calendar": "/hijriCalendar"
+    },
+    "cache_days": 30,
+    "timeout_seconds": 10,
+    "retry_attempts": 3,
+    "retry_delay_seconds": [1, 2, 4]
+  },
+  "notifications": {
+    "prayer_reminder_minutes_before": 10,
+    "prayer_reminder_minutes_after": 5,
+    "default_adhan_audio": "default_adhan.mp3"
+  }
+}
