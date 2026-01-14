@@ -96,6 +96,11 @@ struct NotificationSettingsView: View {
 
                 // Adhan Sound Section
                 adhanSoundSection
+
+                // Test Notifications Section (Debug)
+                #if DEBUG
+                testNotificationsSection
+                #endif
             }
         }
         .navigationTitle("الإشعارات")
@@ -254,7 +259,7 @@ struct NotificationSettingsView: View {
                             .foregroundColor(themeManager.primaryColor)
                             .frame(width: 28)
 
-                        Text("التذكير قبل الصلاة")
+                        Text("التذكير قبل الأذان")
                             .font(.system(size: 17))
                     }
 
@@ -280,7 +285,7 @@ struct NotificationSettingsView: View {
         } header: {
             Text("الصلاة")
         } footer: {
-            Text("ستتلقى إشعارًا قبل وقت الصلاة، وعند دخول الوقت، وبعده بدقائق")
+            Text("ستتلقى إشعارًا قبل الأذان، وعند الأذان، وعند الإقامة")
                 .font(.system(size: 13))
                 .foregroundColor(themeManager.textSecondaryColor)
         }
@@ -410,6 +415,40 @@ struct NotificationSettingsView: View {
         }
         return "الأذان الافتراضي"
     }
+
+    // MARK: - Test Notifications Section
+
+    #if DEBUG
+    @ViewBuilder
+    private var testNotificationsSection: some View {
+        Section {
+            Button {
+                _Concurrency.Task {
+                    await notificationManager.scheduleTestNotifications(userSettings: userSettings)
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "bell.badge")
+                        .font(.system(size: 20))
+                        .foregroundColor(.orange)
+                        .frame(width: 28)
+
+                    Text("اختبار الإشعارات")
+                        .font(.system(size: 17))
+                        .foregroundColor(themeManager.textPrimaryColor)
+
+                    Spacer()
+                }
+            }
+        } header: {
+            Text("اختبار")
+        } footer: {
+            Text("سيتم إرسال 3 إشعارات تجريبية بعد 10 و 20 و 30 ثانية")
+                .font(.system(size: 13))
+                .foregroundColor(themeManager.textSecondaryColor)
+        }
+    }
+    #endif
 
     // MARK: - Actions
 

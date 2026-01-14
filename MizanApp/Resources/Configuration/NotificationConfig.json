@@ -3,34 +3,33 @@
   "prayer_notifications": {
     "before_prayer": {
       "default_minutes": 10,
-      "title_template_arabic": "حان وقت {prayer_name}",
-      "title_template_english": "Time for {prayer_name}",
-      "body_template_arabic": "متبقي {minutes} دقيقة على الصلاة",
-      "body_template_english": "{minutes} minutes until prayer",
+      "title_template_arabic": "قريباً: أذان {prayer_name}",
+      "title_template_english": "Soon: {prayer_name} Adhan",
+      "body_template_arabic": "متبقي {minutes} دقيقة على أذان {prayer_name}",
+      "body_template_english": "{minutes} minutes until {prayer_name}",
       "sound": "notification_soft.mp3",
       "category": "PRAYER_REMINDER",
       "critical": false,
       "badge_increment": 0
     },
     "at_prayer_time": {
-      "title_template_arabic": "{prayer_name}",
-      "title_template_english": "{prayer_name}",
-      "body_template_arabic": "حان الآن وقت {prayer_name}",
-      "body_template_english": "It's time for {prayer_name}",
+      "title_template_arabic": "أذان {prayer_name}",
+      "title_template_english": "{prayer_name} Adhan",
+      "body_template_arabic": "حان الآن وقت صلاة {prayer_name}",
+      "body_template_english": "It's time for {prayer_name} prayer",
       "sound": "adhan_selected_by_user",
       "category": "PRAYER_TIME",
       "critical": true,
       "badge_increment": 1,
       "full_screen": true
     },
-    "after_prayer": {
-      "default_minutes": 5,
-      "title_template_arabic": "لا تنسَ صلاة {prayer_name}",
-      "title_template_english": "Don't forget {prayer_name}",
-      "body_template_arabic": "مضى {minutes} دقيقة على وقت الصلاة",
-      "body_template_english": "{minutes} minutes since prayer time",
+    "at_iqama": {
+      "title_template_arabic": "إقامة صلاة {prayer_name}",
+      "title_template_english": "{prayer_name} Iqama",
+      "body_template_arabic": "حان وقت إقامة صلاة {prayer_name}",
+      "body_template_english": "Time to start {prayer_name} prayer",
       "sound": "notification_alert.mp3",
-      "category": "PRAYER_REMINDER_LATE",
+      "category": "PRAYER_IQAMA",
       "critical": false,
       "badge_increment": 0
     }

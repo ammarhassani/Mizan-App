@@ -542,7 +542,7 @@ struct NotificationConfiguration: Codable {
 struct PrayerNotifications: Codable {
     let beforePrayer: NotificationTemplate
     let atPrayerTime: NotificationTemplate
-    let afterPrayer: NotificationTemplate
+    let atIqama: NotificationTemplate
 }
 
 struct TaskNotifications: Codable {

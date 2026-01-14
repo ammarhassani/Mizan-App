@@ -136,42 +136,44 @@ final class NotificationManager: NSObject, ObservableObject {
         // Get notification settings from config
         let prayerNotifications = config.prayerNotifications
 
-        // 10 minutes before
+        // Before adhan (user-selected minutes)
         let beforeNotif = prayerNotifications.beforePrayer
         await schedulePrayerNotification(
             prayer: prayer,
             timing: .before,
-            minutesOffset: beforeNotif.defaultMinutes ?? 10,
+            minutesOffset: userSettings.prayerReminderMinutes,
             template: beforeNotif.titleTemplateArabic,
             bodyTemplate: beforeNotif.bodyTemplateArabic,
             sound: beforeNotif.sound
         )
 
-        // At adhan time
+        // At adhan time - use user's selected adhan sound
         let atTimeNotif = prayerNotifications.atPrayerTime
+        let adhanNotificationSound = userSettings.selectedAdhanAudio
+            .replacingOccurrences(of: ".mp3", with: "_notification.mp3")
         await schedulePrayerNotification(
             prayer: prayer,
-            timing: .atTime,
+            timing: .atAdhan,
             minutesOffset: 0,
             template: atTimeNotif.titleTemplateArabic,
             bodyTemplate: atTimeNotif.bodyTemplateArabic,
-            sound: atTimeNotif.sound
+            sound: adhanNotificationSound
         )
 
-        // 5 minutes after
-        let afterNotif = prayerNotifications.afterPrayer
+        // At iqama time
+        let iqamaNotif = prayerNotifications.atIqama
         await schedulePrayerNotification(
             prayer: prayer,
-            timing: .after,
-            minutesOffset: afterNotif.defaultMinutes ?? 5,
-            template: afterNotif.titleTemplateArabic,
-            bodyTemplate: afterNotif.bodyTemplateArabic,
-            sound: afterNotif.sound
+            timing: .atIqama,
+            minutesOffset: 0,
+            template: iqamaNotif.titleTemplateArabic,
+            bodyTemplate: iqamaNotif.bodyTemplateArabic,
+            sound: iqamaNotif.sound
         )
     }
 
     private enum PrayerNotificationTiming {
-        case before, atTime, after
+        case before, atAdhan, atIqama
     }
 
     private func schedulePrayerNotification(
@@ -185,25 +187,39 @@ final class NotificationManager: NSObject, ObservableObject {
         let triggerDate: Date
         switch timing {
         case .before:
-            triggerDate = prayer.adhanTime.addingTimeInterval(TimeInterval(minutesOffset * 60))
-        case .atTime:
-            triggerDate = prayer.adhanTime
-        case .after:
+            // Trigger X minutes BEFORE adhan (subtract time)
             triggerDate = prayer.adhanTime.addingTimeInterval(TimeInterval(-minutesOffset * 60))
+        case .atAdhan:
+            triggerDate = prayer.adhanTime
+        case .atIqama:
+            // Trigger at iqama time (adhan + iqama offset)
+            triggerDate = prayer.iqamaStartTime
         }
 
-        // Don't schedule if in the past
-        guard triggerDate > Date() else { return }
+        print("🔔 Scheduling \(timing) for \(prayer.displayName): trigger=\(triggerDate), now=\(Date()), adhan=\(prayer.adhanTime)")
 
-        // Replace placeholders in template
+        // Don't schedule if in the past
+        guard triggerDate > Date() else {
+            print("⏭️ Skipping \(timing) for \(prayer.displayName) - already past")
+            return
+        }
+
+        // Replace placeholders in templates
         let title = template.replacingOccurrences(of: "{prayer_name}", with: prayer.displayName)
-        let body = bodyTemplate.replacingOccurrences(of: "{minutes}", with: "\(abs(minutesOffset))")
+        let body = bodyTemplate
+            .replacingOccurrences(of: "{prayer_name}", with: prayer.displayName)
+            .replacingOccurrences(of: "{minutes}", with: "\(abs(minutesOffset))")
 
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.categoryIdentifier = Category.prayer.rawValue
-        content.sound = timing == .atTime ? .default : .default // Adhan sound for atTime
+        // Use custom sound if provided, otherwise default
+        if let soundName = sound, !soundName.isEmpty, soundName != "adhan_selected_by_user" {
+            content.sound = UNNotificationSound(named: UNNotificationSoundName(soundName))
+        } else {
+            content.sound = .default
+        }
         content.badge = 1
         content.userInfo = [
             "prayerType": prayer.prayerType.rawValue,
@@ -391,6 +407,61 @@ final class NotificationManager: NSObject, ObservableObject {
     /// Stop adhan audio
     func stopAdhan() {
         audioPlayer?.stop()
+    }
+
+    // MARK: - Test Notifications
+
+    /// Schedule test notifications for debugging (fires in 10, 20, 30 seconds)
+    func scheduleTestNotifications(userSettings: UserSettings) async {
+        let adhanSound = userSettings.selectedAdhanAudio
+            .replacingOccurrences(of: ".mp3", with: "_notification.mp3")
+
+        // Test 1: Before adhan (10 sec)
+        await scheduleTestNotification(
+            title: "تجربة: قبل الأذان",
+            body: "متبقي 10 دقيقة على الصلاة",
+            sound: nil,
+            delay: 10
+        )
+
+        // Test 2: At adhan (20 sec)
+        await scheduleTestNotification(
+            title: "تجربة: الأذان",
+            body: "حان الآن وقت الصلاة",
+            sound: adhanSound,
+            delay: 20
+        )
+
+        // Test 3: At iqama (30 sec)
+        await scheduleTestNotification(
+            title: "تجربة: الإقامة",
+            body: "حان وقت إقامة الصلاة",
+            sound: nil,
+            delay: 30
+        )
+
+        print("🧪 Scheduled 3 test notifications (10s, 20s, 30s)")
+    }
+
+    private func scheduleTestNotification(title: String, body: String, sound: String?, delay: Int) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        if let soundName = sound, !soundName.isEmpty {
+            content.sound = UNNotificationSound(named: UNNotificationSoundName(soundName))
+        } else {
+            content.sound = .default
+        }
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(delay), repeats: false)
+        let request = UNNotificationRequest(identifier: "test_\(delay)", content: content, trigger: trigger)
+
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("✅ Test notification scheduled for \(delay)s")
+        } catch {
+            print("❌ Failed to schedule test: \(error)")
+        }
     }
 
     // MARK: - Bulk Operations
