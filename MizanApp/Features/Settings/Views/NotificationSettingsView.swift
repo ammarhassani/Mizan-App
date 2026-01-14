@@ -103,6 +103,8 @@ struct NotificationSettingsView: View {
                 #endif
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(themeManager.backgroundColor.ignoresSafeArea())
         .navigationTitle("الإشعارات")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAdhanPicker) {
@@ -520,6 +522,8 @@ struct AdhanSoundPicker: View {
                     .environmentObject(themeManager)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(themeManager.backgroundColor.ignoresSafeArea())
             .navigationTitle("اختيار صوت الأذان")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

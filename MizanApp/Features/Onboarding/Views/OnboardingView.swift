@@ -2,7 +2,7 @@
 //  OnboardingView.swift
 //  Mizan
 //
-//  Complete 4-step onboarding flow
+//  Story-driven onboarding with choreographed animations
 //
 
 import SwiftUI
@@ -16,386 +16,280 @@ struct OnboardingView: View {
     @State private var currentStep = 0
     @State private var selectedMethod: CalculationMethod?
     @State private var isProcessing = false
+    @State private var locationSuccess = false
+    @State private var notificationSuccess = false
+
+    private let totalSteps = 4
 
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [
-                    Color(hex: "#14746F"),
-                    Color(hex: "#52B788")
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Animated background gradient
+            AnimatedOnboardingBackground()
 
-            // Content
-            TabView(selection: $currentStep) {
-                // Step 1: Welcome
-                welcomeStep
-                    .tag(0)
+            VStack(spacing: 0) {
+                // Custom page indicator at top
+                OnboardingPageIndicator(totalPages: totalSteps, currentPage: currentStep)
+                    .padding(.top, MZSpacing.xl)
 
-                // Step 2: Location
-                locationStep
-                    .tag(1)
+                // Content area
+                TabView(selection: $currentStep) {
+                    welcomeChapter
+                        .tag(0)
 
-                // Step 3: Calculation Method
-                methodStep
-                    .tag(2)
+                    locationChapter
+                        .tag(1)
 
-                // Step 4: Notifications
-                notificationStep
-                    .tag(3)
+                    methodChapter
+                        .tag(2)
+
+                    notificationChapter
+                        .tag(3)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .animation(MZAnimation.gentle, value: currentStep)
             }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .indexViewStyle(.page(backgroundDisplayMode: .always))
         }
     }
 
-    // MARK: - Step 1: Welcome
+    // MARK: - Chapter 1: Welcome
 
-    private var welcomeStep: some View {
-        VStack(spacing: 40) {
+    private var welcomeChapter: some View {
+        VStack(spacing: MZSpacing.xl) {
             Spacer()
 
-            // App icon animation
-            Image(systemName: "moon.stars.fill")
-                .font(.system(size: 100))
-                .foregroundColor(.white)
-                .shadow(color: .white.opacity(0.3), radius: 20)
+            // Dramatic header with animations
+            OnboardingChapterHeader(
+                icon: "moon.stars.fill",
+                title: "ميزان",
+                subtitle: "خطط يومك حول ما يهم حقًا"
+            )
 
-            // App name and tagline
-            VStack(spacing: 16) {
-                Text("ميزان")
-                    .font(.system(size: 48, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text("خطط يومك حول ما يهم حقًا")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.white.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-
-            // Features
-            VStack(alignment: .leading, spacing: 20) {
-                OnboardingFeature(
+            // Staggered feature rows
+            VStack(spacing: MZSpacing.md) {
+                OnboardingFeatureRow(
                     icon: "calendar",
                     title: "جدول زمني تفاعلي",
-                    description: "نظّم مهامك حول أوقات الصلاة"
+                    description: "نظّم مهامك حول أوقات الصلاة",
+                    delay: 0.6
                 )
 
-                OnboardingFeature(
+                OnboardingFeatureRow(
                     icon: "bell.badge",
                     title: "إشعارات ذكية",
-                    description: "تنبيهات للصلوات والمهام"
+                    description: "تنبيهات للصلوات والمهام",
+                    delay: 0.75
                 )
 
-                OnboardingFeature(
+                OnboardingFeatureRow(
                     icon: "hand.draw",
                     title: "سهولة الاستخدام",
-                    description: "اسحب وأفلت المهام بسهولة"
+                    description: "اسحب وأفلت المهام بسهولة",
+                    delay: 0.9
                 )
             }
-            .padding(.horizontal, 40)
+            .padding(.horizontal, MZSpacing.xl)
 
             Spacer()
 
-            // Next button
-            Button {
-                withAnimation {
-                    currentStep = 1
+            // Action buttons
+            VStack(spacing: MZSpacing.md) {
+                OnboardingPrimaryButton(title: "ابدأ", icon: "arrow.left") {
+                    advanceToStep(1)
                 }
-            } label: {
-                Text("ابدأ")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color(hex: "#14746F"))
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.white)
-                    .cornerRadius(12)
             }
-            .padding(.horizontal, 40)
-            .padding(.bottom, 40)
+            .padding(.horizontal, MZSpacing.xl)
+            .padding(.bottom, MZSpacing.xxxl)
         }
     }
 
-    // MARK: - Step 2: Location
+    // MARK: - Chapter 2: Location
 
-    private var locationStep: some View {
-        VStack(spacing: 40) {
+    private var locationChapter: some View {
+        VStack(spacing: MZSpacing.xl) {
             Spacer()
 
-            // Icon
-            Image(systemName: "location.circle.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.white)
-
-            // Title and description
-            VStack(spacing: 16) {
-                Text("تحديد الموقع")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text("نحتاج موقعك لحساب أوقات الصلاة بدقة حسب منطقتك")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
+            OnboardingChapterHeader(
+                icon: "location.circle.fill",
+                title: "تحديد الموقع",
+                subtitle: "نحتاج موقعك لحساب أوقات الصلاة بدقة حسب منطقتك"
+            )
 
             // Location status
-            if locationManager.isAuthorized {
-                HStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.green)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("تم تفعيل الموقع")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-
-                        if let location = locationManager.currentLocation {
-                            Text(String(format: "%.4f, %.4f", location.coordinate.latitude, location.coordinate.longitude))
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.8))
-                        }
+            if locationManager.isAuthorized || locationSuccess {
+                OnboardingSuccessBadge(
+                    title: "تم تفعيل الموقع",
+                    subtitle: locationManager.currentLocation.map {
+                        String(format: "%.4f, %.4f", $0.coordinate.latitude, $0.coordinate.longitude)
                     }
-                }
-                .padding()
-                .background(.white.opacity(0.2))
-                .cornerRadius(12)
-                .padding(.horizontal, 40)
+                )
+                .padding(.horizontal, MZSpacing.xl)
             }
 
             Spacer()
 
-            VStack(spacing: 16) {
-                // Request location button
-                if !locationManager.isAuthorized {
-                    Button {
+            // Action buttons
+            VStack(spacing: MZSpacing.md) {
+                if !locationManager.isAuthorized && !locationSuccess {
+                    OnboardingPrimaryButton(
+                        title: "تفعيل الموقع",
+                        icon: "location.fill",
+                        isLoading: isProcessing
+                    ) {
                         requestLocation()
-                    } label: {
-                        HStack {
-                            if isProcessing {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#14746F")))
-                            } else {
-                                Image(systemName: "location.fill")
-                                Text("تفعيل الموقع")
-                            }
-                        }
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Color(hex: "#14746F"))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.white)
-                        .cornerRadius(12)
                     }
-                    .disabled(isProcessing)
-                    .padding(.horizontal, 40)
+                } else {
+                    OnboardingPrimaryButton(title: "التالي", icon: "arrow.left") {
+                        advanceToStep(2)
+                    }
                 }
 
-                // Continue button
-                if locationManager.isAuthorized {
-                    Button {
-                        withAnimation {
-                            currentStep = 2
-                        }
-                    } label: {
-                        Text("التالي")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(Color(hex: "#14746F"))
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(.white)
-                            .cornerRadius(12)
-                    }
-                    .padding(.horizontal, 40)
-                }
-
-                // Skip button
-                Button {
-                    withAnimation {
-                        currentStep = 2
-                    }
-                } label: {
-                    Text("تخطي (إدخال يدوي لاحقًا)")
-                        .font(.system(size: 15))
-                        .foregroundColor(.white.opacity(0.8))
+                OnboardingSkipButton(title: "تخطي (إدخال يدوي لاحقًا)") {
+                    advanceToStep(2)
                 }
             }
-            .padding(.bottom, 40)
+            .padding(.horizontal, MZSpacing.xl)
+            .padding(.bottom, MZSpacing.xxxl)
         }
     }
 
-    // MARK: - Step 3: Calculation Method
+    // MARK: - Chapter 3: Calculation Method
 
-    private var methodStep: some View {
-        VStack(spacing: 30) {
+    private var methodChapter: some View {
+        VStack(spacing: MZSpacing.lg) {
             Spacer()
+                .frame(height: MZSpacing.xl)
 
-            // Icon
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 80))
-                .foregroundColor(.white)
+            OnboardingChapterHeader(
+                icon: "calendar.badge.clock",
+                title: "طريقة الحساب",
+                subtitle: "اختر الطريقة المناسبة لحساب أوقات الصلاة"
+            )
 
-            // Title and description
-            VStack(spacing: 16) {
-                Text("طريقة الحساب")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text("اختر الطريقة المناسبة لحساب أوقات الصلاة")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-
-            // Method selection
+            // Method selection cards
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: MZSpacing.sm) {
                     ForEach(CalculationMethod.allCases, id: \.self) { method in
-                        Button {
-                            selectedMethod = method
-                            HapticManager.shared.trigger(.selection)
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(method.nameArabic)
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundColor(.white)
-
-                                    Text(method.nameEnglish)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-
-                                Spacer()
-
-                                if selectedMethod == method || (selectedMethod == nil && method == appEnvironment.userSettings.calculationMethod) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            .padding()
-                            .background(.white.opacity(selectedMethod == method || (selectedMethod == nil && method == appEnvironment.userSettings.calculationMethod) ? 0.3 : 0.15))
-                            .cornerRadius(12)
+                        MethodSelectionCard(
+                            method: method,
+                            isSelected: isMethodSelected(method)
+                        ) {
+                            selectMethod(method)
                         }
                     }
                 }
-                .padding(.horizontal, 40)
+                .padding(.horizontal, MZSpacing.xl)
             }
-            .frame(maxHeight: 300)
+            .frame(maxHeight: 280)
 
             Spacer()
 
-            // Continue button
-            Button {
-                applyCalculationMethod()
-                withAnimation {
-                    currentStep = 3
+            // Action buttons
+            VStack(spacing: MZSpacing.md) {
+                OnboardingPrimaryButton(title: "التالي", icon: "arrow.left") {
+                    applyCalculationMethod()
+                    advanceToStep(3)
                 }
-            } label: {
-                Text("التالي")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color(hex: "#14746F"))
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.white)
-                    .cornerRadius(12)
             }
-            .padding(.horizontal, 40)
-            .padding(.bottom, 40)
+            .padding(.horizontal, MZSpacing.xl)
+            .padding(.bottom, MZSpacing.xxxl)
         }
     }
 
-    // MARK: - Step 4: Notifications
+    // MARK: - Chapter 4: Notifications
 
-    private var notificationStep: some View {
-        VStack(spacing: 40) {
+    private var notificationChapter: some View {
+        VStack(spacing: MZSpacing.xl) {
             Spacer()
 
-            // Icon
-            Image(systemName: "bell.badge.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.white)
+            OnboardingChapterHeader(
+                icon: "bell.badge.fill",
+                title: "الإشعارات",
+                subtitle: "احصل على تنبيهات لأوقات الصلاة والمهام المجدولة"
+            )
 
-            // Title and description
-            VStack(spacing: 16) {
-                Text("الإشعارات")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text("احصل على تنبيهات لأوقات الصلاة والمهام المجدولة")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-
-            // Features
-            VStack(alignment: .leading, spacing: 20) {
-                OnboardingFeature(
+            // Notification features
+            VStack(spacing: MZSpacing.md) {
+                OnboardingFeatureRow(
                     icon: "clock.badge",
                     title: "قبل الأذان بـ 10 دقائق",
-                    description: "تذكير بقرب وقت الصلاة"
+                    description: "تذكير بقرب وقت الصلاة",
+                    delay: 0.6
                 )
 
-                OnboardingFeature(
+                OnboardingFeatureRow(
                     icon: "speaker.wave.2",
                     title: "صوت الأذان",
-                    description: "إشعار مع صوت الأذان عند دخول الوقت"
+                    description: "إشعار مع صوت الأذان عند دخول الوقت",
+                    delay: 0.75
                 )
 
-                OnboardingFeature(
+                OnboardingFeatureRow(
                     icon: "checkmark.circle",
                     title: "تنبيهات المهام",
-                    description: "تذكيرات عند موعد بدء المهام"
+                    description: "تذكيرات عند موعد بدء المهام",
+                    delay: 0.9
                 )
             }
-            .padding(.horizontal, 40)
+            .padding(.horizontal, MZSpacing.xl)
+
+            // Success badge
+            if notificationSuccess {
+                OnboardingSuccessBadge(
+                    title: "تم تفعيل الإشعارات",
+                    subtitle: nil
+                )
+                .padding(.horizontal, MZSpacing.xl)
+            }
 
             Spacer()
 
-            VStack(spacing: 16) {
-                // Enable notifications button
-                Button {
-                    requestNotifications()
-                } label: {
-                    HStack {
-                        if isProcessing {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#14746F")))
-                        } else {
-                            Image(systemName: "bell.fill")
-                            Text("تفعيل الإشعارات")
-                        }
+            // Action buttons
+            VStack(spacing: MZSpacing.md) {
+                if !notificationSuccess {
+                    OnboardingPrimaryButton(
+                        title: "تفعيل الإشعارات",
+                        icon: "bell.fill",
+                        isLoading: isProcessing
+                    ) {
+                        requestNotifications()
                     }
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color(hex: "#14746F"))
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.white)
-                    .cornerRadius(12)
+                } else {
+                    OnboardingPrimaryButton(title: "ابدأ الرحلة", icon: "checkmark") {
+                        completeOnboarding()
+                    }
                 }
-                .disabled(isProcessing)
-                .padding(.horizontal, 40)
 
-                // Skip button
-                Button {
-                    completeOnboarding()
-                } label: {
-                    Text("تخطي (يمكن التفعيل لاحقًا)")
-                        .font(.system(size: 15))
-                        .foregroundColor(.white.opacity(0.8))
+                if !notificationSuccess {
+                    OnboardingSkipButton(title: "تخطي (يمكن التفعيل لاحقًا)") {
+                        completeOnboarding()
+                    }
                 }
             }
-            .padding(.bottom, 40)
+            .padding(.horizontal, MZSpacing.xl)
+            .padding(.bottom, MZSpacing.xxxl)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func isMethodSelected(_ method: CalculationMethod) -> Bool {
+        if let selected = selectedMethod {
+            return selected == method
+        }
+        return method == appEnvironment.userSettings.calculationMethod
+    }
+
+    private func selectMethod(_ method: CalculationMethod) {
+        withAnimation(MZAnimation.bouncy) {
+            selectedMethod = method
+        }
+        HapticManager.shared.trigger(.selection)
+    }
+
+    private func advanceToStep(_ step: Int) {
+        HapticManager.shared.trigger(.light)
+        withAnimation(MZAnimation.gentle) {
+            currentStep = step
         }
     }
 
@@ -408,6 +302,9 @@ struct OnboardingView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isProcessing = false
             if locationManager.isAuthorized {
+                withAnimation(MZAnimation.bouncy) {
+                    locationSuccess = true
+                }
                 HapticManager.shared.trigger(.success)
             }
         }
@@ -425,16 +322,18 @@ struct OnboardingView: View {
 
         _Concurrency.Task {
             let granted = await appEnvironment.notificationManager.requestAuthorization()
-            isProcessing = false
 
-            if granted {
-                appEnvironment.userSettings.notificationsEnabled = true
-                appEnvironment.save()
-                HapticManager.shared.trigger(.success)
+            await MainActor.run {
+                isProcessing = false
 
-                // Small delay then complete onboarding
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    completeOnboarding()
+                if granted {
+                    appEnvironment.userSettings.notificationsEnabled = true
+                    appEnvironment.save()
+
+                    withAnimation(MZAnimation.bouncy) {
+                        notificationSuccess = true
+                    }
+                    HapticManager.shared.trigger(.success)
                 }
             }
         }
@@ -448,29 +347,50 @@ struct OnboardingView: View {
     }
 }
 
-// MARK: - Onboarding Feature
+// MARK: - Animated Background
 
-struct OnboardingFeature: View {
-    let icon: String
-    let title: String
-    let description: String
+struct AnimatedOnboardingBackground: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @State private var phase: CGFloat = 0
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 28))
-                .foregroundColor(.white)
-                .frame(width: 40)
+        ZStack {
+            // Base gradient using theme colors
+            LinearGradient(
+                colors: [
+                    themeManager.primaryColor,
+                    themeManager.primaryColor.opacity(0.85),
+                    themeManager.primaryColor.opacity(0.7)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
+            // Animated overlay circles
+            GeometryReader { geometry in
+                Circle()
+                    .fill(themeManager.textOnPrimaryColor.opacity(0.05))
+                    .frame(width: 400, height: 400)
+                    .blur(radius: 60)
+                    .offset(
+                        x: geometry.size.width * 0.3 + sin(phase) * 30,
+                        y: geometry.size.height * 0.2 + cos(phase) * 20
+                    )
 
-                Text(description)
-                    .font(.system(size: 15))
-                    .foregroundColor(.white.opacity(0.8))
-                    .lineSpacing(2)
+                Circle()
+                    .fill(themeManager.textOnPrimaryColor.opacity(0.03))
+                    .frame(width: 300, height: 300)
+                    .blur(radius: 40)
+                    .offset(
+                        x: geometry.size.width * 0.7 + cos(phase * 0.8) * 25,
+                        y: geometry.size.height * 0.7 + sin(phase * 0.8) * 30
+                    )
+            }
+        }
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.linear(duration: 8).repeatForever(autoreverses: true)) {
+                phase = .pi * 2
             }
         }
     }

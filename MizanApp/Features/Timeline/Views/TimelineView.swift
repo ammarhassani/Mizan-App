@@ -19,6 +19,7 @@ struct TimelineView: View {
     @State private var selectedDate = Date()
     @State private var scrollToNowOnAppear = true
     @State private var nawafilRefreshID = UUID()
+    @State private var dragOffset: CGFloat = 0
 
     // MARK: - Queries
     @Query private var allTasks: [Task]
@@ -97,6 +98,20 @@ struct TimelineView: View {
         return seen.values.sorted { $0.suggestedTime < $1.suggestedTime }
     }
 
+    /// Returns the next approaching prayer within 30 minutes
+    private var approachingPrayer: (prayer: PrayerTime, minutes: Int)? {
+        guard Calendar.current.isDateInToday(selectedDate) else { return nil }
+
+        let now = Date()
+        for prayer in todayPrayers {
+            let minutesUntil = Int(prayer.adhanTime.timeIntervalSince(now) / 60)
+            if minutesUntil > 0 && minutesUntil <= 30 {
+                return (prayer, minutesUntil)
+            }
+        }
+        return nil
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -107,14 +122,27 @@ struct TimelineView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Date Selector
-                    dateSelector
-                        .padding(.horizontal)
-                        .padding(.vertical, 12)
-                        .background(themeManager.surfaceColor)
+                    // Cinematic Date Navigator
+                    CinematicDateNavigator(
+                        selectedDate: $selectedDate,
+                        hijriDate: todayPrayers.first?.hijriDate
+                    )
+                    .environmentObject(themeManager)
 
-                    // Timeline
+                    // Prayer Approaching Banner (if applicable)
+                    if let approaching = approachingPrayer {
+                        PrayerApproachingIndicator(
+                            prayerName: approaching.prayer.displayName,
+                            minutesUntil: approaching.minutes,
+                            colorHex: approaching.prayer.colorHex
+                        )
+                        .padding(.top, MZSpacing.xs)
+                    }
+
+                    // Timeline with swipe gestures
                     timelineScrollView
+                        .offset(x: dragOffset)
+                        .gesture(horizontalSwipeGesture)
                 }
             }
             .navigationTitle("الجدول")
@@ -138,70 +166,6 @@ struct TimelineView: View {
         .id(nawafilRefreshID)
     }
 
-    // MARK: - Date Selector
-
-    private var dateSelector: some View {
-        HStack(spacing: 12) {
-            // Previous day
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
-                }
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(themeManager.primaryColor)
-                    .frame(width: 44, height: 44)
-            }
-
-            Spacer()
-
-            // Date display
-            VStack(spacing: 4) {
-                Text(selectedDate.formatted(date: .abbreviated, time: .omitted))
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(themeManager.textPrimaryColor)
-
-                if let hijriDate = todayPrayers.first?.hijriDate {
-                    Text(hijriDate)
-                        .font(.system(size: 14))
-                        .foregroundColor(themeManager.textSecondaryColor)
-                }
-            }
-
-            Spacer()
-
-            // Next day
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
-                }
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(themeManager.primaryColor)
-                    .frame(width: 44, height: 44)
-            }
-
-            // Today button
-            if !Calendar.current.isDateInToday(selectedDate) {
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        selectedDate = Date()
-                    }
-                } label: {
-                    Text("اليوم")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(themeManager.primaryColor)
-                        .cornerRadius(8)
-                }
-            }
-        }
-    }
-
     // MARK: - Timeline ScrollView
 
     private var timelineScrollView: some View {
@@ -220,10 +184,14 @@ struct TimelineView: View {
                 scrollToCurrentPrayer(proxy: proxy)
                 // Fetch prayers and generate nawafil for the selected date if needed
                 fetchPrayersAndNawafilIfNeeded(for: newDate)
+                // Generate recurring task instances for the selected date
+                appEnvironment.generateRecurringTaskInstances(for: newDate)
             }
             .onAppear {
                 // Always check if prayers need to be fetched when view appears
                 fetchPrayersAndNawafilIfNeeded(for: selectedDate)
+                // Generate recurring task instances for today
+                appEnvironment.generateRecurringTaskInstances(for: selectedDate)
 
                 if scrollToNowOnAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -276,9 +244,78 @@ struct TimelineView: View {
 
         case .task:
             if let task = segment.task {
-                TimelineTaskBlock(task: task, minHeight: minTaskBlockHeight)
+                TimelineTaskBlock(
+                    task: task,
+                    minHeight: minTaskBlockHeight,
+                    onToggleCompletion: {
+                        toggleTaskCompletion(task)
+                    }
+                )
             }
         }
+    }
+
+    private func toggleTaskCompletion(_ task: Task) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            if task.isCompleted {
+                task.uncomplete()
+            } else {
+                task.complete()
+            }
+            try? modelContext.save()
+        }
+    }
+
+    // MARK: - Horizontal Swipe Gesture
+
+    private var horizontalSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 50)
+            .onChanged { value in
+                // Only respond to horizontal drags (not vertical scrolling)
+                let horizontalAmount = abs(value.translation.width)
+                let verticalAmount = abs(value.translation.height)
+
+                if horizontalAmount > verticalAmount {
+                    // Provide resistance - only show partial offset
+                    dragOffset = value.translation.width * 0.3
+                }
+            }
+            .onEnded { value in
+                let horizontalAmount = abs(value.translation.width)
+                let verticalAmount = abs(value.translation.height)
+
+                // Only trigger navigation if horizontal movement is dominant
+                if horizontalAmount > verticalAmount && horizontalAmount > 80 {
+                    let calendar = Calendar.current
+
+                    if value.translation.width < 0 {
+                        // Swipe left = next day
+                        if let nextDay = calendar.date(byAdding: .day, value: 1, to: selectedDate) {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                selectedDate = nextDay
+                                dragOffset = 0
+                            }
+                            HapticManager.shared.trigger(.selection)
+                            scrollToNowOnAppear = true
+                        }
+                    } else {
+                        // Swipe right = previous day
+                        if let previousDay = calendar.date(byAdding: .day, value: -1, to: selectedDate) {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                selectedDate = previousDay
+                                dragOffset = 0
+                            }
+                            HapticManager.shared.trigger(.selection)
+                            scrollToNowOnAppear = true
+                        }
+                    }
+                } else {
+                    // Not enough movement, reset offset
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        dragOffset = 0
+                    }
+                }
+            }
     }
 
     private func scrollToCurrentPrayer(proxy: ScrollViewProxy) {
@@ -376,8 +413,10 @@ struct TimelinePrayerBlock: View {
                 Text(prayer.adhanTime.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Color(hex: prayer.colorHex))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .frame(width: 55, alignment: .trailing)
+            .frame(width: 65, alignment: .trailing)
             .padding(.top, 14)
 
             // Main prayer block
@@ -395,14 +434,14 @@ struct TimelinePrayerBlock: View {
                     if prayer.isJummah {
                         Text("جمعة")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(themeManager.textOnPrimaryColor)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(Color.white.opacity(0.25))
+                            .background(themeManager.textOnPrimaryColor.opacity(0.25))
                             .cornerRadius(4)
                     }
                 }
-                .foregroundColor(.white)
+                .foregroundColor(themeManager.textOnPrimaryColor)
                 .padding(.horizontal, 12)
                 .padding(.top, 12)
                 .padding(.bottom, 8)
@@ -419,7 +458,7 @@ struct TimelinePrayerBlock: View {
                         .font(.system(size: 10))
                     Spacer()
                 }
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.7))
                 .padding(.horizontal, 12)
                 .padding(.bottom, 6)
 
@@ -432,7 +471,7 @@ struct TimelinePrayerBlock: View {
 
                 // Divider
                 Rectangle()
-                    .fill(Color.white.opacity(0.25))
+                    .fill(themeManager.textOnPrimaryColor.opacity(0.25))
                     .frame(height: 1)
                     .padding(.horizontal, 12)
 
@@ -448,7 +487,7 @@ struct TimelinePrayerBlock: View {
                         .font(.system(size: 10))
                     Spacer()
                 }
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.8))
                 .padding(.horizontal, 12)
                 .padding(.top, 6)
                 .padding(.bottom, 6)
@@ -499,12 +538,12 @@ struct TimelinePrayerBlock: View {
             Spacer()
             Image(systemName: nawafil.isCompleted ? "checkmark.circle.fill" : "circle")
                 .font(.system(size: 12))
-                .foregroundColor(nawafil.isCompleted ? .green : .white.opacity(0.4))
+                .foregroundColor(nawafil.isCompleted ? themeManager.successColor : themeManager.textOnPrimaryColor.opacity(0.4))
         }
-        .foregroundColor(.white.opacity(0.85))
+        .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.85))
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
-        .background(Color.white.opacity(0.12))
+        .background(themeManager.textOnPrimaryColor.opacity(0.12))
         .cornerRadius(6)
     }
 }
@@ -529,7 +568,9 @@ struct TimelineNawafilBlock: View {
             Text(nawafil.suggestedTime.formatted(date: .omitted, time: .shortened))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color(hex: nawafil.colorHex))
-                .frame(width: 55, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 65, alignment: .trailing)
 
             // Nawafil block content
             nawafilBlockContent
@@ -562,7 +603,7 @@ struct TimelineNawafilBlock: View {
             // Badge
             Text("نافلة")
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(themeManager.textOnPrimaryColor)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(Color(hex: nawafil.colorHex))
@@ -588,6 +629,7 @@ struct TimelineNawafilBlock: View {
 struct TimelineTaskBlock: View {
     let task: Task
     let minHeight: CGFloat
+    var onToggleCompletion: (() -> Void)?
 
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -602,7 +644,9 @@ struct TimelineTaskBlock: View {
             Text(task.startTime.formatted(date: .omitted, time: .shortened))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color(hex: task.colorHex))
-                .frame(width: 55, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 65, alignment: .trailing)
 
             // Task block content
             taskBlockContent
@@ -614,10 +658,16 @@ struct TimelineTaskBlock: View {
 
     private var taskBlockContent: some View {
         HStack(spacing: 10) {
-            // Completion checkbox
-            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 20))
-                .foregroundColor(task.isCompleted ? .green : Color(hex: task.colorHex))
+            // Tappable completion checkbox
+            Button {
+                onToggleCompletion?()
+                HapticManager.shared.trigger(.success)
+            } label: {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundColor(task.isCompleted ? themeManager.successColor : Color(hex: task.colorHex))
+            }
+            .buttonStyle(.plain)
 
             // Task details
             VStack(alignment: .leading, spacing: 2) {
@@ -847,6 +897,8 @@ struct GapSegmentView: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(segment.startTime.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                 if segment.isCollapsedGap {
                     Text("···")
@@ -856,9 +908,11 @@ struct GapSegmentView: View {
 
                 Text(segment.endTime.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .foregroundStyle(themeManager.textSecondaryColor.opacity(0.6))
-            .frame(width: 55, alignment: .trailing)
+            .frame(width: 65, alignment: .trailing)
 
             // Dashed line with duration
             VStack(spacing: 0) {

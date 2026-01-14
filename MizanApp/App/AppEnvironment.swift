@@ -44,7 +44,8 @@ final class AppEnvironment: ObservableObject {
             Task.self,
             PrayerTime.self,
             UserSettings.self,
-            NawafilPrayer.self
+            NawafilPrayer.self,
+            UserCategory.self
         ])
 
         let configuration = ModelConfiguration(
@@ -104,6 +105,9 @@ final class AppEnvironment: ObservableObject {
             loadedSettings.selectedAdhanAudio = "makkah_adhan.mp3"
             try? modelContext.save()
         }
+
+        // Migrate: Create default UserCategories if none exist
+        migrateToUserCategories()
 
         print("✅ AppEnvironment initialized")
     }
@@ -395,6 +399,169 @@ final class AppEnvironment: ObservableObject {
             print("💾 Context saved")
         } catch {
             print("❌ Failed to save context: \(error)")
+        }
+    }
+
+    // MARK: - Category Migration
+
+    /// Migrate to UserCategory model by creating default categories if none exist
+    private func migrateToUserCategories() {
+        let descriptor = FetchDescriptor<UserCategory>()
+
+        do {
+            let existingCategories = try modelContext.fetch(descriptor)
+
+            if existingCategories.isEmpty {
+                // Create default categories
+                let defaultCategories = UserCategory.createDefaultCategories()
+                for category in defaultCategories {
+                    modelContext.insert(category)
+                }
+
+                try modelContext.save()
+                print("✅ Created \(defaultCategories.count) default UserCategories")
+
+                // Migrate existing tasks to use UserCategory based on their TaskCategory enum
+                migrateTasksToUserCategories(defaultCategories)
+            }
+        } catch {
+            print("❌ Failed to migrate to UserCategories: \(error)")
+        }
+    }
+
+    /// Migrate existing tasks to use UserCategory based on their legacy TaskCategory
+    private func migrateTasksToUserCategories(_ categories: [UserCategory]) {
+        let taskDescriptor = FetchDescriptor<Task>()
+
+        do {
+            let allTasks = try modelContext.fetch(taskDescriptor)
+
+            var migratedCount = 0
+            for task in allTasks where task.userCategory == nil {
+                // Find matching UserCategory by legacy category name
+                let legacyName = UserCategory.nameForLegacyCategory(task.category)
+                if let matchingCategory = categories.first(where: { $0.name == legacyName }) {
+                    task.userCategory = matchingCategory
+                    migratedCount += 1
+                }
+            }
+
+            if migratedCount > 0 {
+                try modelContext.save()
+                print("✅ Migrated \(migratedCount) tasks to UserCategories")
+            }
+        } catch {
+            print("❌ Failed to migrate tasks to UserCategories: \(error)")
+        }
+    }
+
+    // MARK: - Recurring Tasks Generation
+
+    /// Generate recurring task instances for a specific date
+    /// This should be called when navigating to a new date in the timeline
+    func generateRecurringTaskInstances(for date: Date) {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+
+        // Fetch all recurring parent tasks (tasks with recurrenceRule that are not child instances)
+        let descriptor = FetchDescriptor<Task>()
+        guard let allTasks = try? modelContext.fetch(descriptor) else {
+            print("❌ Could not fetch tasks for recurring generation")
+            return
+        }
+
+        // Find parent recurring tasks (have recurrenceRule, have scheduledStartTime, no parentTaskId)
+        let parentRecurringTasks = allTasks.filter { task in
+            task.recurrenceRule != nil && task.scheduledStartTime != nil && task.parentTaskId == nil
+        }
+
+        // Find existing instances for this date
+        let existingInstancesForDate = allTasks.filter { task in
+            guard let scheduledDate = task.scheduledDate else { return false }
+            return calendar.isDate(scheduledDate, inSameDayAs: date)
+        }
+
+        var generatedCount = 0
+
+        for parentTask in parentRecurringTasks {
+            guard let recurrenceRule = parentTask.recurrenceRule,
+                  let originalScheduledDate = parentTask.scheduledDate else {
+                continue
+            }
+
+            // Skip if this is for a date before the original task was created
+            if startOfDay < calendar.startOfDay(for: originalScheduledDate) {
+                continue
+            }
+
+            // Skip if the target date is the same as the original task's date
+            if calendar.isDate(originalScheduledDate, inSameDayAs: date) {
+                continue
+            }
+
+            // Check if recurrence should have ended
+            if recurrenceRule.shouldEndBefore(date: date) {
+                continue
+            }
+
+            // Check if an instance already exists for this date with this parent
+            let instanceExists = existingInstancesForDate.contains { task in
+                task.parentTaskId == parentTask.id
+            }
+
+            if instanceExists {
+                continue
+            }
+
+            // Check if this date matches the recurrence pattern
+            if shouldGenerateInstance(for: date, parentTask: parentTask, rule: recurrenceRule) {
+                let newInstance = parentTask.createRecurringInstance(for: date)
+                modelContext.insert(newInstance)
+                generatedCount += 1
+            }
+        }
+
+        if generatedCount > 0 {
+            do {
+                try modelContext.save()
+                print("✅ Generated \(generatedCount) recurring task instance(s) for \(date.formatted(date: .abbreviated, time: .omitted))")
+            } catch {
+                print("❌ Failed to save recurring task instances: \(error)")
+            }
+        }
+    }
+
+    /// Check if a recurring task should generate an instance for the given date
+    private func shouldGenerateInstance(for date: Date, parentTask: Task, rule: RecurrenceRule) -> Bool {
+        let calendar = Calendar.current
+        guard let originalDate = parentTask.scheduledDate else { return false }
+
+        let originalStartOfDay = calendar.startOfDay(for: originalDate)
+        let targetStartOfDay = calendar.startOfDay(for: date)
+
+        switch rule.frequency {
+        case .daily:
+            // Check if the date is a multiple of the interval days from original
+            let daysDifference = calendar.dateComponents([.day], from: originalStartOfDay, to: targetStartOfDay).day ?? 0
+            return daysDifference > 0 && daysDifference % rule.interval == 0
+
+        case .weekly:
+            if let daysOfWeek = rule.daysOfWeek, !daysOfWeek.isEmpty {
+                // Check if target date's weekday is in the selected days
+                let targetWeekday = calendar.component(.weekday, from: date)
+                return daysOfWeek.contains(targetWeekday)
+            } else {
+                // Every N weeks on the same day
+                let weeksDifference = calendar.dateComponents([.weekOfYear], from: originalStartOfDay, to: targetStartOfDay).weekOfYear ?? 0
+                let sameWeekday = calendar.component(.weekday, from: originalDate) == calendar.component(.weekday, from: date)
+                return weeksDifference > 0 && weeksDifference % rule.interval == 0 && sameWeekday
+            }
+
+        case .monthly:
+            // Every N months on the same day of month
+            let monthsDifference = calendar.dateComponents([.month], from: originalStartOfDay, to: targetStartOfDay).month ?? 0
+            let sameDay = calendar.component(.day, from: originalDate) == calendar.component(.day, from: date)
+            return monthsDifference > 0 && monthsDifference % rule.interval == 0 && sameDay
         }
     }
 

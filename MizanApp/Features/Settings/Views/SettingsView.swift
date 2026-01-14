@@ -1,3 +1,10 @@
+//
+//  SettingsView.swift
+//  Mizan
+//
+//  Enhanced settings with grouped cards and animated components
+//
+
 import SwiftUI
 
 struct SettingsView: View {
@@ -9,116 +16,150 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationView {
-            Form {
-                // Pro Section (show upgrade if not Pro)
-                if !appEnvironment.userSettings.isPro {
-                    Section {
-                        Button {
+            ScrollView {
+                VStack(spacing: MZSpacing.lg) {
+                    // Pro Section
+                    if !appEnvironment.userSettings.isPro {
+                        ProUpgradeCard {
                             showPaywall = true
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.yellow)
+                        }
+                        .environmentObject(themeManager)
+                    } else {
+                        // Pro badge for subscribers
+                        SettingsCard {
+                            HStack(spacing: MZSpacing.md) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [themeManager.primaryColor, themeManager.primaryColor.opacity(0.7)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("الترقية إلى Pro")
-                                        .font(.system(size: 17, weight: .semibold))
+                                    Text("ميزان Pro")
+                                        .font(MZTypography.titleMedium)
                                         .foregroundColor(themeManager.textPrimaryColor)
-
-                                    Text("ثيمات، نوافل، وميزات إضافية")
-                                        .font(.system(size: 13))
+                                    Text("شكرًا لدعمك!")
+                                        .font(MZTypography.labelMedium)
                                         .foregroundColor(themeManager.textSecondaryColor)
                                 }
-
                                 Spacer()
-
-                                Image(systemName: "chevron.left")
-                                    .foregroundColor(themeManager.textSecondaryColor)
                             }
+                            .padding(MZSpacing.md)
                         }
+                        .environmentObject(themeManager)
                     }
-                } else {
-                    Section {
-                        HStack(spacing: 12) {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(themeManager.primaryColor)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("ميزان Pro")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(themeManager.textPrimaryColor)
+                    // Prayer & Notifications Section
+                    VStack(alignment: .leading, spacing: MZSpacing.sm) {
+                        SettingsSectionHeader(icon: "moon.fill", title: "الصلاة والإشعارات", iconColor: themeManager.primaryColor)
+                            .environmentObject(themeManager)
 
-                                Text("شكرًا لدعمك!")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(themeManager.textSecondaryColor)
+                        SettingsCard {
+                            NavigationLink {
+                                PrayerSettingsView()
+                                    .environmentObject(appEnvironment)
+                                    .environmentObject(themeManager)
+                            } label: {
+                                SettingsRow(icon: "clock.fill", iconColor: .blue, title: "طريقة الحساب", subtitle: "تخصيص أوقات الصلاة")
+                                    .environmentObject(themeManager)
                             }
-                        }
-                    }
-                }
+                            .buttonStyle(.plain)
 
-                Section("أوقات الصلاة") {
-                    NavigationLink("طريقة الحساب") {
-                        PrayerSettingsView()
-                            .environmentObject(appEnvironment)
-                            .environmentObject(themeManager)
-                    }
-                }
+                            SettingsDivider().environmentObject(themeManager)
 
-                Section("الإشعارات") {
-                    NavigationLink("إعدادات الإشعارات") {
-                        NotificationSettingsView()
-                            .environmentObject(appEnvironment)
-                            .environmentObject(themeManager)
-                    }
-                }
-
-                Section("النوافل") {
-                    NavigationLink {
-                        NawafilSettingsView()
-                            .environmentObject(appEnvironment)
-                            .environmentObject(themeManager)
-                    } label: {
-                        HStack {
-                            Text("إعدادات النوافل")
-                            Spacer()
-                            if !appEnvironment.userSettings.isPro {
-                                ProBadge()
+                            NavigationLink {
+                                NotificationSettingsView()
+                                    .environmentObject(appEnvironment)
+                                    .environmentObject(themeManager)
+                            } label: {
+                                SettingsRow(icon: "bell.badge.fill", iconColor: .red, title: "الإشعارات", subtitle: "تنبيهات الأذان والمهام")
+                                    .environmentObject(themeManager)
                             }
+                            .buttonStyle(.plain)
+
+                            SettingsDivider().environmentObject(themeManager)
+
+                            NavigationLink {
+                                NawafilSettingsView()
+                                    .environmentObject(appEnvironment)
+                                    .environmentObject(themeManager)
+                            } label: {
+                                SettingsRow(
+                                    icon: "moon.stars.fill",
+                                    iconColor: .purple,
+                                    title: "النوافل",
+                                    subtitle: "السنن والرواتب",
+                                    showProBadge: !appEnvironment.userSettings.isPro
+                                )
+                                .environmentObject(themeManager)
+                            }
+                            .buttonStyle(.plain)
                         }
+                        .environmentObject(themeManager)
                     }
-                }
 
-                Section("المظهر") {
-                    NavigationLink("اختيار الثيم") {
-                        ThemeSelectionView()
-                            .environmentObject(appEnvironment)
+                    // Appearance Section
+                    VStack(alignment: .leading, spacing: MZSpacing.sm) {
+                        SettingsSectionHeader(icon: "paintbrush.fill", title: "المظهر", iconColor: .pink)
                             .environmentObject(themeManager)
-                    }
-                }
 
-                Section("عن التطبيق") {
-                    NavigationLink("معلومات") {
-                        AboutView()
-                            .environmentObject(appEnvironment)
-                            .environmentObject(themeManager)
-                    }
-                }
-
-                Section("البيانات") {
-                    Button {
-                        showClearDataAlert = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.clockwise")
-                                .foregroundColor(.orange)
-                            Text("إعادة تحميل بيانات الصلاة")
-                                .foregroundColor(themeManager.textPrimaryColor)
+                        SettingsCard {
+                            NavigationLink {
+                                ThemeSelectionView()
+                                    .environmentObject(appEnvironment)
+                                    .environmentObject(themeManager)
+                            } label: {
+                                SettingsRow(icon: "circle.hexagongrid.fill", iconColor: .pink, title: "اختيار الثيم", subtitle: themeManager.currentTheme.name)
+                                    .environmentObject(themeManager)
+                            }
+                            .buttonStyle(.plain)
                         }
+                        .environmentObject(themeManager)
                     }
+
+                    // About & Data Section
+                    VStack(alignment: .leading, spacing: MZSpacing.sm) {
+                        SettingsSectionHeader(icon: "info.circle.fill", title: "عام", iconColor: .gray)
+                            .environmentObject(themeManager)
+
+                        SettingsCard {
+                            NavigationLink {
+                                AboutView()
+                                    .environmentObject(appEnvironment)
+                                    .environmentObject(themeManager)
+                            } label: {
+                                SettingsRow(icon: "info.circle.fill", iconColor: .gray, title: "عن التطبيق")
+                                    .environmentObject(themeManager)
+                            }
+                            .buttonStyle(.plain)
+
+                            SettingsDivider().environmentObject(themeManager)
+
+                            Button {
+                                showClearDataAlert = true
+                                HapticManager.shared.trigger(.warning)
+                            } label: {
+                                SettingsRow(icon: "arrow.clockwise", iconColor: .orange, title: "إعادة تحميل البيانات", subtitle: "تحديث أوقات الصلاة", showChevron: false)
+                                    .environmentObject(themeManager)
+                            }
+                            .buttonStyle(PressableButtonStyle())
+                        }
+                        .environmentObject(themeManager)
+                    }
+
+                    // Version
+                    Text("الإصدار 1.0.0")
+                        .font(MZTypography.labelSmall)
+                        .foregroundColor(themeManager.textTertiaryColor)
+                        .padding(.top, MZSpacing.md)
                 }
+                .padding(MZSpacing.screenPadding)
             }
+            .background(themeManager.backgroundColor.ignoresSafeArea())
             .navigationTitle("الإعدادات")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showPaywall) {

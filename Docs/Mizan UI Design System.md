@@ -1,122 +1,1090 @@
 # Mizan UI Design System
 
-## Overview
+## Vision
 
-Mizan is a daily planner app that seamlessly integrates special event times with task management. This design system draws inspiration from successful planner apps while creating an awesome, delightful user experience with dynamic theming and impressive animations.
+Mizan is a **generational** iOS app that makes users feel emotionally impacted when they use it. Every interaction is intentional, every transition is magical, and every moment is crafted with deep care.
 
-## Design Philosophy
+**Core Principle:** Change the FEELING, not the functionality. Same features, dramatically better experience.
 
-- **Simplicity & Clarity**: Clean, minimal interface that reduces cognitive load
-- **Cultural Authenticity**: Incorporates Islamic design elements thoughtfully
-- **Accessibility**: Excellent readability for both Arabic and English text
-- **Responsive**: Fluid interactions with meaningful feedback
-- **Spiritual Integration**: Prayer times naturally integrated into daily planning
+**Design Philosophy:**
+- iOS-native (evolves with Apple's design language)
+- Progressive disclosure (essentials first, complexity on demand)
+- Performance-first (eliminate lag, maximize fluidity)
+- Sensory-rich (haptics, animations, visual feedback)
+
+**Inspiration:**
+- **Structured**: Two-tier task creation, minimal friction
+- **Things 3**: Paper-like minimalism, deeply native feel
+- **Flighty**: Dark sophistication, high-quality haptics
+- **Headspace**: Soft animations, award-winning UI
 
 ---
 
-## 1. Component Library
+## 1. Design System Architecture
 
-### 1.1 Core Components
+### 1.1 Folder Structure
 
-#### Primary Button
+```
+MizanApp/DesignSystem/
+├── Tokens/
+│   ├── ColorTokens.swift
+│   ├── TypographyTokens.swift
+│   ├── SpacingTokens.swift
+│   ├── AnimationTokens.swift
+│   └── ShadowTokens.swift
+├── Components/
+│   ├── Buttons/
+│   ├── Cards/
+│   ├── Inputs/
+│   ├── Feedback/
+│   └── Layout/
+├── Animations/
+│   ├── SpringPresets.swift
+│   ├── TransitionPresets.swift
+│   ├── PhaseAnimators/
+│   └── KeyframeAnimations/
+├── Effects/
+│   ├── ParticleSystem.swift
+│   ├── ConfettiView.swift
+│   ├── AtmosphericBackground.swift
+│   └── GlowEffect.swift
+└── Haptics/
+    └── HapticPatterns.swift
+```
+
+---
+
+## 2. Token Systems
+
+### 2.1 Typography Tokens
+
 ```swift
-struct PrimaryButton: View {
-    let title: String
-    let action: () -> Void
-    
-    @EnvironmentObject var themeManager: ThemeManager
-    
+struct MZTypography {
+    // Display - splash, celebrations
+    static let displayLarge = Font.system(size: 56, weight: .bold, design: .rounded)
+    static let displayMedium = Font.system(size: 44, weight: .bold, design: .rounded)
+
+    // Headlines - section headers
+    static let headlineLarge = Font.system(size: 32, weight: .semibold)
+    static let headlineMedium = Font.system(size: 28, weight: .semibold)
+    static let headlineSmall = Font.system(size: 24, weight: .semibold)
+
+    // Title - cards, navigation
+    static let titleLarge = Font.system(size: 22, weight: .semibold)
+    static let titleMedium = Font.system(size: 18, weight: .semibold)
+    static let titleSmall = Font.system(size: 16, weight: .semibold)
+
+    // Body - content
+    static let bodyLarge = Font.system(size: 17, weight: .regular)
+    static let bodyMedium = Font.system(size: 15, weight: .regular)
+    static let bodySmall = Font.system(size: 13, weight: .regular)
+
+    // Label - metadata
+    static let labelLarge = Font.system(size: 14, weight: .medium)
+    static let labelMedium = Font.system(size: 12, weight: .medium)
+    static let labelSmall = Font.system(size: 11, weight: .medium)
+
+    // Arabic variants
+    static let arabicDisplay = Font.custom("SF Arabic Rounded", size: 48).weight(.bold)
+    static let arabicHeadline = Font.custom("SF Arabic", size: 28).weight(.semibold)
+    static let arabicBody = Font.custom("SF Arabic", size: 17)
+}
+```
+
+### 2.2 Spacing Tokens (8pt Grid)
+
+```swift
+struct MZSpacing {
+    static let xxxs: CGFloat = 2
+    static let xxs: CGFloat = 4
+    static let xs: CGFloat = 8
+    static let sm: CGFloat = 12
+    static let md: CGFloat = 16
+    static let lg: CGFloat = 24
+    static let xl: CGFloat = 32
+    static let xxl: CGFloat = 48
+    static let xxxl: CGFloat = 64
+
+    // Semantic
+    static let cardPadding: CGFloat = 16
+    static let sectionSpacing: CGFloat = 24
+    static let screenPadding: CGFloat = 20
+    static let itemSpacing: CGFloat = 12
+}
+```
+
+### 2.3 Animation Tokens
+
+```swift
+struct MZAnimation {
+    // Standard springs
+    static let gentle = Animation.spring(response: 0.5, dampingFraction: 0.8)
+    static let bouncy = Animation.spring(response: 0.4, dampingFraction: 0.6)
+    static let snappy = Animation.spring(response: 0.3, dampingFraction: 0.9)
+    static let soft = Animation.spring(response: 0.6, dampingFraction: 0.85)
+    static let stiff = Animation.spring(response: 0.2, dampingFraction: 0.95)
+
+    // Dramatic springs
+    static let dramatic = Animation.spring(response: 0.7, dampingFraction: 0.5)
+    static let breathe = Animation.spring(response: 1.2, dampingFraction: 0.7)
+    static let celebration = Animation.spring(response: 0.4, dampingFraction: 0.5)
+
+    // Durations
+    struct Duration {
+        static let instant: Double = 0.0
+        static let veryFast: Double = 0.15
+        static let fast: Double = 0.2
+        static let medium: Double = 0.4
+        static let slow: Double = 0.6
+        static let dramatic: Double = 1.2
+    }
+
+    // Stagger for lists
+    static func stagger(index: Int, interval: Double = 0.05) -> Double {
+        Double(index) * interval
+    }
+}
+```
+
+### 2.4 Shadow Tokens
+
+```swift
+struct MZShadow {
+    struct Level {
+        let color: Color
+        let radius: CGFloat
+        let y: CGFloat
+    }
+
+    static let none = Level(color: .clear, radius: 0, y: 0)
+    static let sm = Level(color: .black.opacity(0.08), radius: 4, y: 2)
+    static let md = Level(color: .black.opacity(0.12), radius: 8, y: 4)
+    static let lg = Level(color: .black.opacity(0.16), radius: 16, y: 8)
+    static let lifted = Level(color: .black.opacity(0.25), radius: 20, y: 12)
+
+    static func glow(color: Color, intensity: Double = 0.4) -> Level {
+        Level(color: color.opacity(intensity), radius: 20, y: 0)
+    }
+}
+```
+
+---
+
+## 3. Color Themes
+
+### 3.1 Noor (Light - Default)
+
+```swift
+let colors = MZColorPalette(
+    background: "#FFFFFF",
+    surface: "#FFFFFF",
+    surfaceSecondary: "#F8F8F8",
+    primary: "#007AFF",
+    primaryLight: "#4D94FF",
+    primaryDark: "#0051CC",
+    textPrimary: "#000000",
+    textSecondary: "#8E8E93",
+    textTertiary: "#C7C7CC",
+    success: "#34C759",
+    warning: "#FF9500",
+    error: "#FF3B30",
+    divider: "#E5E5EA"
+)
+```
+
+### 3.2 Layl (Dark - Pro)
+
+```swift
+let colors = MZColorPalette(
+    background: "#000000",
+    surface: "#1C1C1E",
+    surfaceSecondary: "#2C2C2E",
+    primary: "#0A84FF",
+    textPrimary: "#FFFFFF",
+    textSecondary: "#8E8E93"
+)
+let specialEffects = MZSpecialEffects(useGlowInsteadOfShadow: true)
+```
+
+### 3.3 Fajr (Dawn - Pro)
+
+```swift
+let colors = MZColorPalette(
+    background: "#E8DFF5",
+    surface: "#FFFFFF",
+    primary: "#6C63FF",
+    textPrimary: "#2D2A4A"
+)
+let specialEffects = MZSpecialEffects(
+    backgroundGradient: ["#E8DFF5", "#FCE1E4", "#FCF4DD"]
+)
+```
+
+### 3.4 Ramadan (Celebration - Pro)
+
+```swift
+let colors = MZColorPalette(
+    background: "#1E1B4B",
+    surface: "#312E81",
+    primary: "#FFD700",
+    textPrimary: "#FFFFFF"
+)
+let specialEffects = MZSpecialEffects(
+    useGlowInsteadOfShadow: true,
+    starParticles: true,
+    festiveAnimations: true,
+    autoActivateDuringRamadan: true
+)
+```
+
+---
+
+## 4. Screen Redesigns
+
+### 4.1 AddTaskSheet - Modern Two-Tier Design
+
+**Problem:** Current Form causes lag, all options visible at once, not following modern patterns.
+
+**Solution:** ScrollView + VStack, progressive disclosure, horizontal scrolling.
+
+#### Wireframes
+
+**Title Section:**
+```
+┌─────────────────────────────────────────┐
+│  📝 اسم المهمة                          │
+│  ┌─────────────────────────────────────┐│
+│  │ مثال: مراجعة المشروع               ││
+│  └─────────────────────────────────────┘│
+└─────────────────────────────────────────┘
+```
+
+**Duration Section:**
+```
+┌─────────────────────────────────────────┐
+│  ⏱️ المدة                               │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐    │
+│  │15د │ │30د │ │45د │ │1س  │ │1.5س│ →  │
+│  └────┘ └────┘ └────┘ └────┘ └────┘    │
+└─────────────────────────────────────────┘
+```
+
+**Category Section (Horizontal Scroll):**
+```
+┌─────────────────────────────────────────┐
+│  🏷️ الفئة                               │
+│  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐       │
+│  │ 👤  │ │ 💼  │ │ 📖  │ │ 🏋️  │  →    │
+│  │شخصي │ │ عمل │ │دراسة│ │رياضة│       │
+│  └─────┘ └─────┘ └─────┘ └─────┘       │
+└─────────────────────────────────────────┘
+```
+
+**Advanced Section (Collapsible):**
+```
+┌─────────────────────────────────────────┐
+│  ⚙️ خيارات إضافية                    ▼  │
+├─────────────────────────────────────────┤
+│  📅 جدولة                          [OFF]│
+│  🔄 التكرار                   [OFF] PRO │
+│  📝 ملاحظات                             │
+│  ┌─────────────────────────────────────┐│
+│  │ اضف ملاحظات...                     ││
+│  └─────────────────────────────────────┘│
+└─────────────────────────────────────────┘
+```
+
+**Save Button (Fixed Bottom):**
+```
+┌─────────────────────────────────────────┐
+│  ┌─────────────────────────────────────┐│
+│  │         إضافة المهمة ✓             ││
+│  └─────────────────────────────────────┘│
+└─────────────────────────────────────────┘
+```
+
+#### Component Specifications
+
+| Component | Property | Value |
+|-----------|----------|-------|
+| **Title Field** | Font | 17pt regular |
+| | Background | surfaceSecondaryColor |
+| | Corner radius | 12pt |
+| | Padding | 14pt |
+| **Duration Chip** | Size | 56pt × 36pt |
+| | Font | labelLarge (14pt medium) |
+| | Spacing | 10pt |
+| | Shape | Capsule |
+| **Category Chip** | Size | 70pt × 80pt |
+| | Icon size | 24pt SF Symbol |
+| | Label font | 12pt |
+| | Shape | RoundedRectangle 12pt |
+| **Advanced Header** | Font | titleSmall (16pt semibold) |
+| | Chevron | 14pt semibold |
+| | Padding | 16pt |
+| **Save Button** | Height | 50pt |
+| | Font | titleSmall (16pt semibold) |
+| | Shape | Capsule |
+| | Shadow | primaryColor.opacity(0.4), radius 8, y 4 |
+
+#### State Management
+
+```swift
+@State private var showAdvancedOptions = false  // Controls collapsible section
+@State private var isKeyboardVisible = false    // For save button positioning
+```
+
+#### Verification Checklist
+
+- [ ] Open Add Task sheet - feels snappy, no lag
+- [ ] Essential fields (title, duration, category) visible immediately
+- [ ] Duration chips scroll horizontally, selection works with haptic
+- [ ] Category chips scroll horizontally (NOT grid), selection works
+- [ ] Tap "خيارات إضافية" to expand/collapse advanced section
+- [ ] Schedule toggle + date/time pickers work correctly
+- [ ] Recurrence shows Pro badge for free users
+- [ ] Notes field expands when typing
+- [ ] Save button fixed at bottom, always accessible
+- [ ] Save button disabled when title is empty
+- [ ] Edit mode loads all existing task data correctly
+- [ ] Delete button appears in edit mode
+- [ ] Keyboard doesn't cover save button
+- [ ] RTL layout correct for Arabic text
+
+#### Implementation
+
+```swift
+struct AddTaskSheet: View {
+    @State private var showAdvancedOptions = false
+
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 17, weight: .medium))
+        NavigationView {
+            ZStack {
+                themeManager.backgroundColor.ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(spacing: MZSpacing.lg) {
+                            // TIER 1: ESSENTIALS (Always Visible)
+                            titleSection
+                            durationSection
+                            categorySection
+
+                            // TIER 2: ADVANCED (Collapsible)
+                            advancedSection
+                        }
+                        .padding(MZSpacing.screenPadding)
+                    }
+
+                    // Fixed Save Button
+                    saveButton
+                        .padding(MZSpacing.screenPadding)
+                }
+            }
+            .navigationTitle(isEditing ? "تعديل المهمة" : "مهمة جديدة")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("إلغاء") { dismiss() }
+                }
+            }
+        }
+    }
+
+    // MARK: - Title Section (Prominent)
+    private var titleSection: some View {
+        VStack(alignment: .leading, spacing: MZSpacing.xs) {
+            Text("العنوان")
+                .font(MZTypography.labelLarge)
+                .foregroundColor(themeManager.textSecondaryColor)
+
+            TextField("أدخل عنوان المهمة", text: $taskTitle)
+                .font(MZTypography.titleLarge)
+                .padding(MZSpacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(themeManager.surfaceSecondaryColor)
+                )
+                .focused($isTitleFocused)
+        }
+    }
+
+    // MARK: - Duration Section (Compact Horizontal Chips)
+    private var durationSection: some View {
+        VStack(alignment: .leading, spacing: MZSpacing.sm) {
+            Text("المدة")
+                .font(MZTypography.labelLarge)
+                .foregroundColor(themeManager.textSecondaryColor)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: MZSpacing.xs) {
+                    ForEach(durationOptions, id: \.self) { duration in
+                        DurationChip(
+                            duration: duration,
+                            isSelected: selectedDuration == duration,
+                            action: {
+                                withAnimation(MZAnimation.snappy) {
+                                    selectedDuration = duration
+                                }
+                                HapticManager.shared.trigger(.selection)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Category Section (Horizontal Scroll - NOT Grid)
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: MZSpacing.sm) {
+            Text("الفئة")
+                .font(MZTypography.labelLarge)
+                .foregroundColor(themeManager.textSecondaryColor)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: MZSpacing.sm) {
+                    ForEach(TaskCategory.allCases, id: \.self) { category in
+                        CategoryChip(
+                            category: category,
+                            isSelected: selectedCategory == category,
+                            action: {
+                                withAnimation(MZAnimation.bouncy) {
+                                    selectedCategory = category
+                                }
+                                HapticManager.shared.trigger(.selection)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Advanced Section (Collapsible)
+    private var advancedSection: some View {
+        VStack(spacing: MZSpacing.md) {
+            // Disclosure button
+            Button {
+                withAnimation(MZAnimation.gentle) {
+                    showAdvancedOptions.toggle()
+                }
+                HapticManager.shared.trigger(.light)
+            } label: {
+                HStack {
+                    Text("خيارات إضافية")
+                        .font(MZTypography.titleSmall)
+                        .foregroundColor(themeManager.textPrimaryColor)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(themeManager.textSecondaryColor)
+                        .rotationEffect(.degrees(showAdvancedOptions ? 180 : 0))
+                }
+                .padding(MZSpacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(themeManager.surfaceSecondaryColor)
+                )
+            }
+
+            // Collapsible content
+            if showAdvancedOptions {
+                VStack(spacing: MZSpacing.md) {
+                    // Schedule toggle
+                    scheduleSection
+
+                    // Recurrence (Pro)
+                    if isPro {
+                        recurrenceSection
+                    }
+
+                    // Notes (expandable)
+                    notesSection
+                }
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)),
+                    removal: .opacity
+                ))
+            }
+        }
+    }
+
+    // MARK: - Schedule Section
+    private var scheduleSection: some View {
+        VStack(spacing: MZSpacing.sm) {
+            Toggle(isOn: $isScheduled) {
+                HStack {
+                    Image(systemName: "calendar")
+                        .foregroundColor(themeManager.primaryColor)
+                    Text("جدولة")
+                        .font(MZTypography.bodyLarge)
+                }
+            }
+            .tint(themeManager.primaryColor)
+            .padding(MZSpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(themeManager.surfaceSecondaryColor)
+            )
+            .onChange(of: isScheduled) { _, value in
+                HapticManager.shared.trigger(value ? .success : .light)
+            }
+
+            if isScheduled {
+                DatePicker("التاريخ والوقت", selection: $scheduledDate)
+                    .datePickerStyle(.compact)
+                    .padding(MZSpacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(themeManager.surfaceSecondaryColor)
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            }
+        }
+    }
+
+    // MARK: - Notes Section
+    private var notesSection: some View {
+        VStack(alignment: .leading, spacing: MZSpacing.xs) {
+            Text("ملاحظات")
+                .font(MZTypography.labelLarge)
+                .foregroundColor(themeManager.textSecondaryColor)
+
+            TextEditor(text: $notes)
+                .font(MZTypography.bodyLarge)
+                .frame(minHeight: 80, maxHeight: 150)
+                .padding(MZSpacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(themeManager.surfaceSecondaryColor)
+                )
+                .scrollContentBackground(.hidden)
+        }
+    }
+
+    // MARK: - Save Button (Fixed Bottom)
+    private var saveButton: some View {
+        Button {
+            saveTask()
+        } label: {
+            Text(isEditing ? "حفظ التعديلات" : "إضافة المهمة")
+                .font(MZTypography.titleSmall)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 44)
+                .padding(.vertical, MZSpacing.md)
                 .background(
-                    LinearGradient(
-                        colors: [themeManager.primaryColor, themeManager.primaryColor.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .cornerRadius(22)
-                .shadow(
-                    color: themeManager.primaryColor.opacity(0.4),
-                    radius: 8,
-                    x: 0,
-                    y: 4
+                    Capsule()
+                        .fill(
+                            taskTitle.isEmpty
+                                ? Color.gray
+                                : themeManager.primaryColor
+                        )
+                        .shadow(
+                            color: themeManager.primaryColor.opacity(0.4),
+                            radius: 8, y: 4
+                        )
                 )
         }
-        .buttonStyle(DramaticButtonStyle())
+        .disabled(taskTitle.isEmpty)
+        .buttonStyle(PressableButtonStyle())
+    }
+
+    private let durationOptions = [15, 30, 45, 60, 90, 120]
+}
+
+// MARK: - Duration Chip Component
+struct DurationChip: View {
+    let duration: Int
+    let isSelected: Bool
+    let action: () -> Void
+
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        Button(action: action) {
+            Text("\(duration) د")
+                .font(MZTypography.labelLarge)
+                .foregroundColor(isSelected ? .white : themeManager.textPrimaryColor)
+                .padding(.horizontal, MZSpacing.md)
+                .padding(.vertical, MZSpacing.xs)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? themeManager.primaryColor : themeManager.surfaceSecondaryColor)
+                )
+        }
+        .buttonStyle(PressableButtonStyle())
     }
 }
 
-// MARK: - Dramatic Button Styles
-struct DramaticButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundColor(.white)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+// MARK: - Category Chip Component
+struct CategoryChip: View {
+    let category: TaskCategory
+    let isSelected: Bool
+    let action: () -> Void
+
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: MZSpacing.xs) {
+                Image(systemName: category.icon)
+                    .font(.system(size: 14))
+                Text(category.nameArabic)
+                    .font(MZTypography.labelLarge)
+            }
+            .foregroundColor(isSelected ? .white : Color(hex: category.colorHex))
+            .padding(.horizontal, MZSpacing.md)
+            .padding(.vertical, MZSpacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: 22)
+                Capsule()
+                    .fill(isSelected ? Color(hex: category.colorHex) : Color(hex: category.colorHex).opacity(0.15))
+            )
+        }
+        .buttonStyle(PressableButtonStyle())
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(MZAnimation.bouncy, value: isSelected)
+    }
+}
+```
+
+---
+
+### 4.2 TimelineView - Atmospheric Prayer Experience
+
+**Changes from current:**
+- Break 950-line monolith into components
+- Add prayer proximity atmospheric effects
+- Enhance drag-and-drop fluidity
+- Cinematic date navigation
+
+```swift
+struct TimelineView: View {
+    @State private var selectedDate = Date()
+
+    var body: some View {
+        ZStack {
+            // Atmospheric background (time-of-day gradient)
+            AtmosphericTimeBackground(date: selectedDate)
+
+            VStack(spacing: 0) {
+                // Cinematic date navigator
+                CinematicDateNavigator(selectedDate: $selectedDate)
+
+                // Timeline content
+                TimelineContent(date: selectedDate)
+            }
+        }
+    }
+}
+
+// MARK: - Cinematic Date Navigator
+struct CinematicDateNavigator: View {
+    @Binding var selectedDate: Date
+    @State private var transitionDirection: TransitionDirection = .forward
+
+    enum TransitionDirection { case forward, backward }
+
+    var body: some View {
+        HStack(spacing: MZSpacing.sm) {
+            NavigationArrowButton(direction: .right) {
+                navigateBack()
+            }
+
+            Spacer()
+
+            // Date with push transition
+            VStack(spacing: MZSpacing.xxs) {
+                Text(selectedDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(MZTypography.titleMedium)
+                    .id("date-\(selectedDate)")
+                    .transition(dateTransition)
+
+                Text(hijriDate)
+                    .font(MZTypography.labelMedium)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            NavigationArrowButton(direction: .left) {
+                navigateForward()
+            }
+
+            // Today button
+            if !Calendar.current.isDateInToday(selectedDate) {
+                Button {
+                    navigateToToday()
+                } label: {
+                    Text("اليوم")
+                        .font(MZTypography.labelLarge)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, MZSpacing.md)
+                        .padding(.vertical, MZSpacing.xs)
+                        .background(Capsule().fill(Color.accentColor))
+                }
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, MZSpacing.screenPadding)
+        .padding(.vertical, MZSpacing.sm)
+    }
+
+    private var dateTransition: AnyTransition {
+        .asymmetric(
+            insertion: .push(from: transitionDirection == .forward ? .trailing : .leading).combined(with: .opacity),
+            removal: .push(from: transitionDirection == .forward ? .leading : .trailing).combined(with: .opacity)
+        )
+    }
+
+    private func navigateForward() {
+        transitionDirection = .forward
+        HapticManager.shared.trigger(.selection)
+        withAnimation(MZAnimation.bouncy) {
+            selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+        }
+    }
+
+    private func navigateBack() {
+        transitionDirection = .backward
+        HapticManager.shared.trigger(.selection)
+        withAnimation(MZAnimation.bouncy) {
+            selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
+        }
+    }
+
+    private func navigateToToday() {
+        let today = Date()
+        transitionDirection = selectedDate > today ? .backward : .forward
+        HapticManager.shared.trigger(.medium)
+        withAnimation(MZAnimation.gentle) {
+            selectedDate = today
+        }
+    }
+
+    private var hijriDate: String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .islamicUmmAlQura)
+        formatter.dateFormat = "d MMMM"
+        formatter.locale = Locale(identifier: "ar")
+        return formatter.string(from: selectedDate)
+    }
+}
+
+// MARK: - Timeline Content
+struct TimelineContent: View {
+    let date: Date
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: MZSpacing.sm) {
+                    ForEach(timelineItems, id: \.id) { item in
+                        TimelineItemView(item: item)
+                            .id(item.id)
+                    }
+                }
+                .padding(MZSpacing.screenPadding)
+            }
+            .onAppear {
+                // Scroll to current time
+                scrollToCurrentTime(proxy: proxy)
+            }
+        }
+    }
+}
+
+// MARK: - Prayer Block with Atmosphere
+struct PrayerBlockView: View {
+    let prayer: PrayerTime
+    let isApproaching: Bool
+    let minutesUntil: Int
+
+    @State private var pulsePhase: CGFloat = 0
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        ZStack {
+            // Base card
+            HStack {
+                VStack(alignment: .leading, spacing: MZSpacing.xs) {
+                    HStack {
+                        Image(systemName: prayer.icon)
+                            .font(.system(size: 20))
+                            .symbolEffect(.bounce, value: isApproaching)
+
+                        Text(prayer.nameArabic)
+                            .font(MZTypography.titleMedium)
+                    }
+                    .foregroundColor(.white)
+
+                    Text(prayer.time.formatted(date: .omitted, time: .shortened))
+                        .font(MZTypography.bodyMedium)
+                        .foregroundColor(.white.opacity(0.9))
+                }
+
+                Spacer()
+
+                // Countdown badge when approaching
+                if isApproaching && minutesUntil <= 30 {
+                    PrayerCountdownBadge(minutes: minutesUntil)
+                }
+            }
+            .padding(MZSpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
                     .fill(
                         LinearGradient(
-                            colors: configuration.isPressed ?
-                                [Color.red.opacity(0.8), Color.orange.opacity(0.6)] :
-                                [Color.blue, Color.cyan],
+                            colors: [Color(hex: prayer.colorHex), Color(hex: prayer.colorHex).opacity(0.8)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    .shadow(
-                        color: configuration.isPressed ?
-                            Color.red.opacity(0.6) :
-                            Color.blue.opacity(0.4),
-                        radius: configuration.isPressed ? 16 : 8,
-                        x: 0,
-                        y: configuration.isPressed ? 8 : 4
-                    )
             )
-            .animation(.spring(response: 0.3, dampingFraction: 0.7))
-    }
-}
-```
 
-#### Secondary Button
-```swift
-struct SecondaryButton: View {
-    let title: String
-    let action: () -> Void
-    
-    @EnvironmentObject var themeManager: ThemeManager
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 17, weight: .medium))
-                .foregroundColor(Color.blue)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(22)
+            // Atmospheric glow when approaching
+            if isApproaching {
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color(hex: prayer.colorHex), lineWidth: 2 + pulsePhase * 2)
+                    .blur(radius: 4 + pulsePhase * 4)
+                    .opacity(0.6 - pulsePhase * 0.3)
+            }
         }
-        .buttonStyle(ScaleButtonStyle())
+        .onAppear {
+            if isApproaching {
+                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                    pulsePhase = 1.0
+                }
+            }
+        }
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: minutesUntil == 5)
+        .sensoryFeedback(.impact(flexibility: .solid), trigger: minutesUntil == 1)
+    }
+}
+
+// MARK: - Countdown Badge
+struct PrayerCountdownBadge: View {
+    let minutes: Int
+    @State private var pulseScale: CGFloat = 1.0
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock.fill")
+                .font(.system(size: 12))
+            Text("\(minutes) د")
+                .font(MZTypography.labelMedium)
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, MZSpacing.sm)
+        .padding(.vertical, MZSpacing.xs)
+        .background(
+            Capsule()
+                .fill(urgencyColor)
+                .scaleEffect(pulseScale)
+        )
+        .onAppear {
+            if minutes <= 5 {
+                withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                    pulseScale = 1.1
+                }
+            }
+        }
+    }
+
+    private var urgencyColor: Color {
+        if minutes <= 1 { return .red }
+        else if minutes <= 5 { return .orange }
+        else { return .white.opacity(0.3) }
     }
 }
 ```
 
-#### Floating Action Button (FAB)
+---
+
+### 4.3 InboxView - Enhanced Cards & Interactions
+
+**Changes from current:**
+- Remove Form/List overhead
+- Better card design with depth
+- Horizontal category badges
+- Delightful empty state
+- Enhanced FAB
+
 ```swift
-struct FloatingActionButton: View {
-    let icon: String
-    let action: () -> Void
-    
+struct InboxView: View {
+    @State private var showAddTask = false
+    @State private var showCompletedTasks = false
     @EnvironmentObject var themeManager: ThemeManager
-    
+
+    var body: some View {
+        ZStack {
+            themeManager.backgroundColor.ignoresSafeArea()
+
+            if inboxTasks.isEmpty && !showCompletedTasks {
+                // Delightful empty state
+                DelightfulEmptyState(type: .inbox) {
+                    showAddTask = true
+                }
+            } else {
+                // Task list
+                ScrollView {
+                    LazyVStack(spacing: MZSpacing.sm) {
+                        // Active tasks
+                        ForEach(Array(inboxTasks.enumerated()), id: \.element.id) { index, task in
+                            InboxTaskCard(task: task)
+                                .transition(.asymmetric(
+                                    insertion: .scale.combined(with: .opacity),
+                                    removal: .scale.combined(with: .opacity)
+                                ))
+                                .animation(
+                                    MZAnimation.bouncy.delay(MZAnimation.stagger(index: index)),
+                                    value: inboxTasks.count
+                                )
+                        }
+
+                        // Completed section
+                        if !completedTasks.isEmpty {
+                            CompletedTasksSection(
+                                tasks: completedTasks,
+                                isExpanded: $showCompletedTasks
+                            )
+                        }
+                    }
+                    .padding(MZSpacing.screenPadding)
+                    .padding(.bottom, 100) // Space for FAB
+                }
+            }
+
+            // Floating Action Button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    EnhancedFAB {
+                        showAddTask = true
+                    }
+                    .padding(MZSpacing.screenPadding)
+                }
+            }
+        }
+        .sheet(isPresented: $showAddTask) {
+            AddTaskSheet()
+        }
+    }
+}
+
+// MARK: - Inbox Task Card
+struct InboxTaskCard: View {
+    let task: Task
+    @State private var isPressed = false
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        HStack(spacing: MZSpacing.md) {
+            // Category color bar
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color(hex: task.category.colorHex))
+                .frame(width: 4, height: 50)
+
+            // Task content
+            VStack(alignment: .leading, spacing: MZSpacing.xs) {
+                Text(task.title)
+                    .font(MZTypography.titleSmall)
+                    .foregroundColor(themeManager.textPrimaryColor)
+                    .lineLimit(2)
+
+                HStack(spacing: MZSpacing.sm) {
+                    // Duration chip
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 12))
+                        Text("\(task.duration) د")
+                            .font(MZTypography.labelSmall)
+                    }
+                    .foregroundColor(themeManager.textSecondaryColor)
+
+                    // Category chip
+                    Text(task.category.nameArabic)
+                        .font(MZTypography.labelSmall)
+                        .foregroundColor(Color(hex: task.category.colorHex))
+                        .padding(.horizontal, MZSpacing.xs)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(Color(hex: task.category.colorHex).opacity(0.15))
+                        )
+                }
+            }
+
+            Spacer()
+
+            // Drag indicator
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 16))
+                .foregroundColor(themeManager.textTertiaryColor)
+        }
+        .padding(MZSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(themeManager.surfaceColor)
+                .shadow(
+                    color: MZShadow.sm.color,
+                    radius: MZShadow.sm.radius,
+                    y: MZShadow.sm.y
+                )
+        )
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(MZAnimation.snappy, value: isPressed)
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button {
+                scheduleTask(task)
+            } label: {
+                Label("جدولة", systemImage: "calendar.badge.plus")
+            }
+            .tint(themeManager.primaryColor)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                deleteTask(task)
+            } label: {
+                Label("حذف", systemImage: "trash")
+            }
+
+            Button {
+                completeTask(task)
+            } label: {
+                Label("تم", systemImage: "checkmark")
+            }
+            .tint(.green)
+        }
+        .contextMenu {
+            Button {
+                duplicateTask(task)
+            } label: {
+                Label("نسخ", systemImage: "doc.on.doc")
+            }
+
+            Button {
+                editTask(task)
+            } label: {
+                Label("تعديل", systemImage: "pencil")
+            }
+        }
+    }
+}
+
+// MARK: - Enhanced FAB
+struct EnhancedFAB: View {
+    let action: () -> Void
+    @State private var isPressed = false
+    @EnvironmentObject var themeManager: ThemeManager
+
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
+            Image(systemName: "plus")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(width: 60, height: 60)
@@ -126,252 +1094,108 @@ struct FloatingActionButton: View {
                         .shadow(
                             color: themeManager.primaryColor.opacity(0.4),
                             radius: 12,
-                            x: 0,
                             y: 6
                         )
                 )
         }
         .buttonStyle(BouncyButtonStyle())
+        .symbolEffect(.bounce, value: isPressed)
     }
 }
-```
 
-#### Task Card
-```swift
-struct TaskCard: View {
-    let task: Task
-    let onTap: () -> Void
-    @State private var isPressed = false
-    @State private var shimmerOffset: CGFloat = -200
-    
-    @EnvironmentObject var themeManager: ThemeManager
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Category indicator with glow effect
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: task.colorHex), Color(hex: task.colorHex).opacity(0.6)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 6, height: 44)
-                    .shadow(
-                        color: Color(hex: task.colorHex).opacity(0.6),
-                        radius: 12,
-                        x: 0,
-                        y: 0
-                    )
-                
-                // Pulsing glow
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(hex: task.colorHex).opacity(0.3))
-                    .frame(width: 14, height: 44)
-                    .scaleEffect(isPressed ? 1.2 : 1.0)
-                    .opacity(isPressed ? 0.8 : 0.6)
-                    .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isPressed)
-            }
-            
-            // Task content with theme-aware styling
-            VStack(alignment: .leading, spacing: 6) {
-                Text(task.title)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(themeManager.textPrimaryColor)
-                    .lineLimit(2)
-                    .shadow(color: themeManager.textPrimaryColor.opacity(0.3), radius: 2, x: 0, y: 1)
-                
-                HStack(spacing: 8) {
-                    Image(systemName: "clock.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(themeManager.primaryColor)
-                    
-                    Text("\(task.duration) د")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(themeManager.textSecondaryColor)
-                }
-                
-                Spacer()
-                
-                // Floating action indicator
-                Image(systemName: "arrow.right.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(themeManager.primaryColor)
-                    .offset(x: isPressed ? 4 : 0)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isPressed)
+// MARK: - Delightful Empty State
+struct DelightfulEmptyState: View {
+    let type: EmptyStateType
+    let action: () -> Void
+
+    @State private var isAnimating = false
+    @State private var iconBounce = false
+
+    enum EmptyStateType {
+        case inbox, timeline, completed
+
+        var icon: String {
+            switch self {
+            case .inbox: return "tray"
+            case .timeline: return "calendar.badge.plus"
+            case .completed: return "checkmark.seal"
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(themeManager.surfaceColor)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(
-                            LinearGradient(
-                                colors: [themeManager.primaryColor.opacity(0.3), themeManager.primaryColor.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                )
-                .shadow(
-                    color: themeManager.primaryColor.opacity(0.2),
-                    radius: isPressed ? 16 : 8,
-                    x: 0,
-                    y: isPressed ? 8 : 4
-                )
-        )
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .rotation3DEffect(.degrees(isPressed ? 2 : 0), anchor: .center, perspective: 0.8)
-        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isPressed)
-        .onTapGesture {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                isPressed = true
+
+        var title: String {
+            switch self {
+            case .inbox: return "صندوق الوارد فارغ"
+            case .timeline: return "لا توجد مهام مجدولة"
+            case .completed: return "لا توجد مهام مكتملة"
             }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    isPressed = false
+        }
+
+        var subtitle: String {
+            switch self {
+            case .inbox: return "أضف مهمة جديدة لتبدأ"
+            case .timeline: return "اسحب مهمة من صندوق الوارد"
+            case .completed: return "أكمل مهمة لتراها هنا"
+            }
+        }
+
+        var buttonTitle: String? {
+            switch self {
+            case .inbox: return "إضافة مهمة"
+            case .timeline: return "عرض المهام"
+            case .completed: return nil
+            }
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: MZSpacing.lg) {
+            // Animated circles
+            ZStack {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                        .frame(width: CGFloat(120 + i * 40), height: CGFloat(120 + i * 40))
+                        .scaleEffect(isAnimating ? 1.0 : 0.8)
+                        .opacity(isAnimating ? 0.5 : 0.2)
+                        .animation(
+                            .easeInOut(duration: 2.0)
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(i) * 0.3),
+                            value: isAnimating
+                        )
                 }
-                onTap()
+
+                Image(systemName: type.icon)
+                    .font(.system(size: 60))
+                    .foregroundStyle(.secondary)
+                    .symbolEffect(.bounce.byLayer, value: iconBounce)
+            }
+
+            VStack(spacing: MZSpacing.xs) {
+                Text(type.title)
+                    .font(MZTypography.titleLarge)
+
+                Text(type.subtitle)
+                    .font(MZTypography.bodyMedium)
+                    .foregroundColor(.secondary)
+            }
+
+            if let buttonTitle = type.buttonTitle {
+                Button(action: action) {
+                    Text(buttonTitle)
+                        .font(MZTypography.titleSmall)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, MZSpacing.lg)
+                        .padding(.vertical, MZSpacing.sm)
+                        .background(Capsule().fill(Color.accentColor))
+                }
             }
         }
         .onAppear {
-            withAnimation(.linear(duration: 2).delay(0.5)) {
-                shimmerOffset = 200
+            isAnimating = true
+            Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+                iconBounce.toggle()
             }
-        }
-    }
-}
-```
-
-#### Event Block
-```swift
-struct EventBlock: View {
-    let event: EventTime
-    
-    @EnvironmentObject var themeManager: ThemeManager
-    
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Background gradient
-            LinearGradient(
-                colors: [
-                    Color(hex: event.colorHex),
-                    Color(hex: event.colorHex).opacity(0.8)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .cornerRadius(themeManager.cornerRadius(.medium))
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: event.eventType.icon)
-                        .font(.system(size: 20))
-                        .foregroundColor(.white)
-                    
-                    Text(event.displayName)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    if event.isSpecial {
-                        Text("خاص")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.white.opacity(0.3))
-                            .cornerRadius(6)
-                    }
-                }
-                
-                Text(event.startTime.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.9))
-                
-                Text("\(event.duration) دقيقة")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.8))
-                
-                Spacer()
-            }
-            .padding(12)
-        }
-    }
-}
-```
-
-### 1.2 Input Components
-
-#### Custom TextField
-```swift
-struct CustomTextField: View {
-    let title: String
-    @Binding var text: String
-    let placeholder: String
-    let icon: String?
-    
-    @EnvironmentObject var themeManager: ThemeManager
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(themeManager.textPrimaryColor)
-            
-            HStack(spacing: 12) {
-                if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 18))
-                        .foregroundColor(themeManager.textSecondaryColor)
-                }
-                
-                TextField(placeholder, text: $text)
-                    .font(.system(size: 17))
-                    .foregroundColor(themeManager.textPrimaryColor)
-                    .textFieldStyle(PlainTextFieldStyle())
-            }
-            .padding(16)
-            .background(themeManager.surfaceSecondaryColor)
-            .cornerRadius(themeManager.cornerRadius(.medium))
-        }
-    }
-}
-```
-
-#### Duration Picker
-```swift
-struct DurationPicker: View {
-    @Binding var duration: Int
-    
-    @EnvironmentObject var themeManager: ThemeManager
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("المدة")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(themeManager.textPrimaryColor)
-            
-            HStack {
-                Text("\(duration) دقيقة")
-                    .font(.system(size: 17))
-                    .foregroundColor(themeManager.textPrimaryColor)
-                
-                Spacer()
-                
-                Stepper("", value: $duration, in: 5...240, step: 5)
-                    .labelsHidden()
-            }
-            .padding(16)
-            .background(themeManager.surfaceSecondaryColor)
-            .cornerRadius(themeManager.cornerRadius(.medium))
         }
     }
 }
@@ -379,672 +1203,111 @@ struct DurationPicker: View {
 
 ---
 
-## 2. Layout Patterns
+### 4.4 SettingsView - Visual Hierarchy
 
-### 2.1 Timeline Layout
+**Changes:**
+- Section headers with icons
+- Pro features with gold accent
+- Interactive toggles with haptics
 
-The timeline is the core of Mizan, displaying a 24-hour view with integrated events and tasks.
-
-#### Key Principles:
-- **Vertical Scrolling**: Natural for time-based content
-- **15-minute Grid**: Fine-grained scheduling precision
-- **Visual Hierarchy**: Events prominently displayed
-- **Current Time Indicator**: Always visible red line
-- **Smart Bounds**: Timeline adjusts based on first/last event
-
-#### Implementation Pattern:
 ```swift
-struct TimelineLayout: View {
-    let hourHeight: CGFloat = 60
-    let gridSpacing: CGFloat = 15 // 15 minutes
-    
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: true) {
-                ZStack(alignment: .topLeading) {
-                    // Background grid
-                    hourGrid
-                    
-                    // Timeline items
-                    timelineItemsOverlay
-                    
-                    // Current time indicator
-                    if Calendar.current.isDateInToday(selectedDate) {
-                        currentTimeIndicator
-                    }
-                }
-                .padding(.leading, 60) // Space for time labels
-            }
-        }
-    }
-}
-```
+struct SettingsView: View {
+    @EnvironmentObject var themeManager: ThemeManager
 
-### 2.2 Inbox Layout
-
-The inbox manages unscheduled tasks with a clean, actionable interface.
-
-#### Key Principles:
-- **Card-based Design**: Each task is a distinct card
-- **Swipe Actions**: Quick access to common actions
-- **Floating Action Button**: Always present for adding tasks
-- **Empty States**: Helpful guidance when no tasks exist
-- **Progressive Disclosure**: Completed tasks hidden by default
-
-#### Implementation Pattern:
-```swift
-struct InboxLayout: View {
-    var body: some View {
-        ZStack {
-            if inboxTasks.isEmpty && !showCompletedTasks {
-                emptyStateView
-            } else {
-                taskListView
-            }
-            
-            // Floating Action Button
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    FloatingActionButton(icon: "plus", action: addTask)
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 20)
-                }
-            }
-        }
-    }
-}
-```
-
-### 2.3 Settings Layout
-
-Settings use a grouped list pattern with clear sections and visual hierarchy.
-
-#### Key Principles:
-- **Grouped Sections**: Related settings grouped together
-- **Navigation Links**: Drills down to detailed settings
-- **Toggle Switches**: Binary settings use toggles
-- **Visual Feedback**: Theme changes preview immediately
-- **RTL Support**: Proper layout for Arabic text
-
-#### Implementation Pattern:
-```swift
-struct SettingsLayout: View {
     var body: some View {
         NavigationView {
-            Form {
-                Section("المظهر") {
-                    ThemeSelectorRow()
-                    LanguageSelectorRow()
+            ScrollView {
+                VStack(spacing: MZSpacing.lg) {
+                    // Pro upgrade banner (if not pro)
+                    if !isPro {
+                        ProUpgradeBanner()
+                    }
+
+                    // Settings sections
+                    SettingsSection(title: "الصلاة", icon: "moon.stars.fill") {
+                        PrayerSettingsContent()
+                    }
+
+                    SettingsSection(title: "الإشعارات", icon: "bell.fill") {
+                        NotificationSettingsContent()
+                    }
+
+                    SettingsSection(title: "المظهر", icon: "paintbrush.fill") {
+                        ThemeSettingsContent()
+                    }
+
+                    SettingsSection(title: "حول التطبيق", icon: "info.circle.fill") {
+                        AboutContent()
+                    }
                 }
-                
-                Section("الإشعارات") {
-                    NotificationToggleRow()
-                    PrayerAlertRow()
-                }
-                
-                Section("الصلاة") {
-                    PrayerCalculationRow()
-                    LocationRow()
-                }
+                .padding(MZSpacing.screenPadding)
             }
+            .background(themeManager.backgroundColor)
             .navigationTitle("الإعدادات")
         }
     }
 }
-```
 
----
+// MARK: - Settings Section
+struct SettingsSection<Content: View>: View {
+    let title: String
+    let icon: String
+    @ViewBuilder let content: Content
+    @EnvironmentObject var themeManager: ThemeManager
 
-## 3. Color Schemes
-
-### 3.1 Theme System
-
-Mizan includes 5 carefully crafted themes, each with distinct personalities while maintaining readability and cultural appropriateness.
-
-### 3.2 Noor (Light Theme)
-
-The default light theme with a clean, minimalist appearance matching Structured.
-
-```swift
-struct NoorTheme: Theme {
-    let colors = ColorPalette(
-        background: "#FFFFFF",
-        surface: "#FFFFFF",
-        surfaceSecondary: "#F8F8F8",
-        primary: "#007AFF",
-        primaryLight: "#4D94FF",
-        primaryDark: "#0051CC",
-        secondary: "#5856D",
-        accent: "#FF9500",
-        textPrimary: "#000000",
-        textSecondary: "#8E8E93",
-        textTertiary: "#C7C7CC",
-        eventGradientStart: "#007AFF",
-        eventGradientEnd: "#4D94FF",
-        success: "#34C759",
-        warning: "#FF9500",
-        error: "#FF3B30",
-        info: "#007AFF",
-        divider: "#E5E5EA"
-    )
-    
-    let taskColors = TaskColors(
-        work: "#007AFF",
-        personal: "#FF9500",
-        study: "#5856D",
-        health: "#34C759",
-        social: "#FF3B30",
-        worship: "#AF52DE"
-    )
-}
-```
-
-### 3.3 Layl (Dark Theme)
-
-A clean dark theme matching Structured's dark mode.
-
-```swift
-struct LaylTheme: Theme {
-    let colors = ColorPalette(
-        background: "#000000",
-        surface: "#1C1C1E",
-        surfaceSecondary: "#2C2C2E",
-        primary: "#007AFF",
-        primaryLight: "#4D94FF",
-        primaryDark: "#0051CC",
-        secondary: "#5856D6",
-        accent: "#FF9500",
-        textPrimary: "#FFFFFF",
-        textSecondary: "#8E8E93",
-        textTertiary: "#48484A",
-        eventGradientStart: "#007AFF",
-        eventGradientEnd: "#4D94FF",
-        success: "#34C759",
-        warning: "#FF9500",
-        error: "#FF3B30",
-        info: "#007AFF",
-        divider: "#38383A"
-    )
-    
-    let useGlowInsteadOfShadow = true
-}
-```
-
-### 3.4 Sunrise (Dawn Theme)
-
-A soft, gradient theme inspired by the colors of dawn.
-
-```swift
-struct SunriseTheme: Theme {
-    let colors = ColorPalette(
-        background: "#E8DFF5",
-        surface: "#FFFFFF",
-        surfaceSecondary: "#FAF5FF",
-        primary: "#6C63FF",
-        primaryLight: "#8B7FFF",
-        primaryDark: "#5851DB",
-        secondary: "#E879F9",
-        accent: "#FCA5A5",
-        textPrimary: "#2D2A4A",
-        textSecondary: "#6B5B95",
-        textTertiary: "#9B8FB6",
-        eventGradientStart: "#6C63FF",
-        eventGradientEnd: "#E879F9",
-        success: "#A78BFA",
-        warning: "#FBBF24",
-        error: "#F87171",
-        info: "#60A5FA",
-        divider: "#E9D5FF"
-    )
-    
-    let backgroundGradient = ["#E8DFF5", "#FCE1E4", "#FCF4DD"]
-    let useGradientBackground = true
-}
-```
-
-### 3.5 Dusk (Desert Theme)
-
-Warm, earthy tones inspired by desert landscapes.
-
-```swift
-struct DuskTheme: Theme {
-    let colors = ColorPalette(
-        background: "#E9D5C1",
-        surface: "#F5EAD8",
-        surfaceSecondary: "#EFE2CF",
-        primary: "#D4734C",
-        primaryLight: "#E89668",
-        primaryDark: "#C45A30",
-        secondary: "#8B6F47",
-        accent: "#C88F5C",
-        textPrimary: "#3D2817",
-        textSecondary: "#705437",
-        textTertiary: "#9A7B5B",
-        eventGradientStart: "#D4734C",
-        eventGradientEnd: "#C88F5C",
-        success: "#8B6F47",
-        warning: "#E89668",
-        error: "#C45A30",
-        info: "#8B6F47",
-        divider: "#D4B69C"
-    )
-    
-    let specialEffects = SpecialEffects(
-        arabesquePattern: true,
-        patternOpacity: 0.05,
-        hardShadows: true
-    )
-}
-```
-
-### 3.6 Celebration (Special Theme)
-
-A festive theme that automatically activates during special occasions.
-
-```swift
-struct CelebrationTheme: Theme {
-    let colors = ColorPalette(
-        background: "#1E1B4B",
-        surface: "#312E81",
-        surfaceSecondary: "#3730A3",
-        primary: "#FFD700",
-        primaryLight: "#FDE047",
-        primaryDark: "#FFA500",
-        secondary: "#A78BFA",
-        accent: "#F472B6",
-        textPrimary: "#FFFFFF",
-        textSecondary: "#E0E7FF",
-        textTertiary: "#C7D2FE",
-        eventGradientStart: "#FFD700",
-        eventGradientEnd: "#FFA500",
-        success: "#A78BFA",
-        warning: "#FDE047",
-        error: "#F87171",
-        info: "#60A5FA",
-        divider: "#4C1D95"
-    )
-    
-    let specialEffects = SpecialEffects(
-        crescentMoonIcon: true,
-        festiveAnimations: true,
-        starParticles: true,
-        useGlow: true
-    )
-    
-    let autoActivateDuringRamadan = true
-}
-```
-
----
-
-## 4. Typography System
-
-### 4.1 Font Hierarchy
-
-Mizan uses a dual typography system matching Structured's clean font hierarchy.
-
-#### Arabic Fonts
-- **Display Headers**: SF Arabic Rounded Bold
-- **Section Headers**: SF Arabic Rounded Semibold
-- **Body Text**: SF Arabic Rounded Medium
-- **Captions**: SF Arabic Rounded Regular
-
-#### English Fonts
-- **Display Headers**: SF Pro Rounded Bold
-- **Section Headers**: SF Pro Rounded Semibold
-- **Body Text**: SF Pro Rounded Medium
-- **Captions**: SF Pro Rounded Regular
-
-### 4.2 Typography Scale
-
-```swift
-struct TypographyScale {
-    // Display
-    let display1 = Font.system(size: 32, weight: .heavy)
-    let display2 = Font.system(size: 28, weight: .bold)
-    let display3 = Font.system(size: 24, weight: .semibold)
-    
-    // Headers
-    let header1 = Font.system(size: 20, weight: .semibold)
-    let header2 = Font.system(size: 18, weight: .semibold)
-    let header3 = Font.system(size: 16, weight: .medium)
-    
-    // Body
-    let body1 = Font.system(size: 17, weight: .regular)
-    let body2 = Font.system(size: 15, weight: .regular)
-    let body3 = Font.system(size: 14, weight: .regular)
-    
-    // Captions
-    let caption1 = Font.system(size: 12, weight: .medium)
-    let caption2 = Font.system(size: 11, weight: .regular)
-}
-```
-
-### 4.3 Arabic Text Optimization
-
-Special considerations for Arabic text:
-
-```swift
-extension View {
-    func arabicOptimized() -> some View {
-        self
-            .environment(\.layoutDirection, .rightToLeft)
-            .font(.custom("SF Arabic Text", size: 17))
-            .lineSpacing(2)
-            .tracking(0.5)
-    }
-}
-
-struct ArabicText: View {
-    let text: String
-    let style: FontStyle
-    
     var body: some View {
-        Text(text)
-            .font(arabicFont(for: style))
-            .environment(\.layoutDirection, .rightToLeft)
-    }
-    
-    private func arabicFont(for style: FontStyle) -> Font {
-        switch style {
-        case .header:
-            return .custom("SF Arabic Display", size: 20, weight: .semibold)
-        case .body:
-            return .custom("SF Arabic Text", size: 17, weight: .medium)
-        case .caption:
-            return .custom("SF Arabic Text", size: 14, weight: .regular)
-        }
-    }
-}
-```
+        VStack(alignment: .leading, spacing: MZSpacing.sm) {
+            // Header
+            HStack(spacing: MZSpacing.xs) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(themeManager.primaryColor)
 
----
-
-## 5. Iconography and Visual Elements
-
-### 5.1 Icon System
-
-Mizan uses SF Symbols with custom Islamic-themed icons for religious elements.
-
-#### Core Icons
-- **Task Categories**: Each category has a distinct icon
-- **Event Times**: Custom icons for each event
-- **Navigation**: Standard iOS navigation icons
-- **Actions**: Clear, universally understood action icons
-
-#### Prayer Icons
-```swift
-extension PrayerType {
-    var icon: String {
-        switch self {
-        case .fajr: return "sunrise.fill"
-        case .dhuhr: return "sun.max.fill"
-        case .asr: return "sun.and.horizon.fill"
-        case .maghrib: return "sunset.fill"
-        case .isha: return "moon.fill"
-        }
-    }
-    
-    var arabicIcon: String {
-        switch self {
-        case .fajr: return "fajr.icon"
-        case .dhuhr: return "dhuhr.icon"
-        case .asr: return "asr.icon"
-        case .maghrib: return "maghrib.icon"
-        case .isha: return "isha.icon"
-        }
-    }
-}
-```
-
-### 5.2 Islamic Design Elements
-
-#### Geometric Patterns
-Subtle arabesque patterns in the Sahara theme:
-```swift
-struct ArabesquePattern: View {
-    let opacity: Double
-    
-    var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                // Draw geometric pattern
-                drawArabesque(in: CGRect(origin: .zero, size: geometry.size), path: &path)
+                Text(title)
+                    .font(MZTypography.titleSmall)
+                    .foregroundColor(themeManager.textPrimaryColor)
             }
-            .fill(Color.primary.opacity(opacity))
-        }
-    }
-}
-```
 
-#### Decorative Elements
-- **Crescent Moon**: Used in Ramadan theme
-- **Star Patterns**: Subtle background elements
-- **Calligraphy**: Special headers for Islamic content
-- **Geometric Borders**: Frame important sections
-
----
-
-## 6. Animation Specifications
-
-### 6.1 Spring Physics System
-
-Mizan uses a comprehensive spring animation system for natural, responsive interactions.
-
-#### Spring Definitions
-```swift
-struct AnimationSprings {
-    // Gentle: Smooth, calm animations
-    static let gentle = Spring(
-        response: 0.4,
-        dampingFraction: 0.8,
-        blendDuration: 0.3
-    )
-    
-    // Bouncy: Playful with overshoot
-    static let bouncy = Spring(
-        response: 0.35,
-        dampingFraction: 0.7,
-        blendDuration: 0.2
-    )
-    
-    // Snappy: Quick, precise feedback
-    static let snappy = Spring(
-        response: 0.25,
-        dampingFraction: 0.85,
-        blendDuration: 0.15
-    )
-    
-    // Soft: Very gentle for subtle changes
-    static let soft = Spring(
-        response: 0.5,
-        dampingFraction: 0.9,
-        blendDuration: 0.35
-    )
-    
-    // Stiff: Tight, fast animations
-    static let stiff = Spring(
-        response: 0.2,
-        dampingFraction: 0.92,
-        blendDuration: 0.1
-    )
-}
-```
-
-// MARK: - Button Styles
-struct DramaticButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundColor(.white)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            // Content
+            VStack(spacing: 0) {
+                content
+            }
             .background(
-                RoundedRectangle(cornerRadius: 22)
-                    .fill(
-                        LinearGradient(
-                            colors: configuration.isPressed ?
-                                [Color.red.opacity(0.8), Color.orange.opacity(0.6)] :
-                                [Color.blue, Color.cyan],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(
-                        color: configuration.isPressed ?
-                            Color.red.opacity(0.6) :
-                            Color.blue.opacity(0.4),
-                        radius: configuration.isPressed ? 16 : 8,
-                        x: 0,
-                        y: configuration.isPressed ? 8 : 4
-                    )
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(themeManager.surfaceColor)
             )
-            .animation(.spring(response: 0.3, dampingFraction: 0.7))
-    }
-}
-```
-
-### 6.2 Signature Animations
-
-#### App Launch Animation
-```swift
-struct AppLaunchAnimation: View {
-    @State private var scale: CGFloat = 0.8
-    @State private var opacity: Double = 0
-    
-    var body: some View {
-        ZStack {
-            // App content
-            ContentView()
-                .scaleEffect(scale)
-                .opacity(opacity)
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                scale = 1.0
-                opacity = 1.0
-            }
         }
     }
 }
-```
 
-#### Task Creation Animation
-```swift
-struct TaskCreationAnimation: View {
-    @State private var showSheet = false
-    
-    var body: some View {
-        Button("Add Task") {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                showSheet = true
-            }
-        }
-        .sheet(isPresented: $showSheet) {
-            AddTaskSheet()
-                .transition(.asymmetric(
-                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                    removal: .move(edge: .bottom).combined(with: .opacity)
-                ))
-        }
-    }
-}
-```
-
-#### Drag and Drop Animations
-```swift
-struct DragAnimation: ViewModifier {
-    let isDragging: Bool
-    
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(isDragging ? 1.05 : 1.0)
-            .shadow(
-                color: isDragging ? Color.black.opacity(0.3) : Color.black.opacity(0.1),
-                radius: isDragging ? 16 : 4,
-                x: 0,
-                y: isDragging ? 8 : 2
-            )
-            .rotationEffect(.degrees(isDragging ? 2 : 0))
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDragging)
-    }
-}
-```
-
-#### Prayer Time Alert Animation
-```swift
-struct PrayerAlertAnimation: View {
-    @State private var pulseScale: CGFloat = 1.0
-    @State private var glowOpacity: Double = 0.3
-    
-    var body: some View {
-        EventBlock(event: event)
-            .scaleEffect(pulseScale)
-            .shadow(
-                color: Color(hex: event.colorHex).opacity(glowOpacity),
-                radius: 20,
-                x: 0,
-                y: 0
-            )
-            .onAppear {
-                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                    pulseScale = 1.05
-                    glowOpacity = 0.8
-                }
-            }
-    }
-}
-```
-
-### 6.3 Micro-interactions
-
-#### Button Press Animation
-```swift
-struct ButtonPressAnimation: ViewModifier {
-    @State private var isPressed = false
-    
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(isPressed ? 0.95 : 1.0)
-            .opacity(isPressed ? 0.8 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: isPressed)
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.1)) {
-                    isPressed = true
-                }
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        isPressed = false
-                    }
-                }
-            }
-    }
-}
-```
-
-#### Toggle Switch Animation
-```swift
-struct ToggleSwitchAnimation: View {
+// MARK: - Animated Toggle Row
+struct AnimatedToggleRow: View {
+    let title: String
+    let icon: String
     @Binding var isOn: Bool
-    
+    @EnvironmentObject var themeManager: ThemeManager
+
     var body: some View {
         HStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(isOn ? Color.green : Color.gray.opacity(0.3))
-                .frame(width: 52, height: 32)
-                .overlay(
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 28, height: 28)
-                        .offset(x: isOn ? 12 : -12)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isOn)
-                )
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        isOn.toggle()
-                    }
-                }
+            HStack(spacing: MZSpacing.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(themeManager.primaryColor)
+                    .symbolEffect(.bounce, value: isOn)
+
+                Text(title)
+                    .font(MZTypography.bodyLarge)
+            }
+
+            Spacer()
+
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .tint(themeManager.primaryColor)
+        }
+        .padding(MZSpacing.md)
+        .onChange(of: isOn) { _, value in
+            HapticManager.shared.trigger(value ? .success : .light)
         }
     }
 }
@@ -1052,151 +1315,546 @@ struct ToggleSwitchAnimation: View {
 
 ---
 
-## 7. Interaction Patterns
+### 4.5 Onboarding - Story-Driven Flow
 
-### 7.1 Drag and Drop System
-
-Mizan implements a sophisticated drag and drop system for scheduling tasks.
-
-#### Drag States
 ```swift
-enum DragState {
-    case idle
-    case pressing
-    case dragging(translation: CGSize)
-    case overTarget(isValid: Bool)
-}
-```
+struct OnboardingView: View {
+    @State private var currentPage = 0
+    @State private var isTransitioning = false
 
-#### Draggable Task Implementation
-```swift
-struct DraggableTask: View {
-    let task: Task
-    @State private var dragState = DragState.idle
-    @State private var location: CGPoint = .zero
-    
     var body: some View {
-        TaskCard(task: task)
-            .offset(dragState == .dragging(let translation) ? translation : .zero)
-            .scaleEffect(dragState == .dragging(_) ? 1.05 : 1.0)
-            .shadow(
-                color: dragState == .dragging(_) ? Color.black.opacity(0.3) : Color.black.opacity(0.1),
-                radius: dragState == .dragging(_) ? 16 : 4,
-                x: 0,
-                y: dragState == .dragging(_) ? 8 : 2
-            )
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: dragState)
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        dragState = .dragging(translation: value.translation)
-                    }
-                    .onEnded { value in
-                        handleDrop(at: value.location)
-                        dragState = .idle
-                    }
-            )
+        ZStack {
+            // Evolving background
+            OnboardingBackground(page: currentPage)
+
+            TabView(selection: $currentPage) {
+                WelcomePage { advancePage() }.tag(0)
+                LocationPage { advancePage() }.tag(1)
+                MethodPage { advancePage() }.tag(2)
+                NotificationsPage { completeOnboarding() }.tag(3)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .disabled(isTransitioning)
+
+            // Custom page indicator
+            VStack {
+                Spacer()
+                PageIndicator(current: currentPage, total: 4)
+                    .padding(.bottom, 100)
+            }
+        }
+    }
+
+    private func advancePage() {
+        isTransitioning = true
+        HapticManager.shared.trigger(.medium)
+
+        withAnimation(MZAnimation.gentle) {
+            currentPage += 1
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            isTransitioning = false
+        }
+    }
+}
+
+// MARK: - Page Indicator
+struct PageIndicator: View {
+    let current: Int
+    let total: Int
+
+    var body: some View {
+        HStack(spacing: MZSpacing.sm) {
+            ForEach(0..<total, id: \.self) { i in
+                Capsule()
+                    .fill(i == current ? Color.white : Color.white.opacity(0.3))
+                    .frame(width: i == current ? 32 : 8, height: 8)
+                    .animation(MZAnimation.bouncy, value: current)
+            }
+        }
+    }
+}
+
+// MARK: - Welcome Page
+struct WelcomePage: View {
+    let onContinue: () -> Void
+
+    @State private var moonRevealed = false
+    @State private var titleRevealed = false
+    @State private var featuresRevealed = false
+    @State private var buttonRevealed = false
+
+    var body: some View {
+        VStack(spacing: MZSpacing.xxl) {
+            Spacer()
+
+            // Moon icon
+            Image(systemName: "moon.stars.fill")
+                .font(.system(size: 100))
+                .foregroundStyle(
+                    .linearGradient(
+                        colors: [.white, Color(hex: "#FFD700")],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .symbolEffect(.bounce, options: .speed(0.5).repeat(1), value: moonRevealed)
+                .scaleEffect(moonRevealed ? 1.0 : 0.3)
+                .opacity(moonRevealed ? 1.0 : 0.0)
+                .shadow(color: Color(hex: "#FFD700").opacity(0.5), radius: 30)
+
+            VStack(spacing: MZSpacing.md) {
+                Text("ميزان")
+                    .font(MZTypography.displayLarge)
+                    .foregroundColor(.white)
+                    .opacity(titleRevealed ? 1 : 0)
+                    .offset(y: titleRevealed ? 0 : 30)
+
+                Text("خطط يومك حول ما يهم حقًا")
+                    .font(MZTypography.bodyLarge)
+                    .foregroundColor(.white.opacity(0.9))
+                    .opacity(titleRevealed ? 1 : 0)
+            }
+
+            // Features with stagger
+            VStack(alignment: .leading, spacing: MZSpacing.md) {
+                FeatureRow(icon: "clock.fill", text: "تتبع أوقات الصلاة تلقائيًا")
+                    .opacity(featuresRevealed ? 1 : 0)
+                    .offset(x: featuresRevealed ? 0 : -30)
+
+                FeatureRow(icon: "list.bullet", text: "إدارة المهام اليومية")
+                    .opacity(featuresRevealed ? 1 : 0)
+                    .offset(x: featuresRevealed ? 0 : -30)
+                    .animation(MZAnimation.gentle.delay(0.1), value: featuresRevealed)
+
+                FeatureRow(icon: "bell.fill", text: "تنبيهات ذكية")
+                    .opacity(featuresRevealed ? 1 : 0)
+                    .offset(x: featuresRevealed ? 0 : -30)
+                    .animation(MZAnimation.gentle.delay(0.2), value: featuresRevealed)
+            }
+            .padding(.horizontal, MZSpacing.xxl)
+
+            Spacer()
+
+            // Continue button
+            Button(action: onContinue) {
+                Text("ابدأ")
+                    .font(MZTypography.titleMedium)
+                    .foregroundColor(Color(hex: "#14746F"))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, MZSpacing.md)
+                    .background(
+                        Capsule()
+                            .fill(.white)
+                            .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
+                    )
+            }
+            .padding(.horizontal, MZSpacing.xxl)
+            .opacity(buttonRevealed ? 1 : 0)
+            .offset(y: buttonRevealed ? 0 : 30)
+        }
+        .padding(.bottom, MZSpacing.xxl)
+        .onAppear {
+            // Choreographed reveal
+            withAnimation(MZAnimation.dramatic.delay(0.3)) { moonRevealed = true }
+            withAnimation(MZAnimation.gentle.delay(0.6)) { titleRevealed = true }
+            withAnimation(MZAnimation.gentle.delay(0.9)) { featuresRevealed = true }
+            withAnimation(MZAnimation.bouncy.delay(1.4)) { buttonRevealed = true }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                HapticManager.shared.trigger(.medium)
+            }
+        }
+    }
+}
+
+struct FeatureRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: MZSpacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundColor(.white.opacity(0.8))
+                .frame(width: 32)
+
+            Text(text)
+                .font(MZTypography.bodyLarge)
+                .foregroundColor(.white.opacity(0.9))
+        }
     }
 }
 ```
 
-#### Drop Target Implementation
+---
+
+## 5. Dramatic Moments
+
+### 5.1 Splash Screen
+
 ```swift
-struct DropTarget: View {
-    let isValidDrop: Bool
-    let onDrop: () -> Void
-    
-    @State private var isHovered = false
-    
+struct SplashScreen: View {
+    @State private var moonRevealed = false
+    @State private var starsVisible = false
+    @State private var titleRevealed = false
+
     var body: some View {
-        Rectangle()
-            .fill(isValidDrop ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-            .stroke(
-                isValidDrop ? Color.green : Color.red,
-                style: StrokeStyle(lineWidth: 2, dash: [5, 5])
-            )
-            .opacity(isHovered ? 1.0 : 0.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
-            .onDrop(of: [.text], isTargeted: { hovering in
-                isHovered = hovering
-                return true
-            }) { providers in
-                onDrop()
-                return true
+        ZStack {
+            // Animated mesh gradient (iOS 18+) or fallback
+            AnimatedGradientBackground()
+
+            // Floating stars
+            ParticleStarsView()
+                .opacity(starsVisible ? 1 : 0)
+
+            VStack(spacing: MZSpacing.lg) {
+                Image(systemName: "moon.stars.fill")
+                    .font(.system(size: 100))
+                    .symbolEffect(.breathe.pulse.byLayer, options: .repeating)
+                    .foregroundStyle(
+                        .linearGradient(
+                            colors: [.white, Color(hex: "#FFD700")],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .shadow(color: Color(hex: "#FFD700").opacity(0.5), radius: 30)
+                    .scaleEffect(moonRevealed ? 1.0 : 0.3)
+                    .opacity(moonRevealed ? 1.0 : 0.0)
+
+                Text("ميزان")
+                    .font(MZTypography.displayLarge)
+                    .foregroundColor(.white)
+                    .opacity(titleRevealed ? 1 : 0)
+                    .blur(radius: titleRevealed ? 0 : 10)
             }
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.3).delay(0.2)) { starsVisible = true }
+            withAnimation(MZAnimation.dramatic.delay(0.4)) { moonRevealed = true }
+            withAnimation(MZAnimation.gentle.delay(0.7)) { titleRevealed = true }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                HapticManager.shared.trigger(.medium)
+            }
+        }
     }
 }
 ```
 
-### 7.2 Swipe Actions
-
-Tasks support swipe actions for quick operations:
+### 5.2 Task Completion Celebration
 
 ```swift
-struct SwipeableTask: View {
-    let task: Task
-    
+struct TaskCompletionCelebration: View {
+    @Binding var isCompleting: Bool
+    let taskColor: Color
+
+    @State private var ringProgress: CGFloat = 0
+    @State private var checkScale: CGFloat = 0
+    @State private var glowIntensity: CGFloat = 0
+    @State private var confettiTrigger = 0
+
     var body: some View {
-        TaskCard(task: task)
-            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                Button {
-                    scheduleTask(task)
-                } label: {
-                    Label("جدولة", systemImage: "calendar.badge.plus")
+        ZStack {
+            // Glow
+            Circle()
+                .fill(Color.green.opacity(0.2))
+                .scaleEffect(1 + glowIntensity * 0.3)
+                .blur(radius: 10 * glowIntensity)
+
+            // Ring
+            Circle()
+                .trim(from: 0, to: ringProgress)
+                .stroke(Color.green, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .frame(width: 32, height: 32)
+
+            // Checkmark
+            Image(systemName: "checkmark")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.green)
+                .scaleEffect(checkScale)
+
+            // Confetti
+            ConfettiView(trigger: $confettiTrigger, colors: [.green, .mint, taskColor])
+        }
+        .onChange(of: isCompleting) { _, completing in
+            if completing {
+                withAnimation(MZAnimation.snappy) { ringProgress = 1.0 }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    withAnimation(MZAnimation.bouncy) { checkScale = 1.0 }
+                    HapticManager.shared.trigger(.success)
                 }
-                .tint(themeManager.primaryColor)
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.easeOut(duration: 0.3)) { glowIntensity = 1.0 }
+                    confettiTrigger += 1
+                }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation(.easeOut(duration: 0.5)) { glowIntensity = 0 }
+                }
             }
-            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                Button(role: .destructive) {
-                    deleteTask(task)
-                } label: {
-                    Label("حذف", systemImage: "trash")
-                }
-                
-                Button {
-                    completeTask(task)
-                } label: {
-                    Label("تم", systemImage: "checkmark")
-                }
-                .tint(.green)
-            }
+        }
     }
 }
 ```
 
-### 7.3 Haptic Feedback
-
-Mizan uses haptic feedback to enhance interactions:
+### 5.3 Theme Switch Animation
 
 ```swift
-struct HapticManager {
+struct ThemeSwitchOverlay: View {
+    @Binding var isAnimating: Bool
+    let toTheme: MZTheme
+
+    @State private var waveProgress: CGFloat = 0
+
+    var body: some View {
+        if isAnimating {
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+
+                GeometryReader { geo in
+                    let maxRadius = sqrt(pow(geo.size.width, 2) + pow(geo.size.height, 2))
+
+                    Circle()
+                        .fill(Color(hex: toTheme.colors.primary))
+                        .frame(width: maxRadius * 2 * waveProgress, height: maxRadius * 2 * waveProgress)
+                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                        .blur(radius: 30 * (1 - waveProgress))
+                }
+
+                if waveProgress > 0.5 {
+                    Text(toTheme.nameArabic)
+                        .font(MZTypography.headlineLarge)
+                        .foregroundColor(.white)
+                        .opacity(Double((waveProgress - 0.5) * 2))
+                }
+            }
+            .ignoresSafeArea()
+            .onAppear {
+                withAnimation(MZAnimation.breathe) { waveProgress = 1.0 }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    HapticManager.shared.trigger(.heavy)
+                }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    withAnimation(.easeOut(duration: 0.3)) { isAnimating = false }
+                }
+            }
+        }
+    }
+}
+```
+
+### 5.4 First Prayer Celebration
+
+```swift
+struct FirstPrayerCelebration: View {
+    @Binding var isShowing: Bool
+    let prayerName: String
+
+    @State private var starBurst = false
+    @State private var textScale: CGFloat = 0.5
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.7).ignoresSafeArea()
+
+            // Star burst
+            ForEach(0..<20, id: \.self) { i in
+                Circle()
+                    .fill(Color.yellow)
+                    .frame(width: 8, height: 8)
+                    .offset(
+                        x: starBurst ? cos(Double(i) * 0.314) * 150 : 0,
+                        y: starBurst ? sin(Double(i) * 0.314) * 150 : 0
+                    )
+                    .opacity(starBurst ? 0 : 1)
+            }
+
+            VStack(spacing: MZSpacing.lg) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.green)
+                    .symbolEffect(.bounce, value: isShowing)
+
+                Text("مبارك!")
+                    .font(MZTypography.headlineLarge)
+                    .foregroundColor(.white)
+
+                Text("أتممت صلاة \(prayerName)")
+                    .font(MZTypography.bodyLarge)
+                    .foregroundColor(.white.opacity(0.9))
+            }
+            .scaleEffect(textScale)
+        }
+        .onAppear {
+            withAnimation(MZAnimation.bouncy) { textScale = 1.0 }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.easeOut(duration: 1.0)) { starBurst = true }
+                HapticManager.shared.trigger(.success)
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                withAnimation { isShowing = false }
+            }
+        }
+    }
+}
+```
+
+### 5.5 End of Day Summary
+
+```swift
+struct EndOfDaySummary: View {
+    @Binding var isPresented: Bool
+    let prayersCompleted: Int
+    let totalPrayers: Int
+    let tasksCompleted: Int
+    let totalTasks: Int
+
+    @State private var chartAnimated = false
+
+    var body: some View {
+        VStack(spacing: MZSpacing.xl) {
+            Text("ملخص اليوم")
+                .font(MZTypography.headlineMedium)
+
+            // Prayer ring
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 12)
+                    .frame(width: 150, height: 150)
+
+                Circle()
+                    .trim(from: 0, to: chartAnimated ? CGFloat(prayersCompleted) / CGFloat(totalPrayers) : 0)
+                    .stroke(Color.green, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                    .frame(width: 150, height: 150)
+                    .rotationEffect(.degrees(-90))
+
+                VStack {
+                    Text("\(prayersCompleted)/\(totalPrayers)")
+                        .font(MZTypography.headlineLarge)
+                    Text("صلوات")
+                        .font(MZTypography.labelMedium)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Tasks stat
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.blue)
+                Text("\(tasksCompleted)/\(totalTasks) مهام")
+                    .font(MZTypography.bodyLarge)
+            }
+
+            // Motivational
+            Text(prayersCompleted == totalPrayers ? "ماشاء الله! يوم رائع" : "غداً يوم جديد")
+                .font(MZTypography.bodyMedium)
+                .foregroundColor(.secondary)
+
+            Button { isPresented = false } label: {
+                Text("إغلاق")
+                    .font(MZTypography.titleSmall)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, MZSpacing.md)
+                    .background(Capsule().fill(Color.accentColor))
+            }
+            .padding(.horizontal, MZSpacing.xl)
+        }
+        .padding(MZSpacing.xl)
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.0).delay(0.2)) {
+                chartAnimated = true
+            }
+        }
+    }
+}
+```
+
+---
+
+## 6. iOS-Native Effects
+
+### 6.1 SF Symbol Animations
+
+```swift
+// Bounce
+.symbolEffect(.bounce, value: trigger)
+
+// Pulse
+.symbolEffect(.pulse, options: .repeating)
+
+// Breathe
+.symbolEffect(.breathe.pulse.byLayer)
+
+// Variable color
+.symbolEffect(.variableColor.iterative.reversing)
+```
+
+### 6.2 Sensory Feedback
+
+```swift
+.sensoryFeedback(.impact(weight: .heavy), trigger: value)
+.sensoryFeedback(.selection, trigger: selectedItem)
+.sensoryFeedback(.success, trigger: isComplete)
+```
+
+### 6.3 Materials
+
+```swift
+.background(.ultraThinMaterial)
+.background(.regularMaterial)
+.background(.thickMaterial)
+```
+
+### 6.4 Custom Transitions
+
+```swift
+extension AnyTransition {
+    static var slideAndFade: AnyTransition {
+        .asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .leading).combined(with: .opacity)
+        )
+    }
+
+    static var cardLift: AnyTransition {
+        .asymmetric(
+            insertion: .scale(scale: 0.9).combined(with: .opacity),
+            removal: .opacity
+        )
+    }
+}
+```
+
+---
+
+## 7. Haptic System
+
+```swift
+class HapticManager {
     static let shared = HapticManager()
-    
+
     func trigger(_ type: HapticType) {
+        guard !UIAccessibility.isReduceMotionEnabled else { return }
+
         switch type {
-        case .light:
-            let impact = UIImpactFeedbackGenerator(style: .light)
-            impact.impactOccurred()
-            
-        case .medium:
-            let impact = UIImpactFeedbackGenerator(style: .medium)
-            impact.impactOccurred()
-            
-        case .heavy:
-            let impact = UIImpactFeedbackGenerator(style: .heavy)
-            impact.impactOccurred()
-            
-        case .success:
-            let notification = UINotificationFeedbackGenerator()
-            notification.notificationOccurred(.success)
-            
-        case .warning:
-            let notification = UINotificationFeedbackGenerator()
-            notification.notificationOccurred(.warning)
-            
-        case .error:
-            let notification = UINotificationFeedbackGenerator()
-            notification.notificationOccurred(.error)
+        case .light: UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        case .medium: UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        case .heavy: UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        case .success: UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case .warning: UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        case .error: UINotificationFeedbackGenerator().notificationOccurred(.error)
+        case .selection: UISelectionFeedbackGenerator().selectionChanged()
         }
     }
 }
@@ -1204,249 +1862,72 @@ struct HapticManager {
 enum HapticType {
     case light, medium, heavy
     case success, warning, error
+    case selection
 }
 ```
 
 ---
 
-## 8. RTL Layout Considerations
-
-### 8.1 Layout Direction Handling
-
-Mizan properly handles both LTR and RTL layouts based on language selection:
+## 8. Button Styles
 
 ```swift
-struct LocalizedView: View {
-    @Environment(\.locale) var locale
-    
-    var body: some View {
-        HStack {
-            if locale.language.languageCode == .arabic {
-                // RTL layout
-                ArabicContent()
-                Spacer()
-                Icon()
-            } else {
-                // LTR layout
-                Icon()
-                Spacer()
-                EnglishContent()
-            }
-        }
-        .environment(\.layoutDirection, locale.language.languageCode == .arabic ? .rightToLeft : .leftToRight)
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(MZAnimation.stiff, value: configuration.isPressed)
     }
 }
-```
 
-### 8.2 Text Alignment
-
-Dynamic text alignment based on language:
-
-```swift
-extension View {
-    func localizedTextAlignment() -> some View {
-        self.environment(\.locale) { locale in
-            if locale.language.languageCode == .arabic {
-                self.multilineTextAlignment(.trailing)
-            } else {
-                self.multilineTextAlignment(.leading)
-            }
-        }
-    }
-}
-```
-
-### 8.3 Navigation Patterns
-
-RTL-aware navigation:
-
-```swift
-struct RTLNavigationView: View {
-    @Environment(\.locale) var locale
-    
-    var body: some View {
-        NavigationView {
-            ContentView()
-                .navigationTitle("Title")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: locale.language.languageCode == .arabic ? .navigationBarLeading : .navigationBarTrailing) {
-                        Button("Action") {
-                            // Action
-                        }
-                    }
-                }
-        }
-        .environment(\.layoutDirection, locale.language.languageCode == .arabic ? .rightToLeft : .leftToRight)
-    }
-}
-```
-
-### 8.4 Icon Direction
-
-Icons flip for RTL layout:
-
-```swift
-struct LocalizedIcon: View {
-    let systemName: String
-    
-    @Environment(\.locale) var locale
-    @Environment(\.layoutDirection) var layoutDirection
-    
-    var body: some View {
-        Image(systemName: systemName)
-            .scaleEffect(x: layoutDirection == .rightToLeft ? -1 : 1, y: 1, anchor: .center)
+struct BouncyButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
+            .animation(MZAnimation.bouncy, value: configuration.isPressed)
     }
 }
 ```
 
 ---
 
-## 9. Implementation Guidelines
+## 9. Performance Guidelines
 
-### 9.1 Component Architecture
-
-Mizan follows a hierarchical component architecture:
-
-```
-App
-├── DesignSystem
-│   ├── Components
-│   │   ├── Buttons
-│   │   ├── Cards
-│   │   ├── Forms
-│   │   └── Navigation
-│   ├── Layouts
-│   │   ├── Timeline
-│   │   ├── Inbox
-│   │   └── Settings
-│   ├── Themes
-│   │   ├── Noor
-│   │   ├── Layl
-│   │   ├── Fajr
-│   │   ├── Sahara
-│   │   └── Ramadan
-│   └── Utilities
-│       ├── Extensions
-│       └── Helpers
-└── Features
-    ├── Timeline
-    ├── TaskManagement
-    ├── Prayer
-    └── Settings
-```
-
-### 9.2 Theme Manager Implementation
-
-```swift
-class ThemeManager: ObservableObject {
-    @Published var currentTheme: Theme = .noor
-    
-    func setTheme(_ theme: Theme) {
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-            currentTheme = theme
-        }
-        HapticManager.shared.trigger(.medium)
-    }
-    
-    var backgroundColor: Color {
-        currentTheme.colors.background
-    }
-    
-    var surfaceColor: Color {
-        currentTheme.colors.surface
-    }
-    
-    var primaryColor: Color {
-        currentTheme.colors.primary
-    }
-    
-    var textPrimaryColor: Color {
-        currentTheme.colors.textPrimary
-    }
-    
-    var textSecondaryColor: Color {
-        currentTheme.colors.textSecondary
-    }
-    
-    func cornerRadius(_ size: CornerRadiusSize) -> CGFloat {
-        currentTheme.cornerRadius[size]
-    }
-    
-    func shadow(_ type: ShadowType) -> Shadow {
-        currentTheme.shadows[type]
-    }
-}
-```
-
-### 9.3 Accessibility Considerations
-
-Mizan is designed with accessibility in mind:
-
-```swift
-struct AccessibleButton: View {
-    let title: String
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.body)
-                .foregroundColor(.white)
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(8)
-        }
-        .accessibilityLabel(title)
-        .accessibilityHint("Double tap to activate")
-        .accessibilityAddTraits(.isButton)
-    }
-}
-```
-
-### 9.4 Performance Optimizations
-
-Key performance considerations:
-
-1. **Lazy Loading**: Timeline uses lazy loading for better performance
-2. **Image Caching**: Icons and images are cached
-3. **Animation Optimization**: Animations use hardware acceleration
-4. **Memory Management**: Proper cleanup of resources
-5. **Efficient Updates**: Only update changed UI elements
-
-```swift
-struct OptimizedTimeline: View {
-    @State private var visibleHours: Set<Int> = []
-    
-    var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(0..<24, id: \.self) { hour in
-                    TimelineHourRow(hour: hour)
-                        .onAppear {
-                            visibleHours.insert(hour)
-                        }
-                        .onDisappear {
-                            visibleHours.remove(hour)
-                        }
-                }
-            }
-        }
-    }
-}
-```
+1. **Replace Form with ScrollView + VStack** for better performance
+2. **Use LazyVStack** for lists
+3. **Canvas for particles** instead of multiple Views
+4. **TimelineView** for continuous animations (battery efficient)
+5. **Respect reduce motion** accessibility setting
+6. **Clean up timers** in onDisappear
 
 ---
 
-## 10. Conclusion
+## 10. Implementation Checklist
 
-This design system provides a comprehensive foundation for Mizan's UI, ensuring:
+### Foundation
+- [ ] Create DesignSystem folder structure
+- [ ] Implement token files
+- [ ] Create base components
+- [ ] Extend HapticManager
 
-1. **Consistency**: Unified visual language across all features
-2. **Flexibility**: Adaptable to different themes and languages
-3. **Accessibility**: Usable by all users
-4. **Performance**: Smooth animations and interactions
-5. **Cultural Authenticity**: Respectful incorporation of Islamic design elements
-6. **Maintainability**: Clear structure for future development
+### Screen Redesigns
+- [ ] AddTaskSheet (two-tier, ScrollView)
+- [ ] TimelineView (components, atmosphere)
+- [ ] InboxView (cards, empty state)
+- [ ] SettingsView (sections, toggles)
+- [ ] OnboardingView (story-driven)
 
-The system draws inspiration from successful planner apps while maintaining its unique identity and focus on event integration. The careful attention to typography, color, and interaction patterns creates a delightful user experience that helps users balance their special events and daily responsibilities.
+### Dramatic Moments
+- [ ] Splash screen
+- [ ] Prayer atmospheric effects
+- [ ] Task completion celebration
+- [ ] Theme switch animation
+- [ ] First prayer celebration
+- [ ] End of day summary
+- [ ] Delightful empty states
+
+### Quality
+- [ ] 60fps on iPhone 12+
+- [ ] Reduce motion support
+- [ ] RTL verification
+- [ ] All device sizes

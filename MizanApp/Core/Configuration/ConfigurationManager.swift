@@ -243,6 +243,8 @@ struct ThemeColors: Codable {
     let textPrimary: String
     let textSecondary: String?
     let textTertiary: String?
+    let textOnPrimary: String?
+    let placeholderText: String?
     let prayerGradientStart: String
     let prayerGradientEnd: String
     let success: String?
@@ -250,6 +252,10 @@ struct ThemeColors: Codable {
     let error: String?
     let info: String?
     let divider: String?
+    let urgencyLow: String?
+    let urgencyMedium: String?
+    let urgencyHigh: String?
+    let urgencyCritical: String?
     let taskColors: [String: String]?
 }
 

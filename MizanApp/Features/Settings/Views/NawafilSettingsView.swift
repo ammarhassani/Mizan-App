@@ -54,6 +54,8 @@ struct NawafilSettingsView: View {
                 otherNawafilSection
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(themeManager.backgroundColor.ignoresSafeArea())
         .navigationTitle("النوافل")
         .navigationBarTitleDisplayMode(.inline)
     }

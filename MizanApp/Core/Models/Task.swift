@@ -26,6 +26,7 @@ final class Task {
     var scheduledStartTime: Date? // exact time on timeline
     var completedAt: Date?
     var isCompleted: Bool
+    var dueDate: Date? // deadline for task completion
 
     // MARK: - Recurrence (Pro Feature)
     var recurrenceRule: RecurrenceRule?
@@ -35,6 +36,9 @@ final class Task {
     // MARK: - Metadata
     var order: Int // for inbox ordering
     var colorHex: String // derived from category but customizable (Pro)
+
+    // MARK: - Custom Category (Pro Feature)
+    var userCategory: UserCategory?
 
     // MARK: - Initialization
     init(
@@ -54,6 +58,7 @@ final class Task {
         self.scheduledStartTime = nil
         self.completedAt = nil
         self.isCompleted = false
+        self.dueDate = nil
         self.recurrenceRule = nil
         self.isRecurring = false
         self.parentTaskId = nil
@@ -73,6 +78,17 @@ final class Task {
 
     var isInInbox: Bool {
         return scheduledStartTime == nil
+    }
+
+    var isOverdue: Bool {
+        guard let due = dueDate, !isCompleted else { return false }
+        return Date() > due
+    }
+
+    var isDueSoon: Bool {
+        guard let due = dueDate, !isCompleted else { return false }
+        let hoursUntilDue = due.timeIntervalSince(Date()) / 3600
+        return hoursUntilDue > 0 && hoursUntilDue <= 24
     }
 
     // MARK: - Methods
@@ -107,6 +123,11 @@ final class Task {
 
     func updateTitle(_ newTitle: String) {
         title = newTitle
+        updatedAt = Date()
+    }
+
+    func setDueDate(_ date: Date?) {
+        dueDate = date
         updatedAt = Date()
     }
 
@@ -294,6 +315,13 @@ extension Task {
             if let newStartTime = calendar.date(from: newDateComponents) {
                 newTask.scheduledStartTime = newStartTime
             }
+        }
+
+        // Calculate due date relative to new instance date
+        if let originalDueDate = dueDate, let originalScheduled = scheduledDate {
+            let calendar = Calendar.current
+            let daysDifference = calendar.dateComponents([.day], from: originalScheduled, to: originalDueDate).day ?? 0
+            newTask.dueDate = calendar.date(byAdding: .day, value: daysDifference, to: date)
         }
 
         return newTask

@@ -19,6 +19,7 @@ struct PaywallSheet: View {
     @State private var isPurchasing = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showPostSubscriptionGuide = false
 
     private let features: [ProFeature] = [
         ProFeature(
@@ -105,6 +106,12 @@ struct PaywallSheet: View {
             .onAppear {
                 // Pre-select annual as best value
                 selectedProduct = storeManager.annualProduct
+            }
+            .fullScreenCover(isPresented: $showPostSubscriptionGuide, onDismiss: {
+                dismiss()
+            }) {
+                PostSubscriptionGuide()
+                    .environmentObject(themeManager)
             }
         }
     }
@@ -213,7 +220,7 @@ struct PaywallSheet: View {
             HStack {
                 if isPurchasing {
                     ProgressView()
-                        .tint(.white)
+                        .tint(themeManager.textOnPrimaryColor)
                 } else {
                     Text("اشترك الآن")
                         .font(.system(size: 18, weight: .bold))
@@ -228,7 +235,7 @@ struct PaywallSheet: View {
                     endPoint: .trailing
                 )
             )
-            .foregroundColor(.white)
+            .foregroundColor(themeManager.textOnPrimaryColor)
             .cornerRadius(16)
         }
         .disabled(selectedProduct == nil || isPurchasing)
@@ -300,7 +307,8 @@ struct PaywallSheet: View {
                     appEnvironment.userSettings.isPro = true
                     appEnvironment.save()
                     HapticManager.shared.trigger(.success)
-                    dismiss()
+                    // Show the post-subscription guide instead of dismissing immediately
+                    showPostSubscriptionGuide = true
                 }
             } catch {
                 errorMessage = "فشل الشراء - حاول مرة أخرى"
@@ -327,6 +335,8 @@ struct ProFeature {
 struct FeatureCard: View {
     let feature: ProFeature
 
+    @EnvironmentObject var themeManager: ThemeManager
+
     var body: some View {
         VStack(spacing: 16) {
             // Icon
@@ -343,21 +353,22 @@ struct FeatureCard: View {
 
                 Image(systemName: feature.icon)
                     .font(.system(size: 32))
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
             }
 
             // Text
             VStack(spacing: 6) {
                 Text(feature.title)
                     .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(themeManager.textPrimaryColor)
 
                 Text(feature.subtitle)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(themeManager.textSecondaryColor)
 
                 Text(feature.description)
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary.opacity(0.8))
+                    .foregroundColor(themeManager.textSecondaryColor.opacity(0.8))
             }
         }
         .frame(maxWidth: .infinity)
@@ -394,12 +405,12 @@ struct PricingCard: View {
                         if let badge = badge {
                             Text(badge)
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(themeManager.textOnPrimaryColor)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
                                 .background(
                                     LinearGradient(
-                                        colors: [.orange, .red],
+                                        colors: [themeManager.warningColor, themeManager.errorColor],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
@@ -411,7 +422,7 @@ struct PricingCard: View {
                     if savingsPercent > 0 {
                         Text("وفّر \(savingsPercent)%")
                             .font(.system(size: 13))
-                            .foregroundColor(.green)
+                            .foregroundColor(themeManager.successColor)
                     }
                 }
 

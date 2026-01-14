@@ -127,6 +127,89 @@ extension ThemeManager {
         Color(hex: currentTheme.colors.surface ?? currentTheme.colors.background)
     }
 
+    /// Get secondary surface color (from theme config)
+    var surfaceSecondaryColor: Color {
+        if let surfaceSecondary = currentTheme.colors.surfaceSecondary {
+            return Color(hex: surfaceSecondary)
+        }
+        return surfaceColor.opacity(0.9)
+    }
+
+    /// Get tertiary text color (from theme config)
+    var textTertiaryColor: Color {
+        if let textTertiary = currentTheme.colors.textTertiary {
+            return Color(hex: textTertiary)
+        }
+        return textSecondaryColor.opacity(0.7)
+    }
+
+    /// Get text color for primary background (WCAG2 compliant)
+    var textOnPrimaryColor: Color {
+        if let textOnPrimary = currentTheme.colors.textOnPrimary {
+            return Color(hex: textOnPrimary)
+        }
+        // Default to white for most themes, but dark for light primary colors
+        return isDarkMode ? Color(hex: "#000000") : Color(hex: "#FFFFFF")
+    }
+
+    /// Get placeholder text color
+    var placeholderTextColor: Color {
+        if let placeholder = currentTheme.colors.placeholderText {
+            return Color(hex: placeholder)
+        }
+        return textSecondaryColor.opacity(0.6)
+    }
+
+    /// Get success color
+    var successColor: Color {
+        if let success = currentTheme.colors.success {
+            return Color(hex: success)
+        }
+        return Color(hex: "#10B981")
+    }
+
+    /// Get error color
+    var errorColor: Color {
+        if let error = currentTheme.colors.error {
+            return Color(hex: error)
+        }
+        return Color(hex: "#EF4444")
+    }
+
+    /// Get warning color
+    var warningColor: Color {
+        if let warning = currentTheme.colors.warning {
+            return Color(hex: warning)
+        }
+        return Color(hex: "#F59E0B")
+    }
+
+    /// Get urgency color based on level
+    func urgencyColor(_ level: UrgencyLevel) -> Color {
+        switch level {
+        case .low:
+            if let color = currentTheme.colors.urgencyLow {
+                return Color(hex: color)
+            }
+            return textTertiaryColor
+        case .medium:
+            if let color = currentTheme.colors.urgencyMedium {
+                return Color(hex: color)
+            }
+            return warningColor
+        case .high:
+            if let color = currentTheme.colors.urgencyHigh {
+                return Color(hex: color)
+            }
+            return Color(hex: "#F97316")
+        case .critical:
+            if let color = currentTheme.colors.urgencyCritical {
+                return Color(hex: color)
+            }
+            return errorColor
+        }
+    }
+
     /// Get text primary color
     var textPrimaryColor: Color {
         Color(hex: currentTheme.colors.textPrimary)
@@ -213,6 +296,13 @@ enum CornerRadiusSize {
     }
 }
 
+enum UrgencyLevel {
+    case low      // > 15 minutes
+    case medium   // 5-15 minutes
+    case high     // 1-5 minutes
+    case critical // < 1 minute
+}
+
 enum ShadowType {
     case card, elevated, floating
 }
@@ -284,7 +374,7 @@ struct ThemedButtonModifier: ViewModifier {
     private var foregroundColor: Color {
         switch style {
         case .primary:
-            return .white
+            return themeManager.textOnPrimaryColor
         case .secondary:
             return themeManager.textPrimaryColor
         case .tertiary:

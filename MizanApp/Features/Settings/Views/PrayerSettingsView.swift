@@ -107,6 +107,8 @@ struct PrayerSettingsView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(themeManager.backgroundColor.ignoresSafeArea())
         .navigationTitle("أوقات الصلاة")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showMethodPicker) {
@@ -225,6 +227,8 @@ struct CalculationMethodPicker: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(themeManager.backgroundColor.ignoresSafeArea())
             .navigationTitle("طريقة الحساب")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
