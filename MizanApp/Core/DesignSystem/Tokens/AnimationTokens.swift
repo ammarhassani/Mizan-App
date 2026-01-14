@@ -37,6 +37,34 @@ struct MZAnimation {
     /// Celebration spring for task completion
     static let celebration = Animation.spring(response: 0.4, dampingFraction: 0.5)
 
+    // MARK: - Form Animations
+
+    /// Floating label animation
+    static let floatingLabel = Animation.spring(response: 0.35, dampingFraction: 0.85)
+
+    /// Input focus border animation
+    static let focusBorder = Animation.easeOut(duration: 0.2)
+
+    /// Validation shake animation
+    static let validationShake = Animation.spring(response: 0.15, dampingFraction: 0.3)
+
+    // MARK: - Timeline Animations
+
+    /// Current time indicator pulse
+    static let timePulse = Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true)
+
+    /// Pinch zoom snap animation
+    static let zoomSnap = Animation.spring(response: 0.25, dampingFraction: 0.9)
+
+    /// Particle burst animation
+    static let particleBurst = Animation.easeOut(duration: 0.8)
+
+    /// Prayer atmosphere transition (slow crossfade)
+    static let atmosphereTransition = Animation.linear(duration: 2.0)
+
+    /// Flow connector shimmer
+    static let flowShimmer = Animation.linear(duration: 3.0).repeatForever(autoreverses: false)
+
     // MARK: - Durations
 
     struct Duration {

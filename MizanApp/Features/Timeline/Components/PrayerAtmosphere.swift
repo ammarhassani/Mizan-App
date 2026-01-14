@@ -159,6 +159,177 @@ struct PrayerApproachingIndicator: View {
     }
 }
 
+// MARK: - Ambient Particle Effect
+
+/// Subtle floating particles for prayer time atmosphere
+struct AmbientParticles: View {
+    let prayerType: PrayerType?
+
+    @State private var particles: [AmbientParticle] = []
+
+    private let particleCount = MZInteraction.ambienceParticles
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                ForEach(particles) { particle in
+                    Circle()
+                        .fill(particle.color.opacity(particle.opacity))
+                        .frame(width: particle.size, height: particle.size)
+                        .blur(radius: particle.size / 3)
+                        .position(particle.position)
+                }
+            }
+            .onAppear {
+                initializeParticles(in: geometry.size)
+                animateParticles(in: geometry.size)
+            }
+            .onChange(of: prayerType) { _, _ in
+                updateParticleColors()
+            }
+        }
+    }
+
+    // MARK: - Particle Initialization
+
+    private func initializeParticles(in size: CGSize) {
+        particles = (0..<particleCount).map { _ in
+            AmbientParticle(
+                position: CGPoint(
+                    x: CGFloat.random(in: 0...size.width),
+                    y: CGFloat.random(in: 0...size.height)
+                ),
+                size: CGFloat.random(in: 2...4),
+                opacity: Double.random(in: 0.1...0.2),
+                color: particleColor,
+                velocity: CGPoint(
+                    x: CGFloat.random(in: -0.3...0.3),
+                    y: CGFloat.random(in: -0.5 ... -0.1) // Drift upward
+                )
+            )
+        }
+    }
+
+    private func animateParticles(in size: CGSize) {
+        Timer.scheduledTimer(withTimeInterval: 1/30, repeats: true) { _ in
+            for i in particles.indices {
+                var particle = particles[i]
+
+                // Update position
+                particle.position.x += particle.velocity.x
+                particle.position.y += particle.velocity.y
+
+                // Wrap around edges
+                if particle.position.y < -10 {
+                    particle.position.y = size.height + 10
+                    particle.position.x = CGFloat.random(in: 0...size.width)
+                }
+                if particle.position.x < -10 {
+                    particle.position.x = size.width + 10
+                }
+                if particle.position.x > size.width + 10 {
+                    particle.position.x = -10
+                }
+
+                // Subtle opacity fluctuation
+                particle.opacity = max(0.1, min(0.2, particle.opacity + Double.random(in: -0.005...0.005)))
+
+                particles[i] = particle
+            }
+        }
+    }
+
+    private func updateParticleColors() {
+        let newColor = particleColor
+        for i in particles.indices {
+            particles[i].color = newColor
+        }
+    }
+
+    private var particleColor: Color {
+        guard let prayer = prayerType else {
+            return Color.white.opacity(0.5)
+        }
+
+        switch prayer {
+        case .fajr:
+            return Color(hex: "#E8D5B7") // Soft cream/gold for dawn
+        case .dhuhr:
+            return Color(hex: "#FFE4B5") // Golden
+        case .asr:
+            return Color(hex: "#DDA0DD") // Soft purple
+        case .maghrib:
+            return Color(hex: "#FF6B6B") // Warm coral
+        case .isha:
+            return Color(hex: "#B8C4CE") // Cool silver/blue
+        }
+    }
+}
+
+// MARK: - Ambient Particle Model
+
+struct AmbientParticle: Identifiable {
+    let id = UUID()
+    var position: CGPoint
+    var size: CGFloat
+    var opacity: Double
+    var color: Color
+    var velocity: CGPoint
+}
+
+// MARK: - Prayer Time Ambience
+
+/// Complete prayer time atmosphere with gradient and particles
+struct PrayerTimeAmbience: View {
+    let currentPrayer: PrayerType?
+    var showParticles: Bool = true
+
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        ZStack {
+            // Background gradient
+            if let prayer = currentPrayer {
+                prayerGradient(for: prayer)
+                    .animation(MZAnimation.atmosphereTransition, value: currentPrayer)
+            }
+
+            // Subtle particles
+            if showParticles {
+                AmbientParticles(prayerType: currentPrayer)
+            }
+        }
+        .ignoresSafeArea()
+    }
+
+    private func prayerGradient(for prayer: PrayerType) -> some View {
+        let colors = gradientColors(for: prayer)
+        return LinearGradient(
+            colors: colors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .opacity(0.15) // Very subtle
+    }
+
+    private func gradientColors(for prayer: PrayerType) -> [Color] {
+        switch prayer {
+        case .fajr:
+            return [Color(hex: "#1a1a2e"), Color(hex: "#16213e"), Color(hex: "#0f3460")]
+        case .dhuhr:
+            return [Color(hex: "#ffecd2"), Color(hex: "#fcb69f")]
+        case .asr:
+            return [Color(hex: "#fbc2eb"), Color(hex: "#a6c1ee")]
+        case .maghrib:
+            return [Color(hex: "#fa709a"), Color(hex: "#fee140")]
+        case .isha:
+            return [Color(hex: "#0f0c29"), Color(hex: "#302b63")]
+        }
+    }
+}
+
+// MARK: - Preview
+
 #Preview {
     VStack(spacing: 20) {
         PrayerCountdownBadge(minutes: 3)
@@ -171,4 +342,16 @@ struct PrayerApproachingIndicator: View {
     }
     .padding()
     .background(Color.black)
+}
+
+#Preview("Ambient Particles") {
+    ZStack {
+        Color.black
+        AmbientParticles(prayerType: .fajr)
+    }
+}
+
+#Preview("Prayer Ambience") {
+    PrayerTimeAmbience(currentPrayer: .maghrib)
+        .environmentObject(ThemeManager())
 }

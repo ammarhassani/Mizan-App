@@ -20,6 +20,8 @@ struct TimelineView: View {
     @State private var scrollToNowOnAppear = true
     @State private var nawafilRefreshID = UUID()
     @State private var dragOffset: CGFloat = 0
+    @State private var timelineScale: CGFloat = 1.0
+    @State private var showScaleIndicator = false
 
     // MARK: - Queries
     @Query private var allTasks: [Task]
@@ -112,14 +114,43 @@ struct TimelineView: View {
         return nil
     }
 
+    /// Returns the current prayer period based on time
+    private var currentPrayerPeriod: PrayerType? {
+        guard Calendar.current.isDateInToday(selectedDate) else { return nil }
+
+        let now = Date()
+        var currentPrayer: PrayerType? = nil
+
+        for prayer in todayPrayers.reversed() {
+            if now >= prayer.adhanTime {
+                currentPrayer = prayer.prayerType
+                break
+            }
+        }
+
+        return currentPrayer
+    }
+
+    /// Scaled hour height based on zoom level
+    private var scaledHourHeight: CGFloat {
+        contentHourHeight * timelineScale
+    }
+
     // MARK: - Body
 
     var body: some View {
         NavigationView {
             ZStack {
-                // Background
+                // Background with prayer atmosphere
                 themeManager.backgroundColor
                     .ignoresSafeArea()
+
+                // Prayer atmosphere (subtle gradient only - particles disabled for performance)
+                // TODO: Re-enable particles once performance is optimized
+                // if Calendar.current.isDateInToday(selectedDate) {
+                //     PrayerTimeAmbience(currentPrayer: currentPrayerPeriod, showParticles: false)
+                //         .environmentObject(themeManager)
+                // }
 
                 VStack(spacing: 0) {
                     // Cinematic Date Navigator
@@ -139,11 +170,41 @@ struct TimelineView: View {
                         .padding(.top, MZSpacing.xs)
                     }
 
-                    // Timeline with swipe gestures
+                    // Timeline with swipe and pinch gestures
                     timelineScrollView
                         .offset(x: dragOffset)
                         .gesture(horizontalSwipeGesture)
+                        .timelineGestures(scale: $timelineScale) { location in
+                            // Long press handling - could open edit sheet
+                            HapticManager.shared.trigger(.medium)
+                        }
                 }
+
+                // TODO: Re-enable zoom controls once segment height scaling is implemented
+                // The zoom feature requires passing scaledHourHeight to all segment views
+                // and having them recalculate their heights based on the scale factor.
+                // For now, disabled to prevent broken UI.
+                //
+                // Scale indicator overlay
+                // if showScaleIndicator {
+                //     VStack {
+                //         Spacer()
+                //         TimelineScaleIndicator(scale: timelineScale)
+                //             .environmentObject(themeManager)
+                //             .padding(.bottom, MZSpacing.xl)
+                //     }
+                // }
+                //
+                // Zoom controls (optional - positioned at bottom right)
+                // VStack {
+                //     Spacer()
+                //     HStack {
+                //         Spacer()
+                //         TimelineZoomControls(scale: $timelineScale)
+                //             .environmentObject(themeManager)
+                //             .padding(MZSpacing.md)
+                //     }
+                // }
             }
             .navigationTitle("الجدول")
             .navigationBarTitleDisplayMode(.inline)
@@ -163,6 +224,14 @@ struct TimelineView: View {
             // Force view to re-query nawafil data
             nawafilRefreshID = UUID()
         }
+        // TODO: Re-enable when zoom feature is fully implemented
+        // .onChange(of: timelineScale) { _, _ in
+        //     // Show scale indicator briefly when zooming
+        //     showScaleIndicator = true
+        //     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        //         showScaleIndicator = false
+        //     }
+        // }
         .id(nawafilRefreshID)
     }
 
@@ -171,12 +240,15 @@ struct TimelineView: View {
     private var timelineScrollView: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: true) {
+                // Timeline segments
                 LazyVStack(spacing: 0) {
                     ForEach(timelineSegments) { segment in
                         segmentView(for: segment)
                             .id(segment.id)
                     }
                 }
+                // TODO: CurrentTimeIndicator needs proper Y positioning based on time
+                // It should be positioned at a calculated offset within the LazyVStack
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
@@ -873,6 +945,8 @@ extension TimelineView {
 
 struct GapSegmentView: View {
     let segment: TimelineSegment
+    // TODO: Flow connectors need proper alignment with prayer blocks
+    var useFlowConnector: Bool = false
 
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -892,6 +966,27 @@ struct GapSegmentView: View {
     }
 
     var body: some View {
+        if useFlowConnector && segment.isCollapsedGap {
+            // Use organic flow connector for larger gaps
+            TimelineFlowConnector(
+                height: height,
+                showDuration: true,
+                durationText: segment.gapDurationText
+            )
+            .environmentObject(themeManager)
+            .padding(.leading, 4)
+        } else if useFlowConnector {
+            // Simple flow connector for small gaps
+            SimpleFlowConnector(height: height)
+                .environmentObject(themeManager)
+                .padding(.leading, 4)
+        } else {
+            // Legacy style gap
+            legacyGapView
+        }
+    }
+
+    private var legacyGapView: some View {
         HStack(spacing: 8) {
             // Time labels
             VStack(alignment: .trailing, spacing: 2) {

@@ -147,18 +147,24 @@ struct AddTaskSheet: View {
 
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: MZSpacing.xs) {
-            Text("العنوان")
-                .font(MZTypography.labelLarge)
-                .foregroundColor(themeManager.textSecondaryColor)
+            MZFloatingTextField(
+                text: $title,
+                placeholder: "عنوان المهمة",
+                icon: "pencil"
+            )
+            .environmentObject(themeManager)
+            .focused($isTitleFocused)
+            .validationFeedback(titleValidationState)
+        }
+    }
 
-            TextField("مثال: مراجعة المشروع", text: $title)
-                .font(MZTypography.bodyLarge)
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(themeManager.surfaceSecondaryColor)
-                )
-                .focused($isTitleFocused)
+    private var titleValidationState: ValidationState {
+        if title.isEmpty {
+            return .idle
+        } else if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return .error("العنوان لا يمكن أن يكون فارغاً")
+        } else {
+            return .idle
         }
     }
 
@@ -231,7 +237,7 @@ struct AddTaskSheet: View {
         }
     }
 
-    // MARK: - Category Section (Horizontal Scroll)
+    // MARK: - Category Section (Horizontal Scroll with 3D Chips)
 
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: MZSpacing.sm) {
@@ -244,7 +250,7 @@ struct AddTaskSheet: View {
                     // Use UserCategories if available, fall back to TaskCategory enum
                     if !userCategories.isEmpty {
                         ForEach(userCategories) { category in
-                            UserCategoryChip(
+                            MZUserCategoryChip3D(
                                 category: category,
                                 isSelected: selectedUserCategory?.id == category.id,
                                 action: {
@@ -261,9 +267,9 @@ struct AddTaskSheet: View {
                             .environmentObject(themeManager)
                         }
                     } else {
-                        // Fallback to legacy TaskCategory enum
+                        // Fallback to legacy TaskCategory enum with 3D chips
                         ForEach(TaskCategory.allCases, id: \.self) { category in
-                            CategoryChipNew(
+                            MZTaskCategoryChip3D(
                                 category: category,
                                 isSelected: selectedCategory == category,
                                 action: {
@@ -924,102 +930,39 @@ struct CustomDurationPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var themeManager: ThemeManager
 
-    @State private var hours: Int = 0
-    @State private var minutes: Int = 30
+    @State private var useRadialPicker = true
 
     var body: some View {
         NavigationView {
             ZStack {
                 themeManager.backgroundColor.ignoresSafeArea()
 
-                VStack(spacing: MZSpacing.xl) {
-                    // Duration display
-                    Text(durationDisplayText)
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundColor(themeManager.primaryColor)
-                        .padding(.top, MZSpacing.xl)
-
-                    // Picker wheels
-                    HStack(spacing: 0) {
-                        // Hours picker
-                        VStack(spacing: MZSpacing.xs) {
-                            Text("ساعات")
-                                .font(MZTypography.labelMedium)
-                                .foregroundColor(themeManager.textSecondaryColor)
-
-                            Picker("Hours", selection: $hours) {
-                                ForEach(0..<13) { hour in
-                                    Text("\(hour)").tag(hour)
-                                }
-                            }
-                            .pickerStyle(.wheel)
-                            .frame(width: 100, height: 150)
-                            .clipped()
-                        }
-
-                        Text(":")
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(themeManager.textSecondaryColor)
-                            .padding(.top, 20)
-
-                        // Minutes picker
-                        VStack(spacing: MZSpacing.xs) {
-                            Text("دقائق")
-                                .font(MZTypography.labelMedium)
-                                .foregroundColor(themeManager.textSecondaryColor)
-
-                            Picker("Minutes", selection: $minutes) {
-                                ForEach(Array(stride(from: 0, through: 55, by: 5)), id: \.self) { minute in
-                                    Text(String(format: "%02d", minute)).tag(minute)
-                                }
-                            }
-                            .pickerStyle(.wheel)
-                            .frame(width: 100, height: 150)
-                            .clipped()
-                        }
+                VStack(spacing: MZSpacing.lg) {
+                    // Picker mode toggle
+                    Picker("نوع المنتقي", selection: $useRadialPicker) {
+                        Text("دائري").tag(true)
+                        Text("تقليدي").tag(false)
                     }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(themeManager.surfaceSecondaryColor)
-                    )
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, MZSpacing.screenPadding)
+                    .padding(.top, MZSpacing.md)
 
-                    // Quick presets
-                    VStack(alignment: .leading, spacing: MZSpacing.sm) {
-                        Text("اختصارات")
-                            .font(MZTypography.labelLarge)
-                            .foregroundColor(themeManager.textSecondaryColor)
-
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: MZSpacing.sm) {
-                            ForEach([25, 50, 75, 100, 150, 300], id: \.self) { preset in
-                                Button {
-                                    setFromMinutes(preset)
-                                    HapticManager.shared.trigger(.selection)
-                                } label: {
-                                    Text(formatPreset(preset))
-                                        .font(MZTypography.labelMedium)
-                                        .foregroundColor(themeManager.textPrimaryColor)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, MZSpacing.sm)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(themeManager.surfaceSecondaryColor)
-                                        )
-                                }
-                                .buttonStyle(PressableButtonStyle())
-                            }
-                        }
+                    if useRadialPicker {
+                        // Radial Duration Picker
+                        MZRadialDurationPicker(duration: $duration, maxDuration: 480)
+                            .environmentObject(themeManager)
+                    } else {
+                        // Legacy wheel picker
+                        LegacyDurationPicker(duration: $duration)
+                            .environmentObject(themeManager)
                     }
 
                     Spacer()
 
                     // Save button
                     Button {
-                        saveDuration()
+                        HapticManager.shared.trigger(.success)
+                        dismiss()
                     } label: {
                         Text("حفظ")
                             .font(MZTypography.titleSmall)
@@ -1028,15 +971,14 @@ struct CustomDurationPickerSheet: View {
                             .padding(.vertical, MZSpacing.buttonPaddingV)
                             .background(
                                 Capsule()
-                                    .fill(totalMinutes > 0 ? themeManager.primaryColor : themeManager.textSecondaryColor.opacity(0.5))
+                                    .fill(duration > 0 ? themeManager.primaryColor : themeManager.textSecondaryColor.opacity(0.5))
                             )
                     }
-                    .disabled(totalMinutes == 0)
+                    .disabled(duration == 0)
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, MZSpacing.screenPadding)
                     .padding(.bottom, MZSpacing.lg)
                 }
-                .padding(.horizontal, MZSpacing.screenPadding)
             }
             .navigationTitle("مدة مخصصة")
             .navigationBarTitleDisplayMode(.inline)
@@ -1048,9 +990,110 @@ struct CustomDurationPickerSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Legacy Duration Picker (Wheel Style)
+
+struct LegacyDurationPicker: View {
+    @Binding var duration: Int
+
+    @EnvironmentObject var themeManager: ThemeManager
+
+    @State private var hours: Int = 0
+    @State private var minutes: Int = 30
+
+    var body: some View {
+        VStack(spacing: MZSpacing.xl) {
+            // Duration display
+            Text(durationDisplayText)
+                .font(.system(size: 48, weight: .bold, design: .rounded))
+                .foregroundColor(themeManager.primaryColor)
+                .contentTransition(.numericText())
+                .animation(MZAnimation.snappy, value: totalMinutes)
+
+            // Picker wheels
+            HStack(spacing: 0) {
+                // Hours picker
+                VStack(spacing: MZSpacing.xs) {
+                    Text("ساعات")
+                        .font(MZTypography.labelMedium)
+                        .foregroundColor(themeManager.textSecondaryColor)
+
+                    Picker("Hours", selection: $hours) {
+                        ForEach(0..<13) { hour in
+                            Text("\(hour)").tag(hour)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 100, height: 150)
+                    .clipped()
+                }
+
+                Text(":")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(themeManager.textSecondaryColor)
+                    .padding(.top, 20)
+
+                // Minutes picker
+                VStack(spacing: MZSpacing.xs) {
+                    Text("دقائق")
+                        .font(MZTypography.labelMedium)
+                        .foregroundColor(themeManager.textSecondaryColor)
+
+                    Picker("Minutes", selection: $minutes) {
+                        ForEach(Array(stride(from: 0, through: 55, by: 5)), id: \.self) { minute in
+                            Text(String(format: "%02d", minute)).tag(minute)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 100, height: 150)
+                    .clipped()
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(themeManager.surfaceSecondaryColor)
+            )
+
+            // Quick presets
+            VStack(alignment: .leading, spacing: MZSpacing.sm) {
+                Text("اختصارات")
+                    .font(MZTypography.labelLarge)
+                    .foregroundColor(themeManager.textSecondaryColor)
+
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: MZSpacing.sm) {
+                    ForEach([25, 50, 75, 100, 150, 300], id: \.self) { preset in
+                        Button {
+                            setFromMinutes(preset)
+                            HapticManager.shared.trigger(.selection)
+                        } label: {
+                            Text(formatPreset(preset))
+                                .font(MZTypography.labelMedium)
+                                .foregroundColor(themeManager.textPrimaryColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, MZSpacing.sm)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(themeManager.surfaceSecondaryColor)
+                                )
+                        }
+                        .buttonStyle(PressableButtonStyle())
+                    }
+                }
+            }
+            .padding(.horizontal, MZSpacing.screenPadding)
+        }
         .onAppear {
             setFromMinutes(duration)
         }
+        .onChange(of: hours) { _, _ in updateDuration() }
+        .onChange(of: minutes) { _, _ in updateDuration() }
     }
 
     private var totalMinutes: Int {
@@ -1072,6 +1115,10 @@ struct CustomDurationPickerSheet: View {
         minutes = (totalMins % 60 / 5) * 5 // Round to nearest 5
     }
 
+    private func updateDuration() {
+        duration = totalMinutes
+    }
+
     private func formatPreset(_ mins: Int) -> String {
         if mins < 60 {
             return "\(mins) د"
@@ -1084,12 +1131,6 @@ struct CustomDurationPickerSheet: View {
                 return "\(h):\(String(format: "%02d", m))"
             }
         }
-    }
-
-    private func saveDuration() {
-        duration = totalMinutes
-        HapticManager.shared.trigger(.success)
-        dismiss()
     }
 }
 
