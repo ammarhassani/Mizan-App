@@ -58,7 +58,7 @@ struct DraggableTaskView: View {
             Color(hex: task.colorHex)
                 .cornerRadius(themeManager.cornerRadius(.medium))
                 .shadow(
-                    color: Color.black.opacity(isDragging ? 0.3 : 0.1),
+                    color: themeManager.textPrimaryColor.opacity(isDragging ? 0.3 : 0.1),
                     radius: isDragging ? 12 : 4,
                     x: 0,
                     y: isDragging ? 8 : 2
@@ -66,7 +66,7 @@ struct DraggableTaskView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
                         .strokeBorder(
-                            hasCollision ? Color.red : Color.clear,
+                            hasCollision ? themeManager.errorColor : Color.clear,
                             lineWidth: hasCollision ? 3 : 0
                         )
                 )
@@ -78,16 +78,16 @@ struct DraggableTaskView: View {
                     if !isDragging {
                         Image(systemName: "line.3.horizontal")
                             .font(.system(size: 16))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.6))
                     }
 
                     Image(systemName: task.category.icon)
                         .font(.system(size: 16))
-                        .foregroundColor(.white)
+                        .foregroundColor(themeManager.textOnPrimaryColor)
 
                     Text(task.title)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(themeManager.textOnPrimaryColor)
                         .lineLimit(2)
 
                     Spacer()
@@ -95,18 +95,18 @@ struct DraggableTaskView: View {
                     if task.isCompleted {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 18))
-                            .foregroundColor(.white)
+                            .foregroundColor(themeManager.textOnPrimaryColor)
                     }
                 }
 
                 Text("\(task.duration) دقيقة")
                     .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.9))
 
                 if let notes = task.notes, !notes.isEmpty, blockHeight > 80 {
                     Text(notes)
                         .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.8))
                         .lineLimit(2)
                         .padding(.top, 2)
                 }
@@ -121,10 +121,10 @@ struct DraggableTaskView: View {
                         Text("يتعارض مع وقت صلاة")
                             .font(.system(size: 11, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.red.opacity(0.9))
+                    .background(themeManager.errorColor.opacity(0.9))
                     .cornerRadius(6)
                 }
             }

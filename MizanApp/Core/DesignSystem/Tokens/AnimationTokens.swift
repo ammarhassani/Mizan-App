@@ -65,6 +65,26 @@ struct MZAnimation {
     /// Flow connector shimmer
     static let flowShimmer = Animation.linear(duration: 3.0).repeatForever(autoreverses: false)
 
+    // MARK: - Glass & Organic Animations (2025 UI Revamp)
+
+    /// Glass shimmer effect for frosted surfaces
+    static let glassShimmer = Animation.easeInOut(duration: 2.0).repeatForever(autoreverses: true)
+
+    /// Organic flow for gap connectors
+    static let organicFlow = Animation.linear(duration: 4.0).repeatForever(autoreverses: false)
+
+    /// Current prayer breathing glow
+    static let prayerBreathing = Animation.easeInOut(duration: 2.0).repeatForever(autoreverses: true)
+
+    /// Card appear with spring
+    static let cardAppear = Animation.spring(response: 0.5, dampingFraction: 0.8)
+
+    /// Card press feedback
+    static let cardPress = Animation.spring(response: 0.15, dampingFraction: 0.9)
+
+    /// Date navigator transition
+    static let dateTransition = Animation.spring(response: 0.4, dampingFraction: 0.6)
+
     // MARK: - Durations
 
     struct Duration {

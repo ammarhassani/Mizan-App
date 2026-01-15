@@ -22,6 +22,9 @@ struct TimelineView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var timelineScale: CGFloat = 1.0
     @State private var showScaleIndicator = false
+    @State private var countdownPrayer: PrayerTime? = nil
+    @State private var isScrolling = false
+    @State private var usePremiumCards = true
 
     // MARK: - Queries
     @Query private var allTasks: [Task]
@@ -136,27 +139,57 @@ struct TimelineView: View {
         contentHourHeight * timelineScale
     }
 
+    // MARK: - Divine Prayer Period
+
+    private var divinePrayerPeriod: PrayerPeriod {
+        guard let current = currentPrayerPeriod else {
+            // Default based on time of day
+            let hour = Calendar.current.component(.hour, from: Date())
+            if hour < 5 { return .tahajjud }
+            if hour < 7 { return .fajr }
+            if hour < 12 { return .dhuhr }
+            if hour < 15 { return .asr }
+            if hour < 18 { return .maghrib }
+            if hour < 20 { return .isha }
+            return .tahajjud
+        }
+
+        switch current {
+        case .fajr: return .fajr
+        case .dhuhr: return .dhuhr
+        case .asr: return .asr
+        case .maghrib: return .maghrib
+        case .isha: return .isha
+        }
+    }
+
     // MARK: - Body
 
     var body: some View {
         NavigationView {
             ZStack {
-                // Background with prayer atmosphere
-                themeManager.backgroundColor
-                    .ignoresSafeArea()
-
-                // Prayer atmosphere (subtle gradient only - particles disabled for performance)
-                // TODO: Re-enable particles once performance is optimized
-                // if Calendar.current.isDateInToday(selectedDate) {
-                //     PrayerTimeAmbience(currentPrayer: currentPrayerPeriod, showParticles: false)
-                //         .environmentObject(themeManager)
-                // }
+                // Divine atmosphere background - ALIVE with visual effects
+                if appEnvironment.userSettings.enableBackgroundAmbiance {
+                    DivineAtmosphere(
+                        prayerPeriod: divinePrayerPeriod,
+                        isScrolling: isScrolling,
+                        intensity: 1.0,
+                        showGeometry: true,
+                        showParticles: true,
+                        showLightRays: true
+                    )
+                    .environmentObject(themeManager)
+                } else {
+                    themeManager.backgroundColor
+                        .ignoresSafeArea()
+                }
 
                 VStack(spacing: 0) {
-                    // Cinematic Date Navigator
+                    // Cinematic Date Navigator - Divine Time Portal
                     CinematicDateNavigator(
                         selectedDate: $selectedDate,
-                        hijriDate: todayPrayers.first?.hijriDate
+                        hijriDate: todayPrayers.first?.hijriDate,
+                        currentPrayerPeriod: divinePrayerPeriod
                     )
                     .environmentObject(themeManager)
 
@@ -233,6 +266,16 @@ struct TimelineView: View {
         //     }
         // }
         .id(nawafilRefreshID)
+        .sheet(item: $countdownPrayer) { prayer in
+            MesmerizingPrayerCountdown(
+                prayer: prayer,
+                isActive: true,
+                onDismiss: {
+                    countdownPrayer = nil
+                }
+            )
+            .environmentObject(themeManager)
+        }
     }
 
     // MARK: - Timeline ScrollView
@@ -249,7 +292,7 @@ struct TimelineView: View {
                 }
                 // TODO: CurrentTimeIndicator needs proper Y positioning based on time
                 // It should be positioned at a calculated offset within the LazyVStack
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 8)
             }
             .onChange(of: selectedDate) { _, newDate in
@@ -280,7 +323,8 @@ struct TimelineView: View {
     private func segmentView(for segment: TimelineSegment) -> some View {
         switch segment.segmentType {
         case .gap:
-            GapSegmentView(segment: segment)
+            GapSegmentView(segment: segment, usePremiumFlow: usePremiumCards)
+                .environmentObject(themeManager)
 
         case .prayer:
             if let prayer = segment.prayer {
@@ -297,16 +341,31 @@ struct TimelineView: View {
                     !nawafil.isDismissed
                 }
 
-                TimelinePrayerBlock(
-                    prayer: prayer,
-                    minHeight: minPrayerBlockHeight,
-                    preNawafil: preNawafil,
-                    postNawafil: postNawafil
-                )
-                .background(
-                    // Prayer gate gradient - subtle glow behind the prayer block
-                    PrayerGateGradient(colorHex: prayer.colorHex)
-                )
+                let isCurrentPrayer = currentPrayerPeriod == prayer.prayerType
+
+                if usePremiumCards {
+                    // Premium glassmorphic prayer card
+                    prayerCardView(
+                        prayer: prayer,
+                        preNawafil: preNawafil,
+                        postNawafil: postNawafil,
+                        isCurrentPrayer: isCurrentPrayer
+                    )
+                } else {
+                    // Legacy prayer block
+                    TimelinePrayerBlock(
+                        prayer: prayer,
+                        minHeight: minPrayerBlockHeight,
+                        preNawafil: preNawafil,
+                        postNawafil: postNawafil,
+                        onShowCountdown: appEnvironment.userSettings.enablePrayerCountdownScreen ? {
+                            countdownPrayer = prayer
+                        } : nil
+                    )
+                    .background(
+                        PrayerGateGradient(colorHex: prayer.colorHex)
+                    )
+                }
             }
 
         case .nawafil:
@@ -315,15 +374,96 @@ struct TimelineView: View {
             }
 
         case .task:
+            // Regular task (no overlapping prayers)
             if let task = segment.task {
-                TimelineTaskBlock(
+                if usePremiumCards {
+                    PremiumTaskCard(
+                        task: task,
+                        minHeight: minTaskBlockHeight,
+                        hasTaskOverlap: segment.hasTaskOverlap,
+                        overlappingTaskCount: segment.overlappingTaskCount,
+                        onToggleCompletion: {
+                            toggleTaskCompletion(task)
+                        }
+                    )
+                    .environmentObject(themeManager)
+                } else {
+                    TimelineTaskBlock(
+                        task: task,
+                        minHeight: minTaskBlockHeight,
+                        onToggleCompletion: {
+                            toggleTaskCompletion(task)
+                        }
+                    )
+                }
+            }
+
+        case .taskContainer:
+            // Task with prayers/nawafil nested inside (prayer priority)
+            if let task = segment.task {
+                TaskContainerBlock(
                     task: task,
-                    minHeight: minTaskBlockHeight,
+                    containedPrayers: segment.containedPrayers,
+                    containedNawafil: segment.containedNawafil,
+                    hasTaskOverlap: segment.hasTaskOverlap,
+                    overlappingTaskCount: segment.overlappingTaskCount,
                     onToggleCompletion: {
                         toggleTaskCompletion(task)
-                    }
+                    },
+                    onPrayerTap: appEnvironment.userSettings.enablePrayerCountdownScreen ? { prayer in
+                        countdownPrayer = prayer
+                    } : nil
                 )
+                .environmentObject(themeManager)
             }
+
+        case .taskCluster:
+            // Multiple overlapping tasks displayed side-by-side
+            TaskClusterView(
+                tasks: segment.clusteredTasks,
+                clusterStart: segment.startTime,
+                clusterEnd: segment.endTime,
+                containedPrayers: segment.containedPrayers,
+                containedNawafil: segment.containedNawafil,
+                onToggleCompletion: { task in
+                    toggleTaskCompletion(task)
+                },
+                onPrayerTap: appEnvironment.userSettings.enablePrayerCountdownScreen ? { prayer in
+                    countdownPrayer = prayer
+                } : nil
+            )
+            .environmentObject(themeManager)
+        }
+    }
+
+    // MARK: - Premium Prayer Card
+
+    @ViewBuilder
+    private func prayerCardView(
+        prayer: PrayerTime,
+        preNawafil: NawafilPrayer?,
+        postNawafil: NawafilPrayer?,
+        isCurrentPrayer: Bool
+    ) -> some View {
+        let card = GlassmorphicPrayerCard(
+            prayer: prayer,
+            minHeight: minPrayerBlockHeight,
+            preNawafil: preNawafil,
+            postNawafil: postNawafil,
+            isCurrentPrayer: isCurrentPrayer,
+            onShowCountdown: appEnvironment.userSettings.enablePrayerCountdownScreen ? {
+                countdownPrayer = prayer
+            } : nil
+        )
+        .environmentObject(themeManager)
+
+        if isCurrentPrayer {
+            CurrentPrayerHighlight(prayerColor: Color(hex: prayer.colorHex)) {
+                card
+            }
+            .environmentObject(themeManager)
+        } else {
+            card
         }
     }
 
@@ -357,24 +497,25 @@ struct TimelineView: View {
                 let verticalAmount = abs(value.translation.height)
 
                 // Only trigger navigation if horizontal movement is dominant
+                // RTL layout: swipe left = previous day, swipe right = next day
                 if horizontalAmount > verticalAmount && horizontalAmount > 80 {
                     let calendar = Calendar.current
 
                     if value.translation.width < 0 {
-                        // Swipe left = next day
-                        if let nextDay = calendar.date(byAdding: .day, value: 1, to: selectedDate) {
+                        // Swipe left = previous day (RTL)
+                        if let previousDay = calendar.date(byAdding: .day, value: -1, to: selectedDate) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                selectedDate = nextDay
+                                selectedDate = previousDay
                                 dragOffset = 0
                             }
                             HapticManager.shared.trigger(.selection)
                             scrollToNowOnAppear = true
                         }
                     } else {
-                        // Swipe right = previous day
-                        if let previousDay = calendar.date(byAdding: .day, value: -1, to: selectedDate) {
+                        // Swipe right = next day (RTL)
+                        if let nextDay = calendar.date(byAdding: .day, value: 1, to: selectedDate) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                selectedDate = previousDay
+                                selectedDate = nextDay
                                 dragOffset = 0
                             }
                             HapticManager.shared.trigger(.selection)
@@ -475,6 +616,7 @@ struct TimelinePrayerBlock: View {
     let minHeight: CGFloat
     var preNawafil: NawafilPrayer? = nil
     var postNawafil: NawafilPrayer? = nil
+    var onShowCountdown: (() -> Void)? = nil
 
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -511,6 +653,22 @@ struct TimelinePrayerBlock: View {
                             .padding(.vertical, 3)
                             .background(themeManager.textOnPrimaryColor.opacity(0.25))
                             .cornerRadius(4)
+                    }
+
+                    // Countdown button
+                    if let onShowCountdown = onShowCountdown {
+                        Button {
+                            onShowCountdown()
+                            HapticManager.shared.trigger(.selection)
+                        } label: {
+                            Image(systemName: "timer")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(themeManager.textOnPrimaryColor)
+                                .padding(8)
+                                .background(themeManager.textOnPrimaryColor.opacity(0.2))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .foregroundColor(themeManager.textOnPrimaryColor)
@@ -665,7 +823,7 @@ struct TimelineNawafilBlock: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color(hex: nawafil.colorHex))
 
-                Text("\(nawafil.rakaat) ركعة • \(nawafil.duration) دقيقة")
+                Text("\(nawafil.rakaat) \(nawafil.rakaat.arabicRakaat) • \(nawafil.duration) \(nawafil.duration.arabicMinutes)")
                     .font(.system(size: 11))
                     .foregroundColor(Color(hex: nawafil.colorHex).opacity(0.7))
             }
@@ -748,7 +906,7 @@ struct TimelineTaskBlock: View {
                     .foregroundColor(themeManager.textPrimaryColor)
                     .strikethrough(task.isCompleted)
 
-                Text("\(task.duration) دقيقة")
+                Text("\(task.duration) \(task.duration.arabicMinutes)")
                     .font(.system(size: 11))
                     .foregroundColor(themeManager.textSecondaryColor)
             }
@@ -783,9 +941,23 @@ struct TimelineSegment: Identifiable {
     let task: Task?
     let nawafil: NawafilPrayer?
 
+    // NEW: For task containers (prayers nested inside tasks)
+    var containedPrayers: [PrayerTime] = []
+    var containedNawafil: [NawafilPrayer] = []
+    var hasTaskOverlap: Bool = false
+    var overlappingTaskCount: Int = 0  // Number of overlapping tasks for merge counter
+
+    // NEW: For task clusters (multiple overlapping tasks displayed side-by-side)
+    var clusteredTasks: [Task] = []
+
+    // Overlap metrics for detection (visual handled by OverlapWarningModifier)
+    var overlapMetrics: OverlapMetrics = .none
+
     enum SegmentType {
         case prayer
         case task
+        case taskContainer  // Task with prayers/nawafil inside
+        case taskCluster    // Multiple overlapping tasks displayed side-by-side
         case nawafil
         case gap
     }
@@ -806,19 +978,43 @@ struct TimelineSegment: Identifiable {
         if hours > 0 && mins > 0 {
             return "\(hours)س \(mins)د"
         } else if hours > 0 {
-            return "\(hours) ساعة"
+            return "\(hours) \(hours.arabicHours)"
         } else {
-            return "\(mins) دقيقة"
+            return "\(mins) \(mins.arabicMinutes)"
         }
     }
 
-    init(startTime: Date, endTime: Date, segmentType: SegmentType, prayer: PrayerTime? = nil, task: Task? = nil, nawafil: NawafilPrayer? = nil) {
+    /// Whether this task container has any contained items
+    var hasContainedItems: Bool {
+        !containedPrayers.isEmpty || !containedNawafil.isEmpty
+    }
+
+    init(
+        startTime: Date,
+        endTime: Date,
+        segmentType: SegmentType,
+        prayer: PrayerTime? = nil,
+        task: Task? = nil,
+        nawafil: NawafilPrayer? = nil,
+        containedPrayers: [PrayerTime] = [],
+        containedNawafil: [NawafilPrayer] = [],
+        hasTaskOverlap: Bool = false,
+        overlappingTaskCount: Int = 0,
+        clusteredTasks: [Task] = [],
+        overlapMetrics: OverlapMetrics = .none
+    ) {
         self.startTime = startTime
         self.endTime = endTime
         self.segmentType = segmentType
         self.prayer = prayer
         self.task = task
         self.nawafil = nawafil
+        self.containedPrayers = containedPrayers
+        self.containedNawafil = containedNawafil
+        self.hasTaskOverlap = hasTaskOverlap
+        self.overlappingTaskCount = overlappingTaskCount
+        self.clusteredTasks = clusteredTasks
+        self.overlapMetrics = overlapMetrics
     }
 }
 
@@ -826,6 +1022,8 @@ struct TimelineSegment: Identifiable {
 
 extension TimelineView {
     /// Build timeline segments from prayers, tasks, and nawafil
+    /// Implements prayer priority - prayers are ALWAYS visible, nested inside tasks when they overlap
+    /// Implements task clustering - overlapping tasks are grouped and displayed side-by-side
     func buildSegments(
         prayers: [PrayerTime],
         tasks: [Task],
@@ -833,111 +1031,209 @@ extension TimelineView {
         dayStart: Date,
         dayEnd: Date
     ) -> [TimelineSegment] {
-        // Collect all timeline items with their time ranges
-        struct ItemEntry {
-            let start: Date
-            let end: Date
-            let type: TimelineSegment.SegmentType
-            let prayer: PrayerTime?
-            let task: Task?
-            let nawafil: NawafilPrayer?
-        }
-
-        var items: [ItemEntry] = []
-
-        // Add prayers
-        for prayer in prayers {
-            items.append(ItemEntry(
-                start: prayer.effectiveStartTime,
-                end: prayer.effectiveEndTime,
-                type: .prayer,
-                prayer: prayer,
-                task: nil,
-                nawafil: nil
-            ))
-        }
-
-        // Add tasks with scheduled times
-        for task in tasks where task.scheduledStartTime != nil {
-            items.append(ItemEntry(
-                start: task.startTime,
-                end: task.endTime,
-                type: .task,
-                prayer: nil,
-                task: task,
-                nawafil: nil
-            ))
-        }
-
-        // Add nawafil - only standalone nawafil (not attached to prayers)
-        // Attached rawatib nawafil will be shown inside prayer blocks
-        for naf in nawafil where !naf.isDismissed && naf.isStandalone {
-            items.append(ItemEntry(
-                start: naf.startTime,
-                end: naf.endTime,
-                type: .nawafil,
-                prayer: nil,
-                task: nil,
-                nawafil: naf
-            ))
-        }
-
-        // Sort by start time
-        items.sort { $0.start < $1.start }
-
         var segments: [TimelineSegment] = []
+
+        // Track which prayers are contained within tasks (so we don't add them as standalone)
+        var containedPrayerIDs: Set<UUID> = []
+        var containedNawafilIDs: Set<UUID> = []
+
+        // STEP 1: Build task clusters (group overlapping tasks together)
+        let taskClusters = buildTaskClusters(from: tasks)
+
+        // STEP 2: Process each cluster
+        for cluster in taskClusters {
+            if cluster.count == 1 {
+                // Single task - use existing logic
+                let task = cluster[0]
+                guard let taskStart = task.scheduledStartTime,
+                      let taskEnd = task.endTime else { continue }
+
+                // Find prayers that overlap with this task
+                let overlappingPrayers = prayers.filter { prayer in
+                    let prayerStart = prayer.effectiveStartTime
+                    let prayerEnd = prayer.effectiveEndTime
+                    return prayerStart < taskEnd && prayerEnd > taskStart
+                }.sorted { $0.effectiveStartTime < $1.effectiveStartTime }
+
+                // Find standalone nawafil that overlap with this task
+                let overlappingNawafil = nawafil.filter { naf in
+                    guard !naf.isDismissed && naf.isStandalone else { return false }
+                    return naf.startTime < taskEnd && naf.endTime > taskStart
+                }.sorted { $0.suggestedTime < $1.suggestedTime }
+
+                // Mark contained prayers and nawafil
+                for prayer in overlappingPrayers {
+                    containedPrayerIDs.insert(prayer.id)
+                }
+                for naf in overlappingNawafil {
+                    containedNawafilIDs.insert(naf.id)
+                }
+
+                // Determine segment type based on whether it contains prayers
+                let segmentType: TimelineSegment.SegmentType = overlappingPrayers.isEmpty && overlappingNawafil.isEmpty ? .task : .taskContainer
+
+                // Calculate effective end time - extend to include prayers that go beyond task end
+                let prayerMaxEnd = overlappingPrayers.map { $0.effectiveEndTime }.max()
+                let nawafilMaxEnd = overlappingNawafil.map { $0.endTime }.max()
+                let effectiveEndTime = [taskEnd, prayerMaxEnd, nawafilMaxEnd].compactMap { $0 }.max() ?? taskEnd
+
+                segments.append(TimelineSegment(
+                    startTime: taskStart,
+                    endTime: effectiveEndTime,
+                    segmentType: segmentType,
+                    task: task,
+                    containedPrayers: overlappingPrayers,
+                    containedNawafil: overlappingNawafil,
+                    hasTaskOverlap: false,  // Single task, no overlap
+                    overlappingTaskCount: 0
+                ))
+            } else {
+                // Multiple overlapping tasks - create a cluster segment
+                let clusterStart = cluster.compactMap { $0.scheduledStartTime }.min()!
+                let clusterEnd = cluster.compactMap { $0.endTime }.max()!
+
+                // Find prayers that overlap with the entire cluster timespan
+                let overlappingPrayers = prayers.filter { prayer in
+                    let prayerStart = prayer.effectiveStartTime
+                    let prayerEnd = prayer.effectiveEndTime
+                    return prayerStart < clusterEnd && prayerEnd > clusterStart
+                }.sorted { $0.effectiveStartTime < $1.effectiveStartTime }
+
+                // Find standalone nawafil that overlap with cluster
+                let overlappingNawafil = nawafil.filter { naf in
+                    guard !naf.isDismissed && naf.isStandalone else { return false }
+                    return naf.startTime < clusterEnd && naf.endTime > clusterStart
+                }.sorted { $0.suggestedTime < $1.suggestedTime }
+
+                // Mark contained prayers and nawafil
+                for prayer in overlappingPrayers {
+                    containedPrayerIDs.insert(prayer.id)
+                }
+                for naf in overlappingNawafil {
+                    containedNawafilIDs.insert(naf.id)
+                }
+
+                // Calculate effective end time including prayers
+                let prayerMaxEnd = overlappingPrayers.map { $0.effectiveEndTime }.max()
+                let nawafilMaxEnd = overlappingNawafil.map { $0.endTime }.max()
+                let effectiveEndTime = [clusterEnd, prayerMaxEnd, nawafilMaxEnd].compactMap { $0 }.max() ?? clusterEnd
+
+                segments.append(TimelineSegment(
+                    startTime: clusterStart,
+                    endTime: effectiveEndTime,
+                    segmentType: .taskCluster,
+                    containedPrayers: overlappingPrayers,
+                    containedNawafil: overlappingNawafil,
+                    hasTaskOverlap: true,
+                    overlappingTaskCount: cluster.count,
+                    clusteredTasks: cluster
+                ))
+            }
+        }
+
+        // STEP 3: Add standalone prayers (not contained in any task)
+        for prayer in prayers {
+            if !containedPrayerIDs.contains(prayer.id) {
+                segments.append(TimelineSegment(
+                    startTime: prayer.effectiveStartTime,
+                    endTime: prayer.effectiveEndTime,
+                    segmentType: .prayer,
+                    prayer: prayer
+                ))
+            }
+        }
+
+        // STEP 4: Add standalone nawafil (not contained in any task or prayer)
+        for naf in nawafil where !naf.isDismissed && naf.isStandalone {
+            if !containedNawafilIDs.contains(naf.id) {
+                segments.append(TimelineSegment(
+                    startTime: naf.startTime,
+                    endTime: naf.endTime,
+                    segmentType: .nawafil,
+                    nawafil: naf
+                ))
+            }
+        }
+
+        // STEP 5: Sort segments by start time
+        segments.sort { $0.startTime < $1.startTime }
+
+        // STEP 6: Insert gaps between segments
+        return insertGaps(into: segments, dayStart: dayStart, dayEnd: dayEnd)
+    }
+
+    /// Group tasks into clusters where overlapping tasks are in the same cluster
+    /// This enables side-by-side display of overlapping tasks instead of stacking them
+    private func buildTaskClusters(from tasks: [Task]) -> [[Task]] {
+        // Filter to scheduled tasks only
+        let scheduledTasks = tasks.filter { $0.scheduledStartTime != nil && $0.endTime != nil }
+        guard !scheduledTasks.isEmpty else { return [] }
+
+        // Sort by start time for efficient processing
+        let sorted = scheduledTasks.sorted { $0.startTime < $1.startTime }
+
+        var clusters: [[Task]] = []
+        var currentCluster: [Task] = [sorted[0]]
+        var clusterEnd = sorted[0].endTime!
+
+        for i in 1..<sorted.count {
+            let task = sorted[i]
+            let taskStart = task.startTime
+
+            // If this task starts before current cluster ends, it overlaps
+            if taskStart < clusterEnd {
+                currentCluster.append(task)
+                // Extend cluster end if needed
+                if let taskEnd = task.endTime, taskEnd > clusterEnd {
+                    clusterEnd = taskEnd
+                }
+            } else {
+                // No overlap - start new cluster
+                clusters.append(currentCluster)
+                currentCluster = [task]
+                clusterEnd = task.endTime!
+            }
+        }
+
+        // Don't forget last cluster
+        clusters.append(currentCluster)
+
+        return clusters
+    }
+
+    /// Insert gap segments between content segments
+    private func insertGaps(into segments: [TimelineSegment], dayStart: Date, dayEnd: Date) -> [TimelineSegment] {
+        var result: [TimelineSegment] = []
         var currentTime = dayStart
 
-        for item in items {
-            // Skip items that start before current time (overlapping)
-            if item.start < currentTime {
-                // Handle overlap: if item extends past currentTime, still add it
-                if item.end > currentTime {
-                    segments.append(TimelineSegment(
-                        startTime: item.start,
-                        endTime: item.end,
-                        segmentType: item.type,
-                        prayer: item.prayer,
-                        task: item.task,
-                        nawafil: item.nawafil
-                    ))
-                    currentTime = item.end
-                }
-                continue
-            }
+        for segment in segments {
+            // Handle overlapping segments - skip if starts before current time
+            let effectiveStart = max(segment.startTime, currentTime)
 
-            // Add gap segment if there's time before this item
-            if item.start > currentTime {
-                segments.append(TimelineSegment(
+            // Add gap if there's time between current position and this segment
+            if effectiveStart > currentTime {
+                result.append(TimelineSegment(
                     startTime: currentTime,
-                    endTime: item.start,
+                    endTime: effectiveStart,
                     segmentType: .gap
                 ))
             }
 
-            // Add content segment for this item
-            segments.append(TimelineSegment(
-                startTime: item.start,
-                endTime: item.end,
-                segmentType: item.type,
-                prayer: item.prayer,
-                task: item.task,
-                nawafil: item.nawafil
-            ))
-
-            currentTime = item.end
+            // Add the content segment
+            result.append(segment)
+            currentTime = max(currentTime, segment.endTime)
         }
 
         // Add final gap if needed
         if currentTime < dayEnd {
-            segments.append(TimelineSegment(
+            result.append(TimelineSegment(
                 startTime: currentTime,
                 endTime: dayEnd,
                 segmentType: .gap
             ))
         }
 
-        return segments
+        return result
     }
 }
 
@@ -945,8 +1241,7 @@ extension TimelineView {
 
 struct GapSegmentView: View {
     let segment: TimelineSegment
-    // TODO: Flow connectors need proper alignment with prayer blocks
-    var useFlowConnector: Bool = false
+    var usePremiumFlow: Bool = true
 
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -966,25 +1261,57 @@ struct GapSegmentView: View {
     }
 
     var body: some View {
-        if useFlowConnector && segment.isCollapsedGap {
-            // Use organic flow connector for larger gaps
-            TimelineFlowConnector(
-                height: height,
-                showDuration: true,
-                durationText: segment.gapDurationText
-            )
-            .environmentObject(themeManager)
-            .padding(.leading, 4)
-        } else if useFlowConnector {
-            // Simple flow connector for small gaps
-            SimpleFlowConnector(height: height)
-                .environmentObject(themeManager)
-                .padding(.leading, 4)
+        if usePremiumFlow {
+            // Premium organic flow connector
+            premiumFlowView
         } else {
             // Legacy style gap
             legacyGapView
         }
     }
+
+    // MARK: - Premium Flow View
+
+    private var premiumFlowView: some View {
+        HStack(alignment: .top, spacing: 10) {
+            // Time labels - matching GlassmorphicPrayerCard layout
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(segment.startTime.formatted(date: .omitted, time: .shortened))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(themeManager.textSecondaryColor.opacity(0.5))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer()
+
+                Text(segment.endTime.formatted(date: .omitted, time: .shortened))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(themeManager.textSecondaryColor.opacity(0.5))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(width: 60, alignment: .trailing)
+
+            // Organic flow connector
+            if height > 20 {
+                OrganicTimeFlow(
+                    height: height,
+                    duration: segment.endTime.timeIntervalSince(segment.startTime),
+                    isCollapsed: segment.isCollapsedGap
+                )
+                .environmentObject(themeManager)
+            } else {
+                CompactFlowDot()
+                    .environmentObject(themeManager)
+                    .frame(height: height)
+            }
+        }
+        .frame(height: height)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+    }
+
+    // MARK: - Legacy Gap View
 
     private var legacyGapView: some View {
         HStack(spacing: 8) {

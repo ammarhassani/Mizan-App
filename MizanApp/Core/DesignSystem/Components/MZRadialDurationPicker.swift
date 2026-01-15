@@ -12,7 +12,7 @@ import Foundation
 struct MZRadialDurationPicker: View {
     @Binding var duration: Int // in minutes
     var minDuration: Int = 5
-    var maxDuration: Int = 480 // 8 hours
+    var maxDuration: Int = 840 // 14 hours
 
     @EnvironmentObject var themeManager: ThemeManager
     @State private var dragAngle: Angle = .zero
@@ -241,9 +241,9 @@ struct MZRadialDurationPicker: View {
         let minutes = duration % 60
 
         if hours == 0 {
-            return "\(minutes) دقيقة"
+            return "\(minutes) \(minutes.arabicMinutes)"
         } else if minutes == 0 {
-            return hours == 1 ? "ساعة" : "\(hours) ساعات"
+            return "\(hours) \(hours.arabicHours)"
         } else {
             return "\(hours):\(String(format: "%02d", minutes))"
         }

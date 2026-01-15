@@ -7,40 +7,92 @@
 
 import SwiftUI
 
+/// Glass effect style presets
+enum GlassStyle {
+    case subtle      // Light glass, minimal blur
+    case standard    // Default glass effect
+    case frosted     // Heavy blur, more opaque
+    case prayer      // Special style for prayer cards with glow
+
+    var blurRadius: CGFloat {
+        switch self {
+        case .subtle: return 0.5
+        case .standard: return 8
+        case .frosted: return 20
+        case .prayer: return 12
+        }
+    }
+
+    var backgroundOpacity: CGFloat {
+        switch self {
+        case .subtle: return 0.7
+        case .standard: return 0.6
+        case .frosted: return 0.75
+        case .prayer: return 0.55
+        }
+    }
+
+    var borderOpacity: (leading: CGFloat, trailing: CGFloat) {
+        switch self {
+        case .subtle: return (0.3, 0.1)
+        case .standard: return (0.4, 0.15)
+        case .frosted: return (0.5, 0.2)
+        case .prayer: return (0.5, 0.2)
+        }
+    }
+}
+
 /// A container view with glassmorphism effect for timeline blocks
 struct GlassmorphicTimeBlock<Content: View>: View {
     let accentColor: Color
+    var style: GlassStyle = .standard
     var isElevated: Bool = false
+    var isPulsing: Bool = false
+    var cornerRadius: CGFloat? = nil
     @ViewBuilder let content: () -> Content
 
     @EnvironmentObject var themeManager: ThemeManager
+    @State private var pulsePhase: CGFloat = 0
+
+    private var effectiveCornerRadius: CGFloat {
+        cornerRadius ?? themeManager.cornerRadius(.medium)
+    }
 
     // MARK: - Body
 
     var body: some View {
         content()
             .background(glassBackground)
-            .clipShape(RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium)))
+            .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
             .overlay(glassOverlay)
+            .overlay(pulsingGlow)
             .shadow(
                 color: isElevated ? accentColor.opacity(0.3) : accentColor.opacity(0.1),
                 radius: isElevated ? 12 : 4,
                 y: isElevated ? 6 : 2
             )
+            .onAppear {
+                if isPulsing {
+                    withAnimation(MZAnimation.prayerBreathing) {
+                        pulsePhase = 1.0
+                    }
+                }
+            }
     }
 
     // MARK: - Glass Background
 
     private var glassBackground: some View {
         ZStack {
-            // Base translucent layer
-            themeManager.surfaceColor.opacity(0.7)
-                .blur(radius: 0.5)
+            // Base translucent layer with configurable blur
+            themeManager.surfaceColor.opacity(style.backgroundOpacity)
+                .blur(radius: style.blurRadius)
 
-            // Top highlight gradient
+            // Top highlight gradient (inner glow effect)
             LinearGradient(
                 colors: [
-                    themeManager.textOnPrimaryColor.opacity(0.08),
+                    themeManager.textOnPrimaryColor.opacity(0.1),
+                    themeManager.textOnPrimaryColor.opacity(0.03),
                     Color.clear
                 ],
                 startPoint: .top,
@@ -48,25 +100,38 @@ struct GlassmorphicTimeBlock<Content: View>: View {
             )
 
             // Subtle accent tint
-            accentColor.opacity(0.05)
+            accentColor.opacity(style == .prayer ? 0.08 : 0.05)
         }
     }
 
-    // MARK: - Glass Overlay
+    // MARK: - Glass Overlay (Border)
 
     private var glassOverlay: some View {
-        RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
+        RoundedRectangle(cornerRadius: effectiveCornerRadius)
             .stroke(
                 LinearGradient(
                     colors: [
-                        accentColor.opacity(0.4),
-                        accentColor.opacity(0.15)
+                        accentColor.opacity(style.borderOpacity.leading),
+                        accentColor.opacity(style.borderOpacity.trailing)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
-                lineWidth: 1
+                lineWidth: style == .prayer ? 1.5 : 1
             )
+    }
+
+    // MARK: - Pulsing Glow (for current prayer)
+
+    @ViewBuilder
+    private var pulsingGlow: some View {
+        if isPulsing {
+            // REMOVED scaleEffect to prevent layout shifts
+            // Just opacity animation for glow effect
+            RoundedRectangle(cornerRadius: effectiveCornerRadius)
+                .stroke(accentColor.opacity(0.4 + pulsePhase * 0.4), lineWidth: 2)
+                .blur(radius: 4)
+        }
     }
 }
 
@@ -75,7 +140,9 @@ struct GlassmorphicTimeBlock<Content: View>: View {
 /// Modifier to apply glassmorphism effect to any view
 struct GlassmorphicModifier: ViewModifier {
     let accentColor: Color
+    var style: GlassStyle = .standard
     var isElevated: Bool = false
+    var cornerRadius: CGFloat = 12
 
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -83,34 +150,35 @@ struct GlassmorphicModifier: ViewModifier {
         content
             .background(
                 ZStack {
-                    themeManager.surfaceColor.opacity(0.7)
-                        .blur(radius: 0.5)
+                    themeManager.surfaceColor.opacity(style.backgroundOpacity)
+                        .blur(radius: style.blurRadius)
 
                     LinearGradient(
                         colors: [
-                            themeManager.textOnPrimaryColor.opacity(0.08),
+                            themeManager.textOnPrimaryColor.opacity(0.1),
+                            themeManager.textOnPrimaryColor.opacity(0.03),
                             Color.clear
                         ],
                         startPoint: .top,
                         endPoint: .center
                     )
 
-                    accentColor.opacity(0.05)
+                    accentColor.opacity(style == .prayer ? 0.08 : 0.05)
                 }
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                accentColor.opacity(0.4),
-                                accentColor.opacity(0.15)
+                                accentColor.opacity(style.borderOpacity.leading),
+                                accentColor.opacity(style.borderOpacity.trailing)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: style == .prayer ? 1.5 : 1
                     )
             )
             .shadow(
@@ -123,8 +191,18 @@ struct GlassmorphicModifier: ViewModifier {
 
 extension View {
     /// Applies glassmorphism effect to the view
-    func glassmorphic(accentColor: Color, isElevated: Bool = false) -> some View {
-        modifier(GlassmorphicModifier(accentColor: accentColor, isElevated: isElevated))
+    func glassmorphic(
+        accentColor: Color,
+        style: GlassStyle = .standard,
+        isElevated: Bool = false,
+        cornerRadius: CGFloat = 12
+    ) -> some View {
+        modifier(GlassmorphicModifier(
+            accentColor: accentColor,
+            style: style,
+            isElevated: isElevated,
+            cornerRadius: cornerRadius
+        ))
     }
 }
 

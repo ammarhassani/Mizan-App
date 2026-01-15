@@ -67,6 +67,7 @@ final class Task {
     }
 
     // MARK: - Computed Properties
+
     var endTime: Date? {
         guard let startTime = scheduledStartTime else { return nil }
         return startTime.addingTimeInterval(TimeInterval(duration * 60))
@@ -194,6 +195,30 @@ enum TaskCategory: String, Codable, CaseIterable, Identifiable {
         case .health: return "#EF4444" // red
         case .social: return "#F59E0B" // amber
         case .worship: return "#6366F1" // indigo
+        }
+    }
+
+    /// Hint text to help users understand what each category is for (Arabic)
+    var hintArabic: String {
+        switch self {
+        case .work: return "اجتماعات، مشاريع، مهام وظيفية"
+        case .personal: return "مهام شخصية، أعمال منزلية، مشتريات"
+        case .study: return "دراسة، قراءة، تعلم مهارات جديدة"
+        case .health: return "رياضة، مواعيد طبية، عناية ذاتية"
+        case .social: return "لقاءات عائلية، مناسبات، زيارات"
+        case .worship: return "قرآن، أذكار، صدقات، عبادات إضافية"
+        }
+    }
+
+    /// Hint text to help users understand what each category is for (English)
+    var hintEnglish: String {
+        switch self {
+        case .work: return "Meetings, projects, work tasks"
+        case .personal: return "Personal errands, chores, shopping"
+        case .study: return "Studying, reading, learning new skills"
+        case .health: return "Exercise, doctor visits, self-care"
+        case .social: return "Family gatherings, events, visits"
+        case .worship: return "Quran, dhikr, charity, extra worship"
         }
     }
 

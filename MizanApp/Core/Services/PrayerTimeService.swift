@@ -368,14 +368,14 @@ extension PrayerTimeService {
     /// Format time remaining until prayer
     static func formatTimeRemaining(minutes: Int) -> (arabic: String, english: String) {
         if minutes < 60 {
-            return (arabic: "بعد \(minutes) دقيقة", english: "In \(minutes) minutes")
+            return (arabic: "بعد \(minutes) \(minutes.arabicMinutes)", english: "In \(minutes) minutes")
         } else {
             let hours = minutes / 60
             let remainingMinutes = minutes % 60
             if remainingMinutes == 0 {
-                return (arabic: "بعد \(hours) ساعة", english: "In \(hours) hour(s)")
+                return (arabic: "بعد \(hours) \(hours.arabicHours)", english: "In \(hours) hour(s)")
             } else {
-                return (arabic: "بعد \(hours) ساعة و\(remainingMinutes) دقيقة", english: "In \(hours)h \(remainingMinutes)m")
+                return (arabic: "بعد \(hours) \(hours.arabicHours) و\(remainingMinutes) \(remainingMinutes.arabicMinutes)", english: "In \(hours)h \(remainingMinutes)m")
             }
         }
     }

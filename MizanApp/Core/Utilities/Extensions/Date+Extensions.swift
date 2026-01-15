@@ -115,14 +115,14 @@ extension Date {
         if minutes == 0 {
             return language == .arabic ? "الآن" : "Now"
         } else if minutes < 60 {
-            return language == .arabic ? "بعد \(minutes) دقيقة" : "In \(minutes) min"
+            return language == .arabic ? "بعد \(minutes) \(minutes.arabicMinutes)" : "In \(minutes) min"
         } else {
             let hours = minutes / 60
             let remainingMinutes = minutes % 60
 
             if language == .arabic {
                 if remainingMinutes == 0 {
-                    return "بعد \(hours) ساعة"
+                    return "بعد \(hours) \(hours.arabicHours)"
                 } else {
                     return "بعد \(hours) س و\(remainingMinutes) د"
                 }
@@ -290,14 +290,14 @@ extension TimeInterval {
         let totalMinutes = minutes
 
         if totalMinutes < 60 {
-            return language == .arabic ? "\(totalMinutes) دقيقة" : "\(totalMinutes) min"
+            return language == .arabic ? "\(totalMinutes) \(totalMinutes.arabicMinutes)" : "\(totalMinutes) min"
         } else {
             let hours = totalMinutes / 60
             let remainingMinutes = totalMinutes % 60
 
             if language == .arabic {
                 if remainingMinutes == 0 {
-                    return "\(hours) ساعة"
+                    return "\(hours) \(hours.arabicHours)"
                 } else {
                     return "\(hours) س \(remainingMinutes) د"
                 }

@@ -215,7 +215,9 @@ struct AddTaskSheet: View {
                     .buttonStyle(PressableButtonStyle())
                 }
                 .padding(.vertical, 4)
+                .flipsForRightToLeftLayoutDirection(true)
             }
+            .environment(\.layoutDirection, .rightToLeft)
         }
         .sheet(isPresented: $showCustomDurationPicker) {
             CustomDurationPickerSheet(duration: $duration)
@@ -284,7 +286,18 @@ struct AddTaskSheet: View {
                     }
                 }
                 .padding(.vertical, 4)
+                .flipsForRightToLeftLayoutDirection(true)
             }
+            .environment(\.layoutDirection, .rightToLeft)
+            .fixedSize(horizontal: false, vertical: true)
+
+            // Category hint text
+            Text(selectedCategory.hintArabic)
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(themeManager.textSecondaryColor)
+                .padding(.horizontal, 4)
+                .padding(.top, 2)
+                .animation(.easeInOut(duration: 0.2), value: selectedCategory)
         }
         .onAppear {
             // Set initial selected category if not already set
@@ -930,32 +943,16 @@ struct CustomDurationPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var themeManager: ThemeManager
 
-    @State private var useRadialPicker = true
-
     var body: some View {
         NavigationView {
             ZStack {
                 themeManager.backgroundColor.ignoresSafeArea()
 
                 VStack(spacing: MZSpacing.lg) {
-                    // Picker mode toggle
-                    Picker("نوع المنتقي", selection: $useRadialPicker) {
-                        Text("دائري").tag(true)
-                        Text("تقليدي").tag(false)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, MZSpacing.screenPadding)
-                    .padding(.top, MZSpacing.md)
-
-                    if useRadialPicker {
-                        // Radial Duration Picker
-                        MZRadialDurationPicker(duration: $duration, maxDuration: 480)
-                            .environmentObject(themeManager)
-                    } else {
-                        // Legacy wheel picker
-                        LegacyDurationPicker(duration: $duration)
-                            .environmentObject(themeManager)
-                    }
+                    // Radial Duration Picker (up to 14 hours)
+                    MZRadialDurationPicker(duration: $duration, maxDuration: 840)
+                        .environmentObject(themeManager)
+                        .padding(.top, MZSpacing.md)
 
                     Spacer()
 

@@ -23,7 +23,7 @@ struct MZSpacing {
     // MARK: - Semantic Spacing
     static let cardPadding: CGFloat = 16
     static let sectionSpacing: CGFloat = 24
-    static let screenPadding: CGFloat = 20
+    static let screenPadding: CGFloat = 12  // Reduced for tighter margins
     static let itemSpacing: CGFloat = 12
 
     // MARK: - Component Specific

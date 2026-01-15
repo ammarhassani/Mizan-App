@@ -157,6 +157,27 @@ struct PostSubscriptionGuide: View {
                 removal: .opacity
             ))
             .id(currentFeature)
+            .gesture(
+                DragGesture(minimumDistance: 50)
+                    .onEnded { value in
+                        let horizontalAmount = value.translation.width
+
+                        // RTL-aware: swipe left = next, swipe right = previous
+                        if horizontalAmount < -50 && currentFeature < unlockedFeatures.count - 1 {
+                            // Swipe left → next
+                            withAnimation(MZAnimation.snappy) {
+                                currentFeature += 1
+                            }
+                            HapticManager.shared.trigger(.selection)
+                        } else if horizontalAmount > 50 && currentFeature > 0 {
+                            // Swipe right → previous
+                            withAnimation(MZAnimation.snappy) {
+                                currentFeature -= 1
+                            }
+                            HapticManager.shared.trigger(.selection)
+                        }
+                    }
+            )
 
             Spacer()
 

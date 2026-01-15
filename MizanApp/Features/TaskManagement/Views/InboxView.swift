@@ -148,7 +148,9 @@ struct InboxView: View {
             }
             .padding(.horizontal, MZSpacing.screenPadding)
             .padding(.vertical, MZSpacing.sm)
+            .flipsForRightToLeftLayoutDirection(true)
         }
+        // Removed: .environment(\.layoutDirection, .rightToLeft) - was causing text inversion
         .background(themeManager.backgroundColor)
     }
 

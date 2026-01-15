@@ -2,87 +2,148 @@
 //  CurrentTimeIndicator.swift
 //  Mizan
 //
-//  Animated "now" line indicator for the timeline
+//  Performance-optimized current time indicator.
+//  SINGLE animation only - pulsing dot.
 //
 
 import SwiftUI
 
-/// A pulsing current time indicator for the timeline
-struct CurrentTimeIndicator: View {
+/// Simple current time indicator - pulsing dot + gradient line
+struct CinematicCurrentTimeIndicator: View {
     @EnvironmentObject var themeManager: ThemeManager
 
+    var showDivineEffects: Bool = true // Kept for API compatibility
+
     @State private var pulseScale: CGFloat = 1.0
-    @State private var glowOpacity: Double = 0.3
 
     // MARK: - Body
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Time label with pulsing dot
+        HStack(spacing: 10) {  // Match TaskContainerBlock spacing for alignment
+            // Time label with orb
             HStack(spacing: MZSpacing.xs) {
-                // Pulsing dot
-                ZStack {
-                    // Glow effect
-                    Circle()
-                        .fill(themeManager.primaryColor.opacity(glowOpacity))
-                        .frame(width: 16, height: 16)
-                        .blur(radius: 4)
+                // Pulsing orb marker
+                pulsingOrb
 
-                    // Core dot
-                    Circle()
-                        .fill(themeManager.primaryColor)
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(pulseScale)
-                }
-
-                // Current time label
-                Text(Date().formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(themeManager.primaryColor)
-                    .padding(.horizontal, MZSpacing.xs)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule()
-                            .fill(themeManager.primaryColor.opacity(0.15))
-                    )
+                // Time label
+                timeLabel
             }
-            .frame(width: 85, alignment: .trailing)
+            .frame(width: 55, alignment: .trailing) // Match TaskContainerBlock time column width
 
-            // Horizontal line with gradient fade
-            LinearGradient(
-                colors: [
-                    themeManager.primaryColor,
-                    themeManager.primaryColor.opacity(0.5),
-                    themeManager.primaryColor.opacity(0)
-                ],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-            .frame(height: 2)
+            // Gradient line
+            timeLine
         }
         .onAppear {
             startPulseAnimation()
         }
     }
 
-    // MARK: - Animation
+    // MARK: - Pulsing Orb
+
+    private var pulsingOrb: some View {
+        // Fixed-size container prevents scaleEffect from affecting layout
+        ZStack {
+            // Glow ring - animated but contained
+            Circle()
+                .stroke(themeManager.primaryColor.opacity(0.3), lineWidth: 1.5)
+                .frame(width: 20, height: 20)
+                .scaleEffect(pulseScale)
+
+            // Static glow
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            themeManager.primaryColor.opacity(0.4),
+                            themeManager.primaryColor.opacity(0.1),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 12
+                    )
+                )
+                .frame(width: 24, height: 24)
+
+            // Core dot - animated but contained
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            themeManager.textOnPrimaryColor.opacity(0.9),
+                            themeManager.primaryColor
+                        ],
+                        center: UnitPoint(x: 0.3, y: 0.3),
+                        startRadius: 0,
+                        endRadius: 5
+                    )
+                )
+                .frame(width: 10, height: 10)
+                .scaleEffect(pulseScale)
+
+            // Highlight
+            Circle()
+                .fill(themeManager.textOnPrimaryColor)
+                .frame(width: 3, height: 3)
+                .offset(x: -1.5, y: -1.5)
+                .blur(radius: 0.5)
+        }
+        .frame(width: 28, height: 28) // Fixed container size prevents layout shifts
+    }
+
+    // MARK: - Time Label
+
+    private var timeLabel: some View {
+        Text(Date().formatted(date: .omitted, time: .shortened))
+            .font(.system(size: 11, weight: .bold, design: .rounded))
+            .monospacedDigit() // Prevents layout shift when digits change
+            .foregroundColor(themeManager.primaryColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(themeManager.surfaceColor.opacity(0.8))
+                    .overlay(
+                        Capsule()
+                            .stroke(themeManager.primaryColor.opacity(0.3), lineWidth: 1)
+                    )
+                    .shadow(color: themeManager.primaryColor.opacity(0.2), radius: 4, y: 2)
+            )
+    }
+
+    // MARK: - Time Line
+
+    private var timeLine: some View {
+        LinearGradient(
+            colors: [
+                themeManager.primaryColor,
+                themeManager.primaryColor.opacity(0.5),
+                themeManager.primaryColor.opacity(0.1),
+                themeManager.primaryColor.opacity(0)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(height: 2)
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Single Animation
 
     private func startPulseAnimation() {
-        withAnimation(MZAnimation.timePulse) {
-            pulseScale = 1.3
-            glowOpacity = 0.7
+        // SINGLE animation only - pulse
+        withAnimation(
+            Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true)
+        ) {
+            pulseScale = 1.15
         }
     }
 }
 
 // MARK: - Timeline Position Calculator
 
-extension CurrentTimeIndicator {
+extension CinematicCurrentTimeIndicator {
     /// Calculates the Y position for the current time indicator within a timeline
-    /// - Parameters:
-    ///   - timelineBounds: The start and end dates of the visible timeline
-    ///   - totalHeight: Total height of the timeline scroll content
-    /// - Returns: Y offset where the indicator should be positioned
     static func yPosition(
         in timelineBounds: (start: Date, end: Date),
         totalHeight: CGFloat,
@@ -107,7 +168,7 @@ extension CurrentTimeIndicator {
 // MARK: - Compact Variant
 
 /// A minimal current time indicator for compact views
-struct CurrentTimeIndicatorCompact: View {
+struct CinematicCurrentTimeIndicatorCompact: View {
     @EnvironmentObject var themeManager: ThemeManager
     @State private var isGlowing = false
 
@@ -153,7 +214,7 @@ struct Triangle: Shape {
         Text("Current Time Indicator")
             .font(MZTypography.titleSmall)
 
-        CurrentTimeIndicator()
+        CinematicCurrentTimeIndicator()
             .padding(.horizontal)
 
         Divider()
@@ -161,7 +222,7 @@ struct Triangle: Shape {
         Text("Compact Variant")
             .font(MZTypography.titleSmall)
 
-        CurrentTimeIndicatorCompact()
+        CinematicCurrentTimeIndicatorCompact()
             .padding(.horizontal)
     }
     .padding()

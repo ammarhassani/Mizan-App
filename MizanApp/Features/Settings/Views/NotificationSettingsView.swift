@@ -148,7 +148,7 @@ struct NotificationSettingsView: View {
                     } label: {
                         Text("فتح الإعدادات")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(themeManager.textOnPrimaryColor)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(themeManager.primaryColor)
@@ -182,11 +182,11 @@ struct NotificationSettingsView: View {
     private var authorizationColor: Color {
         switch notificationManager.authorizationStatus {
         case .authorized:
-            return .green
+            return themeManager.successColor
         case .denied:
-            return .red
+            return themeManager.errorColor
         case .notDetermined:
-            return .orange
+            return themeManager.warningColor
         default:
             return themeManager.primaryColor
         }
@@ -317,24 +317,25 @@ struct NotificationSettingsView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "clock.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(userSettings.isPro ? themeManager.primaryColor : .gray)
+                            .foregroundColor(userSettings.isPro ? themeManager.primaryColor : themeManager.textSecondaryColor)
                             .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
                                 Text("التذكير قبل المهمة")
                                     .font(.system(size: 17))
-                                    .foregroundColor(userSettings.isPro ? themeManager.textPrimaryColor : .gray)
+                                    .foregroundColor(userSettings.isPro ? themeManager.textPrimaryColor : themeManager.textSecondaryColor)
 
                                 if !userSettings.isPro {
                                     ProBadge()
+                                        .environmentObject(themeManager)
                                 }
                             }
 
                             if !userSettings.isPro {
                                 Text("ميزة Pro")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeManager.textSecondaryColor)
                             }
                         }
                     }
@@ -359,7 +360,7 @@ struct NotificationSettingsView: View {
                         .tint(themeManager.primaryColor)
                     } else {
                         Image(systemName: "lock.fill")
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeManager.textSecondaryColor)
                     }
                 }
             }
@@ -432,7 +433,7 @@ struct NotificationSettingsView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "bell.badge")
                         .font(.system(size: 20))
-                        .foregroundColor(.orange)
+                        .foregroundColor(themeManager.warningColor)
                         .frame(width: 28)
 
                     Text("اختبار الإشعارات")
@@ -474,15 +475,17 @@ struct NotificationSettingsView: View {
 // MARK: - Pro Badge
 
 struct ProBadge: View {
+    @EnvironmentObject var themeManager: ThemeManager
+
     var body: some View {
         Text("PRO")
             .font(.system(size: 9, weight: .bold))
-            .foregroundColor(.white)
+            .foregroundColor(themeManager.textOnPrimaryColor)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)
             .background(
                 LinearGradient(
-                    colors: [Color.purple, Color.blue],
+                    colors: [themeManager.primaryColor, themeManager.primaryColor.opacity(0.7)],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
@@ -612,7 +615,7 @@ struct AdhanOptionRow: View {
                 HStack(spacing: 6) {
                     Text(adhan.nameArabic)
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(isLocked ? .gray : themeManager.textPrimaryColor)
+                        .foregroundColor(isLocked ? themeManager.textSecondaryColor : themeManager.textPrimaryColor)
 
                     if adhan.pro {
                         ProBadge()
@@ -622,7 +625,7 @@ struct AdhanOptionRow: View {
                 if !isAudioAvailable {
                     Text("الملف غير متوفر")
                         .font(.system(size: 12))
-                        .foregroundColor(.orange)
+                        .foregroundColor(themeManager.warningColor)
                 } else {
                     Text(adhan.nameEnglish)
                         .font(.system(size: 14))
@@ -635,7 +638,7 @@ struct AdhanOptionRow: View {
             // Selection/Lock indicator
             if isLocked {
                 Image(systemName: "lock.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeManager.textSecondaryColor)
             } else {
                 Button {
                     onSelect()

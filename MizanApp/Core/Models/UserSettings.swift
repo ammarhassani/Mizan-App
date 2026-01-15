@@ -54,6 +54,13 @@ final class UserSettings {
     var hasCompletedOnboarding: Bool
     var lastOnboardingVersion: String
 
+    // MARK: - Visual Effects
+    var enableVisualEffects: Bool = true
+    var enablePrayerCountdownScreen: Bool = true
+    var enableParticleNotifications: Bool = true
+    var enableBackgroundAmbiance: Bool = true
+    var ramadanModeEnabled: Bool = false
+
     // MARK: - Initialization
     init() {
         self.id = UUID()
@@ -98,6 +105,13 @@ final class UserSettings {
         // Onboarding
         self.hasCompletedOnboarding = false
         self.lastOnboardingVersion = "1.0.0"
+
+        // Visual Effects
+        self.enableVisualEffects = true
+        self.enablePrayerCountdownScreen = true
+        self.enableParticleNotifications = true
+        self.enableBackgroundAmbiance = true
+        self.ramadanModeEnabled = false
     }
 
     // MARK: - Methods
