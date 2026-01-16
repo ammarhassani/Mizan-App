@@ -215,9 +215,8 @@ struct AddTaskSheet: View {
                     .buttonStyle(PressableButtonStyle())
                 }
                 .padding(.vertical, 4)
-                .flipsForRightToLeftLayoutDirection(true)
             }
-            .environment(\.layoutDirection, .rightToLeft)
+            // Removed: .flipsForRightToLeftLayoutDirection + .environment(\.layoutDirection) causes text inversion
         }
         .sheet(isPresented: $showCustomDurationPicker) {
             CustomDurationPickerSheet(duration: $duration)
@@ -286,9 +285,8 @@ struct AddTaskSheet: View {
                     }
                 }
                 .padding(.vertical, 4)
-                .flipsForRightToLeftLayoutDirection(true)
             }
-            .environment(\.layoutDirection, .rightToLeft)
+            // Removed: .flipsForRightToLeftLayoutDirection + .environment(\.layoutDirection) causes text inversion
             .fixedSize(horizontal: false, vertical: true)
 
             // Category hint text
@@ -724,8 +722,47 @@ struct AddTaskSheet: View {
 
     private func deleteTask() {
         guard let task = task else { return }
+
+        print("🗑️ [ADDTASKSHEET] DELETE TASK: '\(task.title)'")
+        print("   - task.id: \(task.id)")
+        print("   - parentTaskId: \(task.parentTaskId?.uuidString ?? "nil")")
+        print("   - scheduledDate: \(task.scheduledDate?.description ?? "nil")")
+        print("   - recurrenceRule: \(task.recurrenceRule != nil ? "YES" : "nil")")
+
+        // If this is a recurring instance, mark it as dismissed on the parent
+        if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
+            print("   → This is a CHILD instance, looking for parent...")
+            let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
+            if let parentTask = try? modelContext.fetch(descriptor).first {
+                print("   → Found parent '\(parentTask.title)' (id: \(parentTask.id)), dismissing date \(scheduledDate)")
+                print("   → Parent dismissedInstanceDates BEFORE: \(parentTask.dismissedInstanceDates ?? [])")
+                parentTask.dismissRecurringInstance(for: scheduledDate)
+                print("   → Parent dismissedInstanceDates AFTER: \(parentTask.dismissedInstanceDates ?? [])")
+            } else {
+                print("   ❌ Parent task NOT FOUND!")
+            }
+        }
+        // If this is a parent recurring task being deleted for a specific date, mark that date as dismissed
+        else if task.recurrenceRule != nil, let scheduledDate = task.scheduledDate {
+            print("   → This is a PARENT recurring task, dismissing date \(scheduledDate)")
+            task.dismissRecurringInstance(for: scheduledDate)
+            print("   → dismissedInstanceDates: \(task.dismissedInstanceDates ?? [])")
+            print("   ⚠️ WARNING: Deleting parent task - dismissed date will be lost!")
+        } else {
+            print("   → This is a REGULAR (non-recurring) task")
+        }
+
+        // Delete the task
         modelContext.delete(task)
-        try? modelContext.save()
+
+        // Single atomic save for all changes
+        do {
+            try modelContext.save()
+            print("   ✅ Task deleted and all changes saved successfully")
+        } catch {
+            print("   ❌ Failed to save: \(error)")
+        }
+
         HapticManager.shared.trigger(.warning)
         dismiss()
     }

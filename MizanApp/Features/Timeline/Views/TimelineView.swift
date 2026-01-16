@@ -8,6 +8,55 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Time Comparison Helpers
+
+/// Normalizes a date to a reference date (keeping only time components)
+/// This allows comparing times without worrying about date mismatches
+private func timeOnlyMinutes(from date: Date) -> Int {
+    let calendar = Calendar.current
+    let components = calendar.dateComponents([.hour, .minute], from: date)
+    return (components.hour ?? 0) * 60 + (components.minute ?? 0)
+}
+
+/// Checks if a time falls within a time range (comparing time-of-day only, ignoring dates)
+private func timeIsWithinRange(_ time: Date, start: Date, end: Date) -> Bool {
+    let timeMinutes = timeOnlyMinutes(from: time)
+    let startMinutes = timeOnlyMinutes(from: start)
+    let endMinutes = timeOnlyMinutes(from: end)
+
+    // Handle overnight ranges (e.g., 11 PM to 2 AM)
+    if endMinutes < startMinutes {
+        return timeMinutes >= startMinutes || timeMinutes <= endMinutes
+    }
+
+    return timeMinutes >= startMinutes && timeMinutes <= endMinutes
+}
+
+// MARK: - Intelligent Height Calculation
+
+/// Calculates height using diminishing returns - short tasks get fair space,
+/// long tasks don't explode the layout.
+/// - Parameters:
+///   - durationMinutes: Task duration in minutes
+///   - minHeight: Minimum height to return (default 60pt)
+/// - Returns: Calculated height with logarithmic scaling for long durations
+func intelligentTaskHeight(durationMinutes: Int, minHeight: CGFloat = 60) -> CGFloat {
+    let hours = CGFloat(durationMinutes) / 60.0
+
+    if hours <= 0.5 {
+        // Short tasks (≤30min): minimum height
+        return minHeight
+    } else if hours <= 1.0 {
+        // Up to 1 hour: grow to 80pt
+        return minHeight + (hours - 0.5) * 40  // 60 → 80
+    } else {
+        // Beyond 1 hour: logarithmic growth
+        // Base 80pt + log2(hours) * 30
+        // 2hr → 110pt, 4hr → 140pt, 8hr → 170pt
+        return 80 + log2(hours) * 30
+    }
+}
+
 struct TimelineView: View {
     // MARK: - Environment
     @EnvironmentObject var appEnvironment: AppEnvironment
@@ -25,6 +74,7 @@ struct TimelineView: View {
     @State private var countdownPrayer: PrayerTime? = nil
     @State private var isScrolling = false
     @State private var usePremiumCards = true
+    @State private var taskToEdit: Task? = nil
 
     // MARK: - Queries
     @Query private var allTasks: [Task]
@@ -34,7 +84,7 @@ struct TimelineView: View {
     // MARK: - Constants
     private let minPrayerBlockHeight: CGFloat = 110
     private let minNawafilBlockHeight: CGFloat = 60
-    private let minTaskBlockHeight: CGFloat = 50
+    private let minTaskBlockHeight: CGFloat = 60
     private let contentHourHeight: CGFloat = 100 // Points per hour within content regions
 
     // MARK: - Timeline Segments (computed)
@@ -184,8 +234,22 @@ struct TimelineView: View {
                         .ignoresSafeArea()
                 }
 
-                VStack(spacing: 0) {
-                    // Cinematic Date Navigator - Divine Time Portal
+                // Timeline with swipe and pinch gestures
+                timelineScrollView
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        // Invisible spacer - content scrolls under the date bar
+                        Color.clear.frame(height: 56)
+                    }
+                    .offset(x: dragOffset)
+                    .gesture(horizontalSwipeGesture)
+                    .timelineGestures(scale: $timelineScale) { location in
+                        // Long press handling - could open edit sheet
+                        HapticManager.shared.trigger(.medium)
+                    }
+
+                // Floating overlays at ZStack level (full screen positioning)
+                VStack {
+                    // Date Navigator - glass pill at top
                     CinematicDateNavigator(
                         selectedDate: $selectedDate,
                         hijriDate: todayPrayers.first?.hijriDate,
@@ -193,24 +257,17 @@ struct TimelineView: View {
                     )
                     .environmentObject(themeManager)
 
-                    // Prayer Approaching Banner (if applicable)
+                    // Prayer Approaching Banner - below date navigator
                     if let approaching = approachingPrayer {
                         PrayerApproachingIndicator(
                             prayerName: approaching.prayer.displayName,
-                            minutesUntil: approaching.minutes,
+                            prayerTime: approaching.prayer.adhanTime,
                             colorHex: approaching.prayer.colorHex
                         )
-                        .padding(.top, MZSpacing.xs)
+                        .environmentObject(themeManager)
                     }
 
-                    // Timeline with swipe and pinch gestures
-                    timelineScrollView
-                        .offset(x: dragOffset)
-                        .gesture(horizontalSwipeGesture)
-                        .timelineGestures(scale: $timelineScale) { location in
-                            // Long press handling - could open edit sheet
-                            HapticManager.shared.trigger(.medium)
-                        }
+                    Spacer()
                 }
 
                 // TODO: Re-enable zoom controls once segment height scaling is implemented
@@ -239,19 +296,7 @@ struct TimelineView: View {
                 //     }
                 // }
             }
-            .navigationTitle("الجدول")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        // Reset to today and scroll will happen via onAppear
-                        selectedDate = Date()
-                    } label: {
-                        Image(systemName: "clock")
-                            .foregroundColor(themeManager.primaryColor)
-                    }
-                }
-            }
+            .navigationBarHidden(true)
         }
         .onChange(of: appEnvironment.nawafilRefreshTrigger) { _, _ in
             // Force view to re-query nawafil data
@@ -276,6 +321,11 @@ struct TimelineView: View {
             )
             .environmentObject(themeManager)
         }
+        .sheet(item: $taskToEdit) { task in
+            AddTaskSheet(task: task)
+                .environmentObject(appEnvironment)
+                .environmentObject(themeManager)
+        }
     }
 
     // MARK: - Timeline ScrollView
@@ -290,9 +340,8 @@ struct TimelineView: View {
                             .id(segment.id)
                     }
                 }
-                // TODO: CurrentTimeIndicator needs proper Y positioning based on time
-                // It should be positioned at a calculated offset within the LazyVStack
-                .padding(.horizontal, 8)
+                // Minimal horizontal padding - cards handle their own margins
+                .padding(.horizontal, 4)
                 .padding(.vertical, 8)
             }
             .onChange(of: selectedDate) { _, newDate in
@@ -319,8 +368,44 @@ struct TimelineView: View {
 
     // MARK: - Segment Rendering
 
+    /// Determines the accent color for a segment's timeline dot
+    private func segmentAccentColor(for segment: TimelineSegment) -> Color {
+        switch segment.segmentType {
+        case .gap:
+            return themeManager.textSecondaryColor
+        case .prayer:
+            if let colorHex = segment.prayer?.colorHex {
+                return Color(hex: colorHex)
+            }
+            return themeManager.primaryColor
+        case .nawafil:
+            if let colorHex = segment.nawafil?.colorHex {
+                return Color(hex: colorHex)
+            }
+            return themeManager.primaryColor
+        case .task, .taskContainer:
+            if let colorHex = segment.task?.colorHex {
+                return Color(hex: colorHex)
+            }
+            return themeManager.primaryColor
+        case .taskCluster:
+            return themeManager.warningColor // Cluster uses warning color
+        }
+    }
+
     @ViewBuilder
     private func segmentView(for segment: TimelineSegment) -> some View {
+        let isGap = segment.segmentType == .gap
+        let accentColor = segmentAccentColor(for: segment)
+
+        TimelineRow(accentColor: accentColor, showDot: !isGap) {
+            segmentContent(for: segment)
+        }
+        .environmentObject(themeManager)
+    }
+
+    @ViewBuilder
+    private func segmentContent(for segment: TimelineSegment) -> some View {
         switch segment.segmentType {
         case .gap:
             GapSegmentView(segment: segment, usePremiumFlow: usePremiumCards)
@@ -384,6 +469,12 @@ struct TimelineView: View {
                         overlappingTaskCount: segment.overlappingTaskCount,
                         onToggleCompletion: {
                             toggleTaskCompletion(task)
+                        },
+                        onTap: {
+                            taskToEdit = task
+                        },
+                        onDelete: {
+                            deleteTask(task)
                         }
                     )
                     .environmentObject(themeManager)
@@ -412,7 +503,13 @@ struct TimelineView: View {
                     },
                     onPrayerTap: appEnvironment.userSettings.enablePrayerCountdownScreen ? { prayer in
                         countdownPrayer = prayer
-                    } : nil
+                    } : nil,
+                    onTap: {
+                        taskToEdit = task
+                    },
+                    onDelete: {
+                        deleteTask(task)
+                    }
                 )
                 .environmentObject(themeManager)
             }
@@ -430,7 +527,13 @@ struct TimelineView: View {
                 },
                 onPrayerTap: appEnvironment.userSettings.enablePrayerCountdownScreen ? { prayer in
                     countdownPrayer = prayer
-                } : nil
+                } : nil,
+                onTaskTap: { task in
+                    taskToEdit = task
+                },
+                onTaskDelete: { task in
+                    deleteTask(task)
+                }
             )
             .environmentObject(themeManager)
         }
@@ -476,6 +579,59 @@ struct TimelineView: View {
             }
             try? modelContext.save()
         }
+    }
+
+    private func deleteTask(_ task: Task) {
+        print("🗑️ [TIMELINE] DELETE TASK: '\(task.title)'")
+        print("   - task.id: \(task.id)")
+        print("   - parentTaskId: \(task.parentTaskId?.uuidString ?? "nil")")
+        print("   - scheduledDate: \(task.scheduledDate?.description ?? "nil")")
+        print("   - recurrenceRule: \(task.recurrenceRule != nil ? "YES" : "nil")")
+        print("   - isRecurring: \(task.isRecurring)")
+
+        var parentTaskToSave: Task? = nil
+
+        // If this is a recurring instance, mark it as dismissed on the parent
+        if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
+            print("   → This is a CHILD instance, looking for parent...")
+            let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
+            if let parentTask = try? modelContext.fetch(descriptor).first {
+                print("   → Found parent '\(parentTask.title)' (id: \(parentTask.id)), dismissing date \(scheduledDate)")
+                print("   → Parent dismissedInstanceDates BEFORE: \(parentTask.dismissedInstanceDates ?? [])")
+                parentTask.dismissRecurringInstance(for: scheduledDate)
+                print("   → Parent dismissedInstanceDates AFTER: \(parentTask.dismissedInstanceDates ?? [])")
+                parentTaskToSave = parentTask
+            } else {
+                print("   ❌ Parent task NOT FOUND!")
+            }
+        }
+        // If this is a parent recurring task being deleted for a specific date, mark that date as dismissed
+        else if task.recurrenceRule != nil, let scheduledDate = task.scheduledDate {
+            print("   → This is a PARENT recurring task, dismissing date \(scheduledDate)")
+            task.dismissRecurringInstance(for: scheduledDate)
+            print("   → dismissedInstanceDates: \(task.dismissedInstanceDates ?? [])")
+            print("   ⚠️ WARNING: Deleting parent task - dismissed date will be lost!")
+        } else {
+            print("   → This is a REGULAR (non-recurring) task")
+        }
+
+        // Delete the task first
+        modelContext.delete(task)
+
+        // Single atomic save for all changes (dismissal + deletion)
+        do {
+            try modelContext.save()
+            print("   ✅ Task deleted and all changes saved successfully")
+
+            // Verify the parent's dismissedInstanceDates persisted
+            if let parent = parentTaskToSave {
+                print("   🔍 VERIFY: Parent dismissedInstanceDates after save: \(parent.dismissedInstanceDates ?? [])")
+            }
+        } catch {
+            print("   ❌ Failed to save: \(error)")
+        }
+
+        HapticManager.shared.trigger(.warning)
     }
 
     // MARK: - Horizontal Swipe Gesture
@@ -786,70 +942,80 @@ struct TimelineNawafilBlock: View {
 
     @EnvironmentObject var themeManager: ThemeManager
 
-    // Dynamic block height
-    private var blockHeight: CGFloat {
-        let contentHeight = CGFloat(nawafil.duration) / 60.0 * 100
-        return max(minHeight, contentHeight)
+    private var nawafilColor: Color {
+        Color(hex: nawafil.colorHex)
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Time label on the left
-            Text(nawafil.suggestedTime.formatted(date: .omitted, time: .shortened))
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color(hex: nawafil.colorHex))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(width: 65, alignment: .trailing)
+        VStack(alignment: .leading, spacing: 4) {
+            // Time row above (left-aligned like other cards)
+            HStack(spacing: 6) {
+                Text(nawafil.suggestedTime.formatted(date: .omitted, time: .shortened))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(nawafilColor)
 
-            // Nawafil block content
+                Text("•")
+                    .font(.system(size: 8))
+                    .foregroundColor(themeManager.textTertiaryColor)
+
+                Text(nawafil.duration.formattedDuration)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(themeManager.textSecondaryColor)
+            }
+            .padding(.leading, 4)
+
+            // Nawafil card
             nawafilBlockContent
         }
-        .frame(height: blockHeight)
+        .frame(minHeight: minHeight)
         .padding(.horizontal, 4)
-        .opacity(nawafil.isCompleted ? 0.5 : 1.0)
+        .padding(.vertical, 4)
+        .opacity(nawafil.isCompleted ? 0.6 : 1.0)
     }
 
     private var nawafilBlockContent: some View {
         HStack(spacing: 10) {
-            // Icon
-            Image(systemName: nawafil.icon)
-                .font(.system(size: 18))
-                .foregroundColor(Color(hex: nawafil.colorHex))
-
-            // Name and details
-            VStack(alignment: .leading, spacing: 2) {
-                Text(nawafil.arabicName)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: nawafil.colorHex))
-
-                Text("\(nawafil.rakaat) \(nawafil.rakaat.arabicRakaat) • \(nawafil.duration) \(nawafil.duration.arabicMinutes)")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: nawafil.colorHex).opacity(0.7))
-            }
-
-            Spacer()
-
-            // Badge
+            // Badge on left
             Text("نافلة")
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(themeManager.textOnPrimaryColor)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
-                .background(Color(hex: nawafil.colorHex))
+                .background(nawafilColor)
                 .cornerRadius(4)
+
+            Spacer()
+
+            // Name and details (centered)
+            VStack(spacing: 2) {
+                Text(nawafil.arabicName)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(nawafilColor)
+
+                Text("\(nawafil.rakaat) \(nawafil.rakaat.arabicRakaat)")
+                    .font(.system(size: 11))
+                    .foregroundColor(nawafilColor.opacity(0.7))
+            }
+
+            Spacer()
+
+            // Icon on right
+            Image(systemName: nawafil.icon)
+                .font(.system(size: 20))
+                .foregroundColor(nawafilColor)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(
-            Color(hex: nawafil.colorHex).opacity(0.12)
+            nawafilColor.opacity(0.1)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
-                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                .foregroundColor(Color(hex: nawafil.colorHex).opacity(0.5))
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                .foregroundColor(nawafilColor.opacity(0.4))
         )
-        .cornerRadius(themeManager.cornerRadius(.medium))
+        .cornerRadius(12)
     }
 }
 
@@ -864,8 +1030,7 @@ struct TimelineTaskBlock: View {
     @EnvironmentObject var themeManager: ThemeManager
 
     private var blockHeight: CGFloat {
-        let contentHeight = CGFloat(task.duration) / 60.0 * 100
-        return max(minHeight, contentHeight)
+        intelligentTaskHeight(durationMinutes: task.duration, minHeight: minHeight)
     }
 
     var body: some View {
@@ -906,7 +1071,7 @@ struct TimelineTaskBlock: View {
                     .foregroundColor(themeManager.textPrimaryColor)
                     .strikethrough(task.isCompleted)
 
-                Text("\(task.duration) \(task.duration.arabicMinutes)")
+                Text(task.duration.formattedDuration)
                     .font(.system(size: 11))
                     .foregroundColor(themeManager.textSecondaryColor)
             }
@@ -973,15 +1138,7 @@ struct TimelineSegment: Identifiable {
 
     /// Format the gap duration for display
     var gapDurationText: String {
-        let hours = durationMinutes / 60
-        let mins = durationMinutes % 60
-        if hours > 0 && mins > 0 {
-            return "\(hours)س \(mins)د"
-        } else if hours > 0 {
-            return "\(hours) \(hours.arabicHours)"
-        } else {
-            return "\(mins) \(mins.arabicMinutes)"
-        }
+        durationMinutes.formattedDuration
     }
 
     /// Whether this task container has any contained items
@@ -1048,12 +1205,11 @@ extension TimelineView {
                 guard let taskStart = task.scheduledStartTime,
                       let taskEnd = task.endTime else { continue }
 
-                // Find prayers that overlap with this task
+                // Find prayers whose athan time falls within the task timespan
+                // Using time-of-day comparison to avoid date mismatch issues
                 let overlappingPrayers = prayers.filter { prayer in
-                    let prayerStart = prayer.effectiveStartTime
-                    let prayerEnd = prayer.effectiveEndTime
-                    return prayerStart < taskEnd && prayerEnd > taskStart
-                }.sorted { $0.effectiveStartTime < $1.effectiveStartTime }
+                    timeIsWithinRange(prayer.adhanTime, start: taskStart, end: taskEnd)
+                }.sorted { $0.adhanTime < $1.adhanTime }
 
                 // Find standalone nawafil that overlap with this task
                 let overlappingNawafil = nawafil.filter { naf in
@@ -1092,12 +1248,11 @@ extension TimelineView {
                 let clusterStart = cluster.compactMap { $0.scheduledStartTime }.min()!
                 let clusterEnd = cluster.compactMap { $0.endTime }.max()!
 
-                // Find prayers that overlap with the entire cluster timespan
+                // Find prayers whose athan time falls within the cluster timespan
+                // Using time-of-day comparison to avoid date mismatch issues
                 let overlappingPrayers = prayers.filter { prayer in
-                    let prayerStart = prayer.effectiveStartTime
-                    let prayerEnd = prayer.effectiveEndTime
-                    return prayerStart < clusterEnd && prayerEnd > clusterStart
-                }.sorted { $0.effectiveStartTime < $1.effectiveStartTime }
+                    timeIsWithinRange(prayer.adhanTime, start: clusterStart, end: clusterEnd)
+                }.sorted { $0.adhanTime < $1.adhanTime }
 
                 // Find standalone nawafil that overlap with cluster
                 let overlappingNawafil = nawafil.filter { naf in
@@ -1250,114 +1405,76 @@ struct GapSegmentView: View {
         let duration = segment.durationMinutes
         if duration < 30 {
             // Short gaps: proportional height (100pt/hr)
-            return CGFloat(duration) / 60.0 * 100
+            return max(30, CGFloat(duration) / 60.0 * 80)
         } else if duration < 120 {
             // Medium gaps: compressed
-            return 50
+            return 40
         } else {
             // Large gaps: collapsed
-            return 40
+            return 35
+        }
+    }
+
+    /// Format duration for display
+    private var durationText: String {
+        let minutes = segment.durationMinutes
+        if minutes < 60 {
+            return "\(minutes) د"
+        } else {
+            let hours = minutes / 60
+            let mins = minutes % 60
+            if mins == 0 {
+                return "\(hours) س"
+            } else {
+                return "\(hours) س \(mins) د"
+            }
         }
     }
 
     var body: some View {
-        if usePremiumFlow {
-            // Premium organic flow connector
-            premiumFlowView
-        } else {
-            // Legacy style gap
-            legacyGapView
-        }
-    }
+        // Clean gap view - just centered label, no disconnected lines
+        HStack {
+            Spacer()
 
-    // MARK: - Premium Flow View
-
-    private var premiumFlowView: some View {
-        HStack(alignment: .top, spacing: 10) {
-            // Time labels - matching GlassmorphicPrayerCard layout
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(segment.startTime.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(themeManager.textSecondaryColor.opacity(0.5))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-
-                Spacer()
-
-                Text(segment.endTime.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(themeManager.textSecondaryColor.opacity(0.5))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+            // Free time label in glass pill
+            HStack(spacing: 4) {
+                Image(systemName: "clock")
+                    .font(.system(size: 8))
+                Text("وقت حر")
+                    .font(.system(size: 9, weight: .medium))
+                Text("•")
+                    .font(.system(size: 6))
+                Text(durationText)
+                    .font(.system(size: 9, weight: .medium))
+                    .monospacedDigit()
             }
-            .frame(width: 60, alignment: .trailing)
+            .foregroundColor(themeManager.textTertiaryColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background {
+                ZStack {
+                    // Solid opaque background to block glow from elements below
+                    Capsule()
+                        .fill(themeManager.backgroundColor)
 
-            // Organic flow connector
-            if height > 20 {
-                OrganicTimeFlow(
-                    height: height,
-                    duration: segment.endTime.timeIntervalSince(segment.startTime),
-                    isCollapsed: segment.isCollapsedGap
-                )
-                .environmentObject(themeManager)
-            } else {
-                CompactFlowDot()
-                    .environmentObject(themeManager)
-                    .frame(height: height)
-            }
-        }
-        .frame(height: height)
-        .padding(.horizontal, 4)
-        .padding(.vertical, 4)
-    }
-
-    // MARK: - Legacy Gap View
-
-    private var legacyGapView: some View {
-        HStack(spacing: 8) {
-            // Time labels
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(segment.startTime.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-
-                if segment.isCollapsedGap {
-                    Text("···")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(themeManager.textSecondaryColor.opacity(0.5))
+                    // Glass effect on top
+                    if #available(iOS 26.0, *) {
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                            .glassEffect(.regular, in: Capsule())
+                    } else {
+                        Capsule()
+                            .fill(themeManager.surfaceSecondaryColor.opacity(0.7))
+                    }
                 }
-
-                Text(segment.endTime.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(themeManager.textSecondaryColor.opacity(0.6))
-            .frame(width: 65, alignment: .trailing)
-
-            // Dashed line with duration
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(themeManager.textSecondaryColor.opacity(0.15))
-                    .frame(height: 1)
-
-                if segment.isCollapsedGap {
-                    Text(segment.gapDurationText)
-                        .font(.system(size: 10))
-                        .foregroundStyle(themeManager.textSecondaryColor.opacity(0.4))
-                        .padding(.vertical, 4)
-                }
-
-                Rectangle()
-                    .fill(themeManager.textSecondaryColor.opacity(0.15))
-                    .frame(height: 1)
-            }
+            .zIndex(10) // Bring label to front
 
             Spacer()
         }
         .frame(height: height)
-        .padding(.leading, 4)
+        .padding(.horizontal, 4)
+        .zIndex(1) // Ensure gap segment is above timeline track
     }
 }
 

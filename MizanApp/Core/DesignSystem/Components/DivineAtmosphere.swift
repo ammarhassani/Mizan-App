@@ -76,10 +76,7 @@ struct DivineAtmosphere: View {
                         .opacity(prayerPeriod.geometryOpacity * intensity)
                 }
 
-                // Layer 4: Moon (for evening/night)
-                if !isScrolling && prayerPeriod.celestialIntensity >= 0.6 {
-                    moonView(in: geometry.size)
-                }
+                // Moon removed - was interfering with navigation UI
             }
         }
         .ignoresSafeArea()
@@ -104,61 +101,99 @@ struct DivineAtmosphere: View {
     }
 
     /// Theme-aware gradient colors - NO hardcoded hex colors
+    /// Light themes use subtle tints instead of black blending to avoid dimming
     private var gradientColors: [Color] {
         let primary = themeManager.primaryColor
         let background = themeManager.backgroundColor
         let surface = themeManager.surfaceColor
+        let isLightTheme = !themeManager.isDarkMode
 
         switch prayerPeriod {
         case .fajr:
-            // Dawn - darken background, tint with warm primary
-            return [
-                background.blended(with: .black, ratio: 0.5),
-                primary.opacity(0.2).blended(with: background, ratio: 0.7),
-                background
-            ]
+            if isLightTheme {
+                // Light themes: subtle warm tint, no black blending
+                return [
+                    background,
+                    primary.opacity(0.06).blended(with: background, ratio: 0.9),
+                    background
+                ]
+            } else {
+                // Dark themes: original darkening
+                return [
+                    background.blended(with: .black, ratio: 0.5),
+                    primary.opacity(0.2).blended(with: background, ratio: 0.7),
+                    background
+                ]
+            }
         case .sunrise:
-            // Morning - lighter, warm tint
+            // Morning - lighter, warm tint (same for both)
             return [
                 background.blended(with: primary, ratio: 0.15),
                 surface.blended(with: primary, ratio: 0.1),
                 background
             ]
         case .dhuhr:
-            // Midday - bright, minimal gradient
+            // Midday - bright, minimal gradient (same for both)
             return [
                 background.blended(with: .white, ratio: 0.1),
                 background,
                 background
             ]
         case .asr:
-            // Afternoon - warm golden tint
+            // Afternoon - warm golden tint (same for both)
             return [
                 background.blended(with: primary, ratio: 0.2),
                 surface.blended(with: primary, ratio: 0.1),
                 background
             ]
         case .maghrib:
-            // Sunset - dramatic primary tint
-            return [
-                primary.opacity(0.3).blended(with: background, ratio: 0.6),
-                surface.blended(with: primary, ratio: 0.2),
-                background.blended(with: .black, ratio: 0.2)
-            ]
+            if isLightTheme {
+                // Light themes: warm sunset tint without black
+                return [
+                    primary.opacity(0.15).blended(with: background, ratio: 0.85),
+                    surface.blended(with: primary, ratio: 0.1),
+                    background
+                ]
+            } else {
+                // Dark themes: original dramatic effect
+                return [
+                    primary.opacity(0.3).blended(with: background, ratio: 0.6),
+                    surface.blended(with: primary, ratio: 0.2),
+                    background.blended(with: .black, ratio: 0.2)
+                ]
+            }
         case .isha:
-            // Night - dark with primary accent
-            return [
-                background.blended(with: .black, ratio: 0.7),
-                surface.blended(with: primary, ratio: 0.1),
-                background.blended(with: .black, ratio: 0.5)
-            ]
+            if isLightTheme {
+                // Light themes: subtle evening tint without heavy black
+                return [
+                    primary.opacity(0.1).blended(with: background, ratio: 0.9),
+                    surface.blended(with: primary, ratio: 0.05),
+                    background
+                ]
+            } else {
+                // Dark themes: original night effect
+                return [
+                    background.blended(with: .black, ratio: 0.7),
+                    surface.blended(with: primary, ratio: 0.1),
+                    background.blended(with: .black, ratio: 0.5)
+                ]
+            }
         case .tahajjud:
-            // Deep night - darkest
-            return [
-                background.blended(with: .black, ratio: 0.85),
-                background.blended(with: .black, ratio: 0.7),
-                background.blended(with: .black, ratio: 0.6)
-            ]
+            if isLightTheme {
+                // Light themes: very subtle deep night tint
+                return [
+                    primary.opacity(0.08).blended(with: background, ratio: 0.92),
+                    background,
+                    background
+                ]
+            } else {
+                // Dark themes: original deep night
+                return [
+                    background.blended(with: .black, ratio: 0.85),
+                    background.blended(with: .black, ratio: 0.7),
+                    background.blended(with: .black, ratio: 0.6)
+                ]
+            }
         }
     }
 

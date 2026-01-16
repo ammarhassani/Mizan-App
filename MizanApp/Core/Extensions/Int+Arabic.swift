@@ -48,4 +48,38 @@ extension Int {
     var arabicRakaat: String {
         arabicTimeUnit(singular: "ركعة", dual: "ركعتان", plural: "ركعات")
     }
+
+    /// Formatted duration string for display
+    /// - Under 60 minutes: "30m"
+    /// - 60+ minutes: "1h 30m" or "2h" format
+    var formattedDuration: String {
+        if self < 60 {
+            return "\(self)m"
+        } else {
+            let hours = self / 60
+            let minutes = self % 60
+            if minutes == 0 {
+                return "\(hours)h"
+            } else {
+                return "\(hours)h \(minutes)m"
+            }
+        }
+    }
+
+    /// Formatted duration with Arabic text
+    /// - Under 60 minutes: "30 دقيقة"
+    /// - 60+ minutes: "ساعة و30 دقيقة" or "ساعتان"
+    var formattedDurationFull: String {
+        if self < 60 {
+            return "\(self) \(self.arabicMinutes)"
+        } else {
+            let hours = self / 60
+            let minutes = self % 60
+            if minutes == 0 {
+                return "\(hours) \(hours.arabicHours)"
+            } else {
+                return "\(hours) \(hours.arabicHours) و\(minutes) \(minutes.arabicMinutes)"
+            }
+        }
+    }
 }

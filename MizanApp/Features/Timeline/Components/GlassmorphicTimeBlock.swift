@@ -255,7 +255,7 @@ struct GlassmorphicTaskBlock: View {
                             .foregroundColor(themeManager.textPrimaryColor)
                             .strikethrough(task.isCompleted)
 
-                        Text("\(task.duration) دقيقة")
+                        Text(task.duration.formattedDuration)
                             .font(.system(size: 11))
                             .foregroundColor(themeManager.textSecondaryColor)
                     }

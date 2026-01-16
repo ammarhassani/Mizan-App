@@ -463,6 +463,8 @@ final class AppEnvironment: ObservableObject {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
 
+        print("🔄 [GENERATE] generateRecurringTaskInstances for date: \(date.formatted(date: .abbreviated, time: .omitted))")
+
         // Fetch all recurring parent tasks (tasks with recurrenceRule that are not child instances)
         let descriptor = FetchDescriptor<Task>()
         guard let allTasks = try? modelContext.fetch(descriptor) else {
@@ -475,32 +477,43 @@ final class AppEnvironment: ObservableObject {
             task.recurrenceRule != nil && task.scheduledStartTime != nil && task.parentTaskId == nil
         }
 
+        print("   Found \(parentRecurringTasks.count) parent recurring tasks")
+
         // Find existing instances for this date
         let existingInstancesForDate = allTasks.filter { task in
             guard let scheduledDate = task.scheduledDate else { return false }
             return calendar.isDate(scheduledDate, inSameDayAs: date)
         }
 
+        print("   Found \(existingInstancesForDate.count) existing instances for this date")
+
         var generatedCount = 0
 
         for parentTask in parentRecurringTasks {
+            print("   📋 Checking parent: '\(parentTask.title)' (id: \(parentTask.id))")
+            print("      - dismissedInstanceDates: \(parentTask.dismissedInstanceDates ?? [])")
+
             guard let recurrenceRule = parentTask.recurrenceRule,
                   let originalScheduledDate = parentTask.scheduledDate else {
+                print("      ⏭️ Skip: no recurrenceRule or scheduledDate")
                 continue
             }
 
             // Skip if this is for a date before the original task was created
             if startOfDay < calendar.startOfDay(for: originalScheduledDate) {
+                print("      ⏭️ Skip: target date is before original date")
                 continue
             }
 
             // Skip if the target date is the same as the original task's date
             if calendar.isDate(originalScheduledDate, inSameDayAs: date) {
+                print("      ⏭️ Skip: target date is same as original date")
                 continue
             }
 
             // Check if recurrence should have ended
             if recurrenceRule.shouldEndBefore(date: date) {
+                print("      ⏭️ Skip: recurrence ended")
                 continue
             }
 
@@ -510,14 +523,24 @@ final class AppEnvironment: ObservableObject {
             }
 
             if instanceExists {
+                print("      ⏭️ Skip: instance already exists for this date")
+                continue
+            }
+
+            // Check if this date was dismissed by the user
+            if parentTask.isInstanceDismissed(for: date) {
+                print("      ⏭️ Skip: date was DISMISSED by user")
                 continue
             }
 
             // Check if this date matches the recurrence pattern
             if shouldGenerateInstance(for: date, parentTask: parentTask, rule: recurrenceRule) {
+                print("      ✅ GENERATING new instance for this date")
                 let newInstance = parentTask.createRecurringInstance(for: date)
                 modelContext.insert(newInstance)
                 generatedCount += 1
+            } else {
+                print("      ⏭️ Skip: date doesn't match recurrence pattern")
             }
         }
 
@@ -528,6 +551,8 @@ final class AppEnvironment: ObservableObject {
             } catch {
                 print("❌ Failed to save recurring task instances: \(error)")
             }
+        } else {
+            print("   No instances generated")
         }
     }
 

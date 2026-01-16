@@ -19,20 +19,18 @@ struct CinematicCurrentTimeIndicator: View {
     // MARK: - Body
 
     var body: some View {
-        HStack(spacing: 10) {  // Match TaskContainerBlock spacing for alignment
-            // Time label with orb
-            HStack(spacing: MZSpacing.xs) {
-                // Pulsing orb marker
-                pulsingOrb
+        HStack(spacing: MZSpacing.xs) {
+            // Pulsing orb marker
+            pulsingOrb
 
-                // Time label
-                timeLabel
-            }
-            .frame(width: 55, alignment: .trailing) // Match TaskContainerBlock time column width
+            // Time label
+            timeLabel
 
             // Gradient line
             timeLine
         }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
         .onAppear {
             startPulseAnimation()
         }
@@ -95,11 +93,11 @@ struct CinematicCurrentTimeIndicator: View {
 
     private var timeLabel: some View {
         Text(Date().formatted(date: .omitted, time: .shortened))
-            .font(.system(size: 11, weight: .bold, design: .rounded))
+            .font(.system(size: 10, weight: .bold, design: .rounded))
             .monospacedDigit() // Prevents layout shift when digits change
             .foregroundColor(themeManager.primaryColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
             .background(
                 Capsule()
                     .fill(themeManager.surfaceColor.opacity(0.8))
@@ -107,7 +105,7 @@ struct CinematicCurrentTimeIndicator: View {
                         Capsule()
                             .stroke(themeManager.primaryColor.opacity(0.3), lineWidth: 1)
                     )
-                    .shadow(color: themeManager.primaryColor.opacity(0.2), radius: 4, y: 2)
+                    .shadow(color: themeManager.primaryColor.opacity(0.15), radius: 3, y: 1)
             )
     }
 

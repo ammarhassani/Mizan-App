@@ -23,40 +23,9 @@ struct CinematicDateNavigator: View {
     }
 
     var body: some View {
-        ZStack {
-            // Liquid glass background - lets DivineAtmosphere show through
-            liquidGlassBackground
-
-            // Content
-            contentLayer
-        }
-        .frame(height: 64)
-    }
-
-    // MARK: - Liquid Glass Background
-
-    private var liquidGlassBackground: some View {
-        ZStack {
-            // Ultra-thin material lets background show through
-            Rectangle()
-                .fill(.ultraThinMaterial)
-
-            // Subtle top edge highlight
-            VStack {
-                Rectangle()
-                    .fill(themeManager.textOnPrimaryColor.opacity(0.08))
-                    .frame(height: 0.5)
-                Spacer()
-            }
-
-            // Bottom separator line
-            VStack {
-                Spacer()
-                Rectangle()
-                    .fill(themeManager.textSecondaryColor.opacity(0.15))
-                    .frame(height: 1)
-            }
-        }
+        // Transparent container - no background fill, just content
+        contentLayer
+            .frame(height: 56)
     }
 
     // MARK: - Content Layer
@@ -116,6 +85,18 @@ struct CinematicDateNavigator: View {
                 }
                 .scaleEffect(dateScale)
                 .opacity(dateOpacity)
+            }
+        }
+        .padding(.horizontal, MZSpacing.lg)
+        .padding(.vertical, MZSpacing.sm)
+        .background {
+            if #available(iOS 26.0, *) {
+                Capsule()
+                    .fill(.regularMaterial)
+                    .glassEffect(.regular.interactive(), in: Capsule())
+            } else {
+                Capsule()
+                    .fill(.ultraThinMaterial)
             }
         }
     }
@@ -219,35 +200,14 @@ struct SimpleNavigationArrow: View {
         Button {
             action()
         } label: {
-            ZStack {
-                // Glass background circle
-                Circle()
-                    .fill(themeManager.surfaceColor.opacity(0.6))
-                    .overlay(
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        themeManager.textOnPrimaryColor.opacity(0.1),
-                                        Color.clear
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    )
-
-                // Simple border
-                Circle()
-                    .stroke(themeManager.primaryColor.opacity(0.2), lineWidth: 1)
-
-                // Arrow icon
-                Image(systemName: direction.icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(themeManager.primaryColor)
-            }
-            .frame(width: 40, height: 40)
-            .scaleEffect(isPressed ? 0.9 : 1.0)
+            // Transparent background - just icon with tap area
+            Image(systemName: direction.icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(themeManager.primaryColor)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+                .scaleEffect(isPressed ? 0.85 : 1.0)
+                .opacity(isPressed ? 0.7 : 1.0)
         }
         .buttonStyle(.plain)
         .onLongPressGesture(minimumDuration: 0, pressing: { pressing in

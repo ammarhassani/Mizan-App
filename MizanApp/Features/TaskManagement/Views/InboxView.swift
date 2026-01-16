@@ -42,7 +42,7 @@ struct InboxView: View {
     // MARK: - State
     @State private var selectedFilter: TaskFilter = .inbox
     @State private var showAddTaskSheet = false
-    @State private var selectedTask: Task?
+    @State private var taskToEdit: Task? = nil
     @State private var showScheduleSheet = false
     @State private var taskToSchedule: Task?
 
@@ -73,6 +73,85 @@ struct InboxView: View {
         ]
     }
 
+    // MARK: - Grouped Tasks by Date
+
+    /// Groups tasks by their scheduled date - only today, tomorrow, day after tomorrow, and unscheduled
+    private var groupedTasks: [(date: Date?, tasks: [Task])] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        let dayAfter = calendar.date(byAdding: .day, value: 2, to: today)!
+
+        // Group tasks by date
+        var grouped: [Date?: [Task]] = [:]
+
+        for task in filteredTasks {
+            let dateKey: Date?
+            if let scheduledTime = task.scheduledStartTime {
+                let taskDay = calendar.startOfDay(for: scheduledTime)
+
+                // Only include today, tomorrow, or day after tomorrow
+                if calendar.isDate(taskDay, inSameDayAs: today) ||
+                   calendar.isDate(taskDay, inSameDayAs: tomorrow) ||
+                   calendar.isDate(taskDay, inSameDayAs: dayAfter) {
+                    dateKey = taskDay
+                } else {
+                    // Skip tasks from other dates
+                    continue
+                }
+            } else {
+                // Unscheduled tasks go under nil key
+                dateKey = nil
+            }
+
+            if grouped[dateKey] == nil {
+                grouped[dateKey] = []
+            }
+            grouped[dateKey]?.append(task)
+        }
+
+        // Sort groups: today first, then tomorrow, then day after, nil (unscheduled) last
+        let sortedGroups = grouped.sorted { lhs, rhs in
+            // nil (unscheduled) goes last
+            guard let lhsDate = lhs.key else { return false }
+            guard let rhsDate = rhs.key else { return true }
+
+            // Sort by date (today → tomorrow → day after)
+            return lhsDate < rhsDate
+        }
+
+        // Sort tasks within each group by time
+        return sortedGroups.map { (date: $0.key, tasks: $0.value.sorted { lhs, rhs in
+            let lhsTime = lhs.scheduledStartTime ?? lhs.createdAt
+            let rhsTime = rhs.scheduledStartTime ?? rhs.createdAt
+            return lhsTime < rhsTime
+        })}
+    }
+
+    /// Formats a date for section header
+    private func formatDateHeader(_ date: Date?) -> String {
+        guard let date = date else {
+            return "غير مجدول"  // "Unscheduled"
+        }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        if calendar.isDate(date, inSameDayAs: today) {
+            return "اليوم"  // "Today"
+        } else if calendar.isDate(date, inSameDayAs: calendar.date(byAdding: .day, value: 1, to: today)!) {
+            return "غداً"  // "Tomorrow"
+        } else if calendar.isDate(date, inSameDayAs: calendar.date(byAdding: .day, value: 2, to: today)!) {
+            return "بعد غد"  // "Day after tomorrow"
+        } else {
+            // Use full date formatting for other dates
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ar")
+            formatter.dateStyle = .full
+            return formatter.string(from: date)
+        }
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -100,7 +179,6 @@ struct InboxView: View {
                     HStack {
                         Spacer()
                         EnhancedFAB {
-                            selectedTask = nil
                             showAddTaskSheet = true
                         }
                         .environmentObject(themeManager)
@@ -112,7 +190,12 @@ struct InboxView: View {
             .navigationTitle("المهام")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showAddTaskSheet) {
-                AddTaskSheet(task: selectedTask)
+                AddTaskSheet(task: nil)
+                    .environmentObject(appEnvironment)
+                    .environmentObject(themeManager)
+            }
+            .sheet(item: $taskToEdit) { task in
+                AddTaskSheet(task: task)
                     .environmentObject(appEnvironment)
                     .environmentObject(themeManager)
             }
@@ -148,9 +231,8 @@ struct InboxView: View {
             }
             .padding(.horizontal, MZSpacing.screenPadding)
             .padding(.vertical, MZSpacing.sm)
-            .flipsForRightToLeftLayoutDirection(true)
         }
-        // Removed: .environment(\.layoutDirection, .rightToLeft) - was causing text inversion
+        // Removed: .flipsForRightToLeftLayoutDirection + .environment(\.layoutDirection) - was causing text inversion
         .background(themeManager.backgroundColor)
     }
 
@@ -171,7 +253,6 @@ struct InboxView: View {
 
             if selectedFilter != .completed {
                 Button {
-                    selectedTask = nil
                     showAddTaskSheet = true
                 } label: {
                     Text("إضافة مهمة جديدة")
@@ -206,61 +287,19 @@ struct InboxView: View {
 
     private var taskListView: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(filteredTasks) { task in
-                    if selectedFilter == .completed {
-                        // Completed task row
-                        CompletedTaskRow(task: task)
-                            .environmentObject(themeManager)
-                            .onTapGesture {
-                                uncompleteTask(task)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    deleteTask(task)
-                                } label: {
-                                    Label("حذف", systemImage: "trash")
-                                }
-                            }
-                    } else {
-                        // Active task row with tappable checkbox
-                        TaskRowWithCheckbox(
-                            task: task,
-                            onToggleComplete: {
-                                completeTask(task)
-                            },
-                            onTap: {
-                                selectedTask = task
-                                showAddTaskSheet = true
-                            }
-                        )
-                        .environmentObject(themeManager)
-                        .contextMenu {
-                            taskContextMenu(for: task)
-                        }
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                scheduleTask(task)
-                            } label: {
-                                Label("جدولة", systemImage: "calendar.badge.plus")
-                            }
-                            .tint(themeManager.primaryColor)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                deleteTask(task)
-                            } label: {
-                                Label("حذف", systemImage: "trash")
-                            }
+            LazyVStack(spacing: 0) {
+                ForEach(Array(groupedTasks.enumerated()), id: \.offset) { index, group in
+                    // Date section header
+                    dateSectionHeader(date: group.date, taskCount: group.tasks.count)
 
-                            Button {
-                                completeTask(task)
-                            } label: {
-                                Label("تم", systemImage: "checkmark")
-                            }
-                            .tint(themeManager.successColor)
+                    // Tasks in this section
+                    LazyVStack(spacing: 10) {
+                        ForEach(group.tasks) { task in
+                            taskRow(for: task)
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
 
                 if selectedFilter == .completed && allTasks.filter({ $0.isCompleted }).count > 50 {
@@ -270,9 +309,103 @@ struct InboxView: View {
                         .padding()
                 }
             }
-            .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 80) // Space for FAB
+        }
+    }
+
+    // MARK: - Date Section Header
+
+    private func dateSectionHeader(date: Date?, taskCount: Int) -> some View {
+        HStack(spacing: 8) {
+            // Date icon
+            Image(systemName: date == nil ? "tray" : "calendar")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(isDateToday(date) ? themeManager.primaryColor : themeManager.textSecondaryColor)
+
+            // Date text
+            Text(formatDateHeader(date))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(isDateToday(date) ? themeManager.primaryColor : themeManager.textPrimaryColor)
+
+            // Task count badge
+            Text("\(taskCount)")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(themeManager.textSecondaryColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(
+                    Capsule()
+                        .fill(themeManager.surfaceSecondaryColor)
+                )
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(themeManager.backgroundColor)
+    }
+
+    private func isDateToday(_ date: Date?) -> Bool {
+        guard let date = date else { return false }
+        return Calendar.current.isDateInToday(date)
+    }
+
+    // MARK: - Task Row
+
+    @ViewBuilder
+    private func taskRow(for task: Task) -> some View {
+        if selectedFilter == .completed {
+            // Completed task row
+            CompletedTaskRow(task: task)
+                .environmentObject(themeManager)
+                .onTapGesture {
+                    uncompleteTask(task)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        deleteTask(task)
+                    } label: {
+                        Label("حذف", systemImage: "trash")
+                    }
+                }
+        } else {
+            // Active task row with tappable checkbox
+            TaskRowWithCheckbox(
+                task: task,
+                onToggleComplete: {
+                    completeTask(task)
+                },
+                onTap: {
+                    taskToEdit = task
+                }
+            )
+            .environmentObject(themeManager)
+            .contextMenu {
+                taskContextMenu(for: task)
+            }
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                Button {
+                    scheduleTask(task)
+                } label: {
+                    Label("جدولة", systemImage: "calendar.badge.plus")
+                }
+                .tint(themeManager.primaryColor)
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button(role: .destructive) {
+                    deleteTask(task)
+                } label: {
+                    Label("حذف", systemImage: "trash")
+                }
+
+                Button {
+                    completeTask(task)
+                } label: {
+                    Label("تم", systemImage: "checkmark")
+                }
+                .tint(themeManager.successColor)
+            }
         }
     }
 
@@ -280,6 +413,12 @@ struct InboxView: View {
 
     @ViewBuilder
     private func taskContextMenu(for task: Task) -> some View {
+        Button {
+            taskToEdit = task
+        } label: {
+            Label("تعديل", systemImage: "pencil")
+        }
+
         Button {
             scheduleTask(task)
         } label: {
@@ -332,10 +471,55 @@ struct InboxView: View {
     }
 
     private func deleteTask(_ task: Task) {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            modelContext.delete(task)
-            try? modelContext.save()
+        print("🗑️ [INBOX] DELETE TASK: '\(task.title)'")
+        print("   - task.id: \(task.id)")
+        print("   - parentTaskId: \(task.parentTaskId?.uuidString ?? "nil")")
+        print("   - scheduledDate: \(task.scheduledDate?.description ?? "nil")")
+        print("   - recurrenceRule: \(task.recurrenceRule != nil ? "YES" : "nil")")
+        print("   - isRecurring: \(task.isRecurring)")
+
+        var parentTaskToSave: Task? = nil
+
+        // If this is a recurring instance, mark it as dismissed on the parent
+        if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
+            print("   → This is a CHILD instance, looking for parent...")
+            let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
+            if let parentTask = try? modelContext.fetch(descriptor).first {
+                print("   → Found parent '\(parentTask.title)' (id: \(parentTask.id)), dismissing date \(scheduledDate)")
+                print("   → Parent dismissedInstanceDates BEFORE: \(parentTask.dismissedInstanceDates ?? [])")
+                parentTask.dismissRecurringInstance(for: scheduledDate)
+                print("   → Parent dismissedInstanceDates AFTER: \(parentTask.dismissedInstanceDates ?? [])")
+                parentTaskToSave = parentTask
+            } else {
+                print("   ❌ Parent task NOT FOUND!")
+            }
         }
+        // If this is a parent recurring task being deleted for a specific date, mark that date as dismissed
+        else if task.recurrenceRule != nil, let scheduledDate = task.scheduledDate {
+            print("   → This is a PARENT recurring task, dismissing date \(scheduledDate)")
+            task.dismissRecurringInstance(for: scheduledDate)
+            print("   → dismissedInstanceDates: \(task.dismissedInstanceDates ?? [])")
+            print("   ⚠️ WARNING: Deleting parent task - dismissed date will be lost!")
+        } else {
+            print("   → This is a REGULAR (non-recurring) task")
+        }
+
+        // Delete the task first
+        modelContext.delete(task)
+
+        // Single atomic save for all changes (dismissal + deletion)
+        do {
+            try modelContext.save()
+            print("   ✅ Task deleted and all changes saved successfully")
+
+            // Verify the parent's dismissedInstanceDates persisted
+            if let parent = parentTaskToSave {
+                print("   🔍 VERIFY: Parent dismissedInstanceDates after save: \(parent.dismissedInstanceDates ?? [])")
+            }
+        } catch {
+            print("   ❌ Failed to save: \(error)")
+        }
+
         HapticManager.shared.trigger(.warning)
     }
 
@@ -450,17 +634,17 @@ struct TaskRowWithCheckbox: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "clock")
                                     .font(.system(size: 11))
-                                Text("\(task.duration) د")
+                                Text(task.duration.formattedDuration)
                                     .font(.system(size: 13))
                             }
                             .foregroundColor(themeManager.textSecondaryColor)
 
-                            // Scheduled time indicator
-                            if let scheduledTime = task.scheduledStartTime {
+                            // Recurrence type indicator
+                            if let rule = task.recurrenceRule {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "calendar")
+                                    Image(systemName: "repeat")
                                         .font(.system(size: 11))
-                                    Text(scheduledTime.formatted(date: .abbreviated, time: .shortened))
+                                    Text(recurrenceTypeArabic(rule.frequency))
                                         .font(.system(size: 13))
                                 }
                                 .foregroundColor(themeManager.primaryColor)
@@ -471,16 +655,21 @@ struct TaskRowWithCheckbox: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "flag.fill")
                                         .font(.system(size: 11))
-                                    Text(dueDate.formatted(date: .abbreviated, time: .shortened))
+                                    Text(formatDueDate(dueDate))
                                         .font(.system(size: 13))
                                 }
                                 .foregroundColor(task.isOverdue ? themeManager.errorColor : (task.isDueSoon ? themeManager.warningColor : themeManager.textSecondaryColor))
                             }
 
-                            if task.recurrenceRule != nil {
-                                Image(systemName: "repeat")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(themeManager.primaryColor)
+                            // Scheduled time (just time, not full date)
+                            if let scheduledTime = task.scheduledStartTime {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "clock.fill")
+                                        .font(.system(size: 11))
+                                    Text(scheduledTime.formatted(date: .omitted, time: .shortened))
+                                        .font(.system(size: 13))
+                                }
+                                .foregroundColor(themeManager.textTertiaryColor)
                             }
                         }
                     }
@@ -504,6 +693,37 @@ struct TaskRowWithCheckbox: View {
             x: 0,
             y: 2
         )
+    }
+
+    // MARK: - Helper Functions
+
+    /// Converts recurrence frequency to Arabic text
+    private func recurrenceTypeArabic(_ frequency: RecurrenceRule.Frequency) -> String {
+        switch frequency {
+        case .daily:
+            return "يومي"
+        case .weekly:
+            return "أسبوعي"
+        case .monthly:
+            return "شهري"
+        }
+    }
+
+    /// Formats due date in a user-friendly way
+    private func formatDueDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        if calendar.isDate(date, inSameDayAs: today) {
+            return "اليوم " + date.formatted(date: .omitted, time: .shortened)
+        } else if calendar.isDate(date, inSameDayAs: calendar.date(byAdding: .day, value: 1, to: today)!) {
+            return "غداً " + date.formatted(date: .omitted, time: .shortened)
+        } else {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ar")
+            formatter.dateFormat = "d MMM"
+            return formatter.string(from: date)
+        }
     }
 }
 
@@ -539,7 +759,7 @@ struct TaskRow: View {
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
                             .font(.system(size: 12))
-                        Text("\(task.duration) د")
+                        Text(task.duration.formattedDuration)
                             .font(.system(size: 14))
                     }
                     .foregroundColor(themeManager.textSecondaryColor)

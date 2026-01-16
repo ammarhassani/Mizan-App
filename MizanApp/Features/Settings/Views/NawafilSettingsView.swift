@@ -720,7 +720,7 @@ struct NawafilToggleRow: View {
             return "\(currentRakaat) ركعة"
         } else if nawafil.isTimeBlock == true {
             if let duration = nawafil.durationMinutes {
-                return "\(duration) دقيقة"
+                return duration.formattedDuration
             }
             return "وقت للعبادة"
         }

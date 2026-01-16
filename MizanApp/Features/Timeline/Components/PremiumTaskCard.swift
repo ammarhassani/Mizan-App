@@ -14,6 +14,8 @@ struct PremiumTaskCard: View {
     var hasTaskOverlap: Bool = false
     var overlappingTaskCount: Int = 0
     var onToggleCompletion: (() -> Void)? = nil
+    var onTap: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
 
     @EnvironmentObject var themeManager: ThemeManager
     @State private var isPressed: Bool = false
@@ -29,9 +31,9 @@ struct PremiumTaskCard: View {
     // MARK: - Body
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            // Time column
-            timeColumn
+        VStack(alignment: .leading, spacing: 4) {
+            // Time row above the card
+            timeRow
 
             // Main card with neubrutalist accent
             mainCard
@@ -49,20 +51,24 @@ struct PremiumTaskCard: View {
         }
     }
 
-    // MARK: - Time Column
+    // MARK: - Time Row
 
-    private var timeColumn: some View {
-        VStack(alignment: .trailing, spacing: 2) {
+    private var timeRow: some View {
+        HStack(spacing: 6) {
             Text(task.startTime.formatted(date: .omitted, time: .shortened))
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .monospacedDigit()
                 .foregroundColor(taskColor)
 
-            Text("\(task.duration) د")
+            Text("•")
+                .font(.system(size: 8))
+                .foregroundColor(themeManager.textTertiaryColor)
+
+            Text(task.duration.formattedDuration)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundColor(themeManager.textSecondaryColor.opacity(0.7))
+                .foregroundColor(themeManager.textSecondaryColor)
         }
-        .frame(width: 65, alignment: .trailing)
-        .padding(.top, 12)
+        .padding(.leading, 4)
     }
 
     // MARK: - Main Card
@@ -85,6 +91,37 @@ struct PremiumTaskCard: View {
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .opacity(task.isCompleted ? 0.7 : 1.0)
         .animation(MZAnimation.cardPress, value: isPressed)
+        .contentShape(Rectangle()) // Make entire card tappable
+        .onTapGesture {
+            if let onTap = onTap {
+                HapticManager.shared.trigger(.light)
+                onTap()
+            }
+        }
+        .contextMenu {
+            // Edit option
+            Button {
+                onTap?()
+            } label: {
+                Label("تعديل", systemImage: "pencil")
+            }
+
+            // Toggle completion
+            Button {
+                onToggleCompletion?()
+            } label: {
+                Label(task.isCompleted ? "إلغاء الإكمال" : "إكمال", systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark")
+            }
+
+            Divider()
+
+            // Delete option
+            Button(role: .destructive) {
+                onDelete?()
+            } label: {
+                Label("حذف", systemImage: "trash")
+            }
+        }
     }
 
     // MARK: - Accent Bar (Neubrutalist)
@@ -224,7 +261,7 @@ struct PremiumTaskCard: View {
                 .frame(width: 32, height: 32)
                 .rotationEffect(.degrees(-90))
 
-            Text("\(task.duration)")
+            Text(task.duration.formattedDuration)
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(themeManager.textSecondaryColor)
         }

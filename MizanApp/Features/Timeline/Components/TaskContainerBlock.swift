@@ -18,6 +18,8 @@ struct TaskContainerBlock: View {
     var overlappingTaskCount: Int = 0
     var onToggleCompletion: (() -> Void)? = nil
     var onPrayerTap: ((PrayerTime) -> Void)? = nil
+    var onTap: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
 
     @State private var isExpanded: Bool = true  // Default expanded
     @EnvironmentObject var themeManager: ThemeManager
@@ -30,9 +32,9 @@ struct TaskContainerBlock: View {
     // MARK: - Body
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            // Time column (shows start AND end time)
-            taskTimeColumn
+        VStack(alignment: .leading, spacing: 4) {
+            // Time row above the card
+            taskTimeRow
 
             // Main card with overlap warning effect
             VStack(spacing: 0) {
@@ -49,37 +51,74 @@ struct TaskContainerBlock: View {
             .overlay(borderOverlay)
             .overlapWarning(hasOverlap: hasTaskOverlap, overlapCount: overlappingTaskCount)
             .shadow(color: taskColor.opacity(0.12), radius: 8, y: 4)
+            .contentShape(Rectangle()) // Make entire card tappable
+            .onTapGesture {
+                if let onTap = onTap {
+                    HapticManager.shared.trigger(.light)
+                    onTap()
+                }
+            }
+            .contextMenu {
+                // Edit option
+                Button {
+                    onTap?()
+                } label: {
+                    Label("تعديل", systemImage: "pencil")
+                }
+
+                // Toggle completion
+                Button {
+                    onToggleCompletion?()
+                } label: {
+                    Label(task.isCompleted ? "إلغاء الإكمال" : "إكمال", systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark")
+                }
+
+                Divider()
+
+                // Delete option
+                Button(role: .destructive) {
+                    onDelete?()
+                } label: {
+                    Label("حذف", systemImage: "trash")
+                }
+            }
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
         .opacity(task.isCompleted ? 0.7 : 1.0)
     }
 
-    // MARK: - Time Column (simple start/end time display)
+    // MARK: - Time Row
 
-    private var taskTimeColumn: some View {
-        VStack(alignment: .trailing, spacing: 4) {
+    private var taskTimeRow: some View {
+        HStack(spacing: 6) {
             // Start time
             Text(task.startTime.formatted(date: .omitted, time: .shortened))
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(.system(size: 11, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundColor(taskColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
 
-            Spacer()
-
-            // End time
+            // End time (if exists)
             if let endTime = task.endTime {
+                Text("-")
+                    .font(.system(size: 10))
+                    .foregroundColor(themeManager.textTertiaryColor)
+
                 Text(endTime.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
                     .monospacedDigit()
                     .foregroundColor(taskColor.opacity(0.7))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
             }
+
+            Text("•")
+                .font(.system(size: 8))
+                .foregroundColor(themeManager.textTertiaryColor)
+
+            Text(task.duration.formattedDuration)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(themeManager.textSecondaryColor)
         }
-        .frame(width: 55, alignment: .trailing)
+        .padding(.leading, 4)
     }
 
     // MARK: - Task Header

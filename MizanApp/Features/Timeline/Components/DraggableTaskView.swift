@@ -99,7 +99,7 @@ struct DraggableTaskView: View {
                     }
                 }
 
-                Text("\(task.duration) دقيقة")
+                Text(task.duration.formattedDuration)
                     .font(.system(size: 13))
                     .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.9))
 

@@ -64,9 +64,9 @@ struct GlassmorphicPrayerCard: View {
     // MARK: - Body
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            // Time column
-            timeColumn
+        VStack(alignment: .leading, spacing: 4) {
+            // Time row above the card
+            timeRow
 
             // Main card
             mainCard
@@ -75,7 +75,7 @@ struct GlassmorphicPrayerCard: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
         .scaleEffect(appearScale)
-        .opacity(appearOpacity * (prayerStatus == .passed ? 0.6 : 1.0)) // Dim passed prayers
+        .opacity(appearOpacity)
         .onAppear {
             withAnimation(MZAnimation.cardAppear) {
                 appearScale = 1.0
@@ -84,23 +84,25 @@ struct GlassmorphicPrayerCard: View {
         }
     }
 
-    // MARK: - Time Column
+    // MARK: - Time Row
 
-    private var timeColumn: some View {
-        VStack(alignment: .trailing, spacing: 4) {
+    private var timeRow: some View {
+        HStack(spacing: 6) {
             Text(prayer.adhanTime.formatted(date: .omitted, time: .shortened))
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .monospacedDigit()
                 .foregroundStyle(prayerColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
 
-            // Small duration indicator
+            Text("•")
+                .font(.system(size: 8))
+                .foregroundColor(themeManager.textTertiaryColor)
+
+            // Total duration (iqama wait + prayer)
             Text("\(prayer.duration + prayer.iqamaOffset) د")
                 .font(.system(size: 10, weight: .medium))
-                .foregroundColor(themeManager.textSecondaryColor.opacity(0.7))
+                .foregroundColor(themeManager.textSecondaryColor)
         }
-        .frame(width: 65, alignment: .trailing)
-        .padding(.top, 16)
+        .padding(.leading, 4)
     }
 
     // MARK: - Main Card
@@ -125,14 +127,9 @@ struct GlassmorphicPrayerCard: View {
                     .padding(.bottom, 8)
             }
 
-            // Elegant divider
-            elegantDivider
-                .padding(.horizontal, 14)
-
             // Iqama info
             iqamaInfoRow
                 .padding(.horizontal, 14)
-                .padding(.top, 8)
                 .padding(.bottom, 8)
 
             // Post-nawafil chip
@@ -193,17 +190,11 @@ struct GlassmorphicPrayerCard: View {
             }
 
             // Prayer name
-            VStack(alignment: .leading, spacing: 2) {
-                Text(prayer.displayName)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(themeManager.textPrimaryColor)
-                    .lineLimit(1)
-
-                Text(prayer.prayerType.rawValue)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(themeManager.textSecondaryColor)
-            }
-            .layoutPriority(1)
+            Text(prayer.displayName)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(themeManager.textPrimaryColor)
+                .lineLimit(1)
+                .layoutPriority(1)
 
             Spacer(minLength: 4)
 
@@ -320,34 +311,6 @@ struct GlassmorphicPrayerCard: View {
     }
 
     // MARK: - Visual Elements
-
-    private var elegantDivider: some View {
-        HStack(spacing: 8) {
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.clear, themeManager.textSecondaryColor.opacity(0.2)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(height: 1)
-
-            Circle()
-                .fill(prayerColor.opacity(0.4))
-                .frame(width: 4, height: 4)
-
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [themeManager.textSecondaryColor.opacity(0.2), Color.clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(height: 1)
-        }
-    }
 
     private var glassBackground: some View {
         ZStack {

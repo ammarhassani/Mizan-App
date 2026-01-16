@@ -32,6 +32,7 @@ final class Task {
     var recurrenceRule: RecurrenceRule?
     var isRecurring: Bool
     var parentTaskId: UUID? // for recurring instances
+    var dismissedInstanceDates: [Date]? // dates where recurring instances were intentionally deleted
 
     // MARK: - Metadata
     var order: Int // for inbox ordering
@@ -62,6 +63,7 @@ final class Task {
         self.recurrenceRule = nil
         self.isRecurring = false
         self.parentTaskId = nil
+        self.dismissedInstanceDates = nil
         self.order = 0
         self.colorHex = category.defaultColorHex
     }
@@ -138,6 +140,26 @@ final class Task {
 
     func uncomplete() {
         unmarkComplete()
+    }
+
+    /// Adds a date to the list of dismissed recurring instance dates
+    func dismissRecurringInstance(for date: Date) {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+
+        if dismissedInstanceDates == nil {
+            dismissedInstanceDates = [startOfDay]
+        } else if !dismissedInstanceDates!.contains(where: { calendar.isDate($0, inSameDayAs: startOfDay) }) {
+            dismissedInstanceDates!.append(startOfDay)
+        }
+        updatedAt = Date()
+    }
+
+    /// Checks if a recurring instance was dismissed for the given date
+    func isInstanceDismissed(for date: Date) -> Bool {
+        guard let dismissedDates = dismissedInstanceDates else { return false }
+        let calendar = Calendar.current
+        return dismissedDates.contains { calendar.isDate($0, inSameDayAs: date) }
     }
 }
 

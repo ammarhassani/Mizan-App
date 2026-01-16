@@ -6,20 +6,31 @@
 //
 
 import SwiftUI
+import Combine
 
 // MARK: - Prayer Countdown Badge
 
 struct PrayerCountdownBadge: View {
     let minutes: Int
+    var seconds: Int = 0
     @EnvironmentObject var themeManager: ThemeManager
     @State private var pulseScale: CGFloat = 1.0
+
+    private var countdownText: String {
+        if minutes > 0 {
+            return String(format: "%d:%02d", minutes, seconds)
+        } else {
+            return "\(seconds)ث"
+        }
+    }
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "clock.fill")
                 .font(.system(size: 12))
-            Text("\(minutes) د")
+            Text(countdownText)
                 .font(MZTypography.labelMedium)
+                .monospacedDigit()
         }
         .foregroundColor(themeManager.textOnPrimaryColor)
         .padding(.horizontal, MZSpacing.sm)
@@ -117,31 +128,77 @@ struct TimeOfDayBackground: View {
 
 struct PrayerApproachingIndicator: View {
     let prayerName: String
-    let minutesUntil: Int
+    let prayerTime: Date
     let colorHex: String
 
     @EnvironmentObject var themeManager: ThemeManager
     @State private var isVisible = false
+    @State private var currentMinutes: Int = 0
+    @State private var currentSeconds: Int = 0
+
+    // Timer to update countdown every second
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    private func calculateTimeUntil() -> (minutes: Int, seconds: Int) {
+        let totalSeconds = max(0, Int(prayerTime.timeIntervalSince(Date())))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return (minutes, seconds)
+    }
+
+    private var countdownText: String {
+        if currentMinutes > 0 {
+            return String(format: "%d:%02d", currentMinutes, currentSeconds)
+        } else {
+            return "\(currentSeconds)s"
+        }
+    }
 
     var body: some View {
-        if minutesUntil <= 30 && minutesUntil > 0 {
+        if currentMinutes <= 30 && (currentMinutes > 0 || currentSeconds > 0) {
             HStack(spacing: MZSpacing.sm) {
                 Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 16))
                     .symbolEffect(.bounce.byLayer, value: isVisible)
 
-                Text("\(prayerName) في \(minutesUntil) دقيقة")
-                    .font(MZTypography.labelLarge)
+                Text(prayerName)
+                    .font(.system(size: 15, weight: .bold))
 
-                Spacer()
+                Text("بعد")
+                    .font(.system(size: 14, weight: .medium))
+                    .opacity(0.9)
 
-                PrayerCountdownBadge(minutes: minutesUntil)
+                Text(countdownText)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .monospacedDigit()
             }
             .foregroundColor(themeManager.textOnPrimaryColor)
-            .padding(MZSpacing.md)
+            .padding(.horizontal, MZSpacing.md)
+            .padding(.vertical, MZSpacing.sm + 2)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(hex: colorHex))
-                    .shadow(color: Color(hex: colorHex).opacity(0.4), radius: 8, y: 4)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color(hex: colorHex))
+
+                    // Subtle gradient overlay
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    themeManager.textOnPrimaryColor.opacity(0.1),
+                                    Color.clear,
+                                    Color.black.opacity(0.05)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+
+                    // Inner border highlight
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(themeManager.textOnPrimaryColor.opacity(0.2), lineWidth: 1)
+                }
+                .shadow(color: Color(hex: colorHex).opacity(0.4), radius: 8, y: 4)
             )
             .padding(.horizontal, MZSpacing.screenPadding)
             .transition(.asymmetric(
@@ -150,11 +207,38 @@ struct PrayerApproachingIndicator: View {
             ))
             .onAppear {
                 isVisible = true
+                let time = calculateTimeUntil()
+                currentMinutes = time.minutes
+                currentSeconds = time.seconds
                 // Haptic when prayer is approaching
-                if minutesUntil == 5 || minutesUntil == 1 {
+                if currentMinutes == 5 || currentMinutes == 1 {
                     HapticManager.shared.trigger(.warning)
                 }
             }
+            .onReceive(timer) { _ in
+                let time = calculateTimeUntil()
+                let oldMinutes = currentMinutes
+                currentMinutes = time.minutes
+                currentSeconds = time.seconds
+                // Haptic at key moments
+                if currentMinutes != oldMinutes && (currentMinutes == 5 || currentMinutes == 1) {
+                    HapticManager.shared.trigger(.warning)
+                }
+            }
+        } else {
+            // Hidden but still tracking time
+            Color.clear
+                .frame(height: 0)
+                .onAppear {
+                    let time = calculateTimeUntil()
+                    currentMinutes = time.minutes
+                    currentSeconds = time.seconds
+                }
+                .onReceive(timer) { _ in
+                    let time = calculateTimeUntil()
+                    currentMinutes = time.minutes
+                    currentSeconds = time.seconds
+                }
         }
     }
 }
@@ -332,16 +416,17 @@ struct PrayerTimeAmbience: View {
 
 #Preview {
     VStack(spacing: 20) {
-        PrayerCountdownBadge(minutes: 3)
-        PrayerCountdownBadge(minutes: 15)
+        PrayerCountdownBadge(minutes: 3, seconds: 45)
+        PrayerCountdownBadge(minutes: 0, seconds: 30)
         PrayerApproachingIndicator(
             prayerName: "المغرب",
-            minutesUntil: 5,
+            prayerTime: Date().addingTimeInterval(5 * 60), // 5 minutes from now
             colorHex: "#FF6B6B"
         )
     }
     .padding()
     .background(Color.black)
+    .environmentObject(ThemeManager())
 }
 
 #Preview("Ambient Particles") {
