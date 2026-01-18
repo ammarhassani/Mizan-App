@@ -46,12 +46,16 @@ struct TaskClusterView: View {
     let containedPrayers: [PrayerTime]
     let containedNawafil: [NawafilPrayer]
     var prayerNawafilMap: [UUID: (pre: NawafilPrayer?, post: NawafilPrayer?)] = [:]
+    var scale: CGFloat = 1.0
     var onToggleCompletion: ((Task) -> Void)?
     var onPrayerTap: ((PrayerTime) -> Void)?
     var onTaskTap: ((Task) -> Void)?
     var onTaskDelete: ((Task) -> Void)?
 
     @EnvironmentObject var themeManager: ThemeManager
+
+    /// Scaled min height for contained prayers
+    private var scaledContainedPrayerHeight: CGFloat { 60 * scale }
 
     // MARK: - Computed Properties
 
@@ -379,7 +383,7 @@ struct TaskClusterView: View {
 
         return GlassmorphicPrayerCard(
             prayer: prayer,
-            minHeight: 60,
+            minHeight: scaledContainedPrayerHeight,
             preNawafil: nawafilPair?.pre,
             postNawafil: nawafilPair?.post,
             showDivineEffects: false

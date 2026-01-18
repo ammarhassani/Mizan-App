@@ -154,6 +154,8 @@ struct NotificationSettingsView: View {
                             .background(themeManager.primaryColor)
                             .cornerRadius(8)
                     }
+                    .accessibilityLabel("فتح إعدادات النظام")
+                    .accessibilityHint("سيفتح تطبيق الإعدادات للسماح بالإشعارات")
                 }
             }
             .padding(.vertical, 4)
@@ -220,12 +222,15 @@ struct NotificationSettingsView: View {
                         .font(.system(size: 20))
                         .foregroundColor(themeManager.primaryColor)
                         .frame(width: 28)
+                        .accessibilityHidden(true)
 
                     Text("تفعيل الإشعارات")
                         .font(.system(size: 17))
                 }
             }
             .tint(themeManager.primaryColor)
+            .accessibilityLabel("تفعيل الإشعارات")
+            .accessibilityValue(userSettings.notificationsEnabled ? "مفعّل" : "متوقف")
         } header: {
             Text("عام")
         } footer: {
@@ -246,12 +251,15 @@ struct NotificationSettingsView: View {
                         .font(.system(size: 20))
                         .foregroundColor(themeManager.primaryColor)
                         .frame(width: 28)
+                        .accessibilityHidden(true)
 
                     Text("إشعارات الصلاة")
                         .font(.system(size: 17))
                 }
             }
             .tint(themeManager.primaryColor)
+            .accessibilityLabel("إشعارات الصلاة")
+            .accessibilityValue(userSettings.prayerNotificationsEnabled ? "مفعّل" : "متوقف")
 
             if userSettings.prayerNotificationsEnabled {
                 HStack {
@@ -304,12 +312,15 @@ struct NotificationSettingsView: View {
                         .font(.system(size: 20))
                         .foregroundColor(themeManager.primaryColor)
                         .frame(width: 28)
+                        .accessibilityHidden(true)
 
                     Text("إشعارات المهام")
                         .font(.system(size: 17))
                 }
             }
             .tint(themeManager.primaryColor)
+            .accessibilityLabel("إشعارات المهام")
+            .accessibilityValue(userSettings.taskNotificationsEnabled ? "مفعّل" : "متوقف")
 
             if userSettings.taskNotificationsEnabled {
                 // Pro feature: Reminder before task

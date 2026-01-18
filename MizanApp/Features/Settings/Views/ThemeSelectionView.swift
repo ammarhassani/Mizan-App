@@ -328,22 +328,13 @@ struct AppIconButton: View {
 
     @EnvironmentObject var themeManager: ThemeManager
 
-    /// Theme colors for icon preview backgrounds
+    /// Theme colors for icon preview backgrounds (fetched from ThemeManager)
     private var iconColors: (background: Color, design: Color, accent: Color?) {
-        switch iconId {
-        case "noor":
-            return (Color(hex: "#14746F"), Color(hex: "#D4A373"), nil)
-        case "layl":
-            return (Color(hex: "#000000"), Color(hex: "#52B788"), Color(hex: "#FFD700"))
-        case "fajr":
-            return (Color(hex: "#2D2A4A"), Color(hex: "#6C63FF"), Color(hex: "#E879F9"))
-        case "sahara":
-            return (Color(hex: "#3D2817"), Color(hex: "#D4734C"), Color(hex: "#E9D5C1"))
-        case "ramadan":
-            return (Color(hex: "#1E1B4B"), Color(hex: "#FFD700"), nil)
-        default:
-            return (themeManager.backgroundColor, themeManager.primaryColor, nil)
+        if let colors = themeManager.colorsForTheme(iconId) {
+            return (colors.background, colors.primary, colors.accent)
         }
+        // Fallback to current theme colors
+        return (themeManager.backgroundColor, themeManager.primaryColor, nil)
     }
 
     var body: some View {

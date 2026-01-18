@@ -113,13 +113,22 @@ struct TaskCreationStep1View: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(timeRangePreview)
                         .font(MZTypography.labelSmall)
-                        .foregroundColor(themeManager.textSecondaryColor)
+                        .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.8))
 
-                    TextField("Task name", text: $title)
-                        .font(MZTypography.titleMedium)
-                        .foregroundColor(themeManager.textPrimaryColor)
-                        .focused($isTitleFocused)
-                        .textFieldStyle(.plain)
+                    ZStack(alignment: .leading) {
+                        // Custom placeholder for theme compliance
+                        if title.isEmpty {
+                            Text("Task name")
+                                .font(MZTypography.titleMedium)
+                                .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.5))
+                        }
+
+                        TextField("", text: $title)
+                            .font(MZTypography.titleMedium)
+                            .foregroundColor(themeManager.textOnPrimaryColor)
+                            .focused($isTitleFocused)
+                            .textFieldStyle(.plain)
+                    }
                 }
             }
             .padding(.horizontal, MZSpacing.lg)
@@ -135,7 +144,7 @@ struct TaskCreationStep1View: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(themeManager.surfaceColor.opacity(0.3))
+                    .fill(themeManager.textOnPrimaryColor.opacity(0.15))
                     .frame(width: 56, height: 56)
 
                 Image(systemName: icon)

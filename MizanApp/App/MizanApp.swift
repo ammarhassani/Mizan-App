@@ -15,6 +15,7 @@ struct MizanApp: App {
 
     // MARK: - App State
     @State private var isInitializing = true
+    @Environment(\.scenePhase) private var scenePhase
 
     // MARK: - Scene
     var body: some Scene {
@@ -37,6 +38,14 @@ struct MizanApp: App {
             }
             .task {
                 await initializeApp()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active && !isInitializing {
+                    // Check if we need to reschedule notifications for a new day
+                    _Concurrency.Task {
+                        await appEnvironment.checkAndRescheduleNotifications()
+                    }
+                }
             }
         }
     }

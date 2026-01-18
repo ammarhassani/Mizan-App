@@ -176,6 +176,8 @@ struct TimelineZoomControls: View {
                     .clipShape(Circle())
             }
             .disabled(scale <= MZInteraction.pinchMinScale)
+            .accessibilityLabel("تصغير العرض")
+            .accessibilityHint("اضغط مرتين لتصغير الجدول الزمني")
 
             // Reset
             Button {
@@ -190,6 +192,7 @@ struct TimelineZoomControls: View {
                     .clipShape(Capsule())
             }
             .disabled(scale == 1.0)
+            .accessibilityLabel("إعادة ضبط التكبير إلى 100%")
 
             // Zoom in
             Button {
@@ -203,6 +206,8 @@ struct TimelineZoomControls: View {
                     .clipShape(Circle())
             }
             .disabled(scale >= MZInteraction.pinchMaxScale)
+            .accessibilityLabel("تكبير العرض")
+            .accessibilityHint("اضغط مرتين لتكبير الجدول الزمني")
         }
     }
 

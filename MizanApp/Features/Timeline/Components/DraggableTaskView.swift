@@ -79,6 +79,8 @@ struct DraggableTaskView: View {
                         Image(systemName: "line.3.horizontal")
                             .font(.system(size: 16))
                             .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.6))
+                            .accessibilityLabel("اسحب لتغيير وقت المهمة")
+                            .accessibilityHint("اسحب للأعلى أو للأسفل لتغيير الوقت")
                     }
 
                     Image(systemName: task.icon)

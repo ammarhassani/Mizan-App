@@ -313,32 +313,16 @@ struct ThemedMizanLogo: View {
     var themeOverride: String?
 
     private var colors: (background: Color, design: Color, accent: Color) {
-        if let themeId = themeOverride {
-            return themeColors(for: themeId)
+        if let themeId = themeOverride,
+           let themeColors = themeManager.colorsForTheme(themeId) {
+            return (background: themeColors.background, design: themeColors.primary, accent: themeColors.accent)
         }
-        // Use current theme
+        // Use current theme colors
         return (
             themeManager.backgroundColor,
             themeManager.primaryColor,
             themeManager.warningColor
         )
-    }
-
-    private func themeColors(for themeId: String) -> (background: Color, design: Color, accent: Color) {
-        switch themeId {
-        case "noor":
-            return (Color(hex: "#14746F"), Color(hex: "#D4A373"), Color(hex: "#D4A373"))
-        case "layl":
-            return (Color(hex: "#000000"), Color(hex: "#52B788"), Color(hex: "#FFD700"))
-        case "fajr":
-            return (Color(hex: "#2D2A4A"), Color(hex: "#6C63FF"), Color(hex: "#E879F9"))
-        case "sahara":
-            return (Color(hex: "#3D2817"), Color(hex: "#D4734C"), Color(hex: "#E9D5C1"))
-        case "ramadan":
-            return (Color(hex: "#1E1B4B"), Color(hex: "#FFD700"), Color(hex: "#FFD700"))
-        default:
-            return (themeManager.backgroundColor, themeManager.primaryColor, themeManager.warningColor)
-        }
     }
 
     var body: some View {
@@ -355,27 +339,37 @@ struct ThemedMizanLogo: View {
 // MARK: - Preview
 
 #Preview("Logo Variants") {
+    @Previewable @StateObject var themeManager = ThemeManager()
+
     VStack(spacing: 40) {
-        // Basic
-        MizanLogo(size: 100, designColor: .white)
-            .background(Color(hex: "#14746F"))
-            .cornerRadius(20)
+        // Noor theme
+        if let colors = themeManager.colorsForTheme("noor") {
+            MizanLogo(size: 100, designColor: colors.primary, accentColor: colors.accent)
+                .background(colors.background)
+                .cornerRadius(20)
+        }
 
-        // With accent color
-        MizanLogo(size: 100, designColor: Color(hex: "#52B788"), accentColor: Color(hex: "#FFD700"))
-            .background(Color.black)
-            .cornerRadius(20)
+        // Layl theme
+        if let colors = themeManager.colorsForTheme("layl") {
+            MizanLogo(size: 100, designColor: colors.primary, accentColor: colors.accent)
+                .background(colors.background)
+                .cornerRadius(20)
+        }
 
-        // With glow
-        MizanLogo(size: 100, designColor: Color(hex: "#FFD700"), glowIntensity: 0.8)
-            .background(Color(hex: "#1E1B4B"))
-            .cornerRadius(20)
+        // Ramadan theme with glow
+        if let colors = themeManager.colorsForTheme("ramadan") {
+            MizanLogo(size: 100, designColor: colors.primary, glowIntensity: 0.8)
+                .background(colors.background)
+                .cornerRadius(20)
+        }
 
-        // Animated
-        MizanLogo(size: 100, designColor: .white, animated: true)
-            .background(Color(hex: "#6C63FF"))
-            .cornerRadius(20)
+        // Fajr theme animated
+        if let colors = themeManager.colorsForTheme("fajr") {
+            MizanLogo(size: 100, designColor: themeManager.textOnPrimaryColor, animated: true)
+                .background(colors.primary)
+                .cornerRadius(20)
+        }
     }
     .padding()
-    .background(Color.gray.opacity(0.2))
+    .background(themeManager.surfaceSecondaryColor.opacity(0.2))
 }

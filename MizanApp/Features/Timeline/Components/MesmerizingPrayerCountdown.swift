@@ -60,6 +60,7 @@ struct MesmerizingPrayerCountdown: View {
                                 .font(.system(size: 28))
                                 .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.7))
                         }
+                        .accessibilityLabel("إغلاق العد التنازلي")
                         .padding(MZSpacing.md)
                     }
                 }

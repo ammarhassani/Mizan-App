@@ -113,6 +113,30 @@ final class ThemeManager: ObservableObject {
         return config.themes.filter { $0.isPro }
     }
 
+    /// Get colors for a specific theme by ID (for icon previews and logo variants)
+    /// Returns (background, primary, accent) colors tuple
+    func colorsForTheme(_ themeId: String) -> (background: Color, primary: Color, accent: Color)? {
+        guard let theme = config.themes.first(where: { $0.id == themeId }) else { return nil }
+
+        let background: Color
+        if let gradient = theme.colors.backgroundGradient, !gradient.isEmpty {
+            background = Color(hex: gradient[0])
+        } else {
+            background = Color(hex: theme.colors.background)
+        }
+
+        let accent: Color
+        if let warning = theme.colors.warning {
+            accent = Color(hex: warning)
+        } else if let secondary = theme.colors.accent {
+            accent = Color(hex: secondary)
+        } else {
+            accent = Color(hex: theme.colors.primary)
+        }
+
+        return (background, Color(hex: theme.colors.primary), accent)
+    }
+
     /// Check if Ramadan theme should auto-activate
     func checkRamadanAutoActivation(hijriMonth: String) {
         // Check if current month is Ramadan (month 9 in Hijri calendar)
@@ -1095,7 +1119,7 @@ struct ShadowConfiguration {
     let useGlow: Bool
 
     static let `default` = ShadowConfiguration(
-        color: Color.black.opacity(0.15),
+        color: Color(white: 0).opacity(0.15),  // Theme-neutral shadow color
         radius: 8,
         x: 0,
         y: 2,

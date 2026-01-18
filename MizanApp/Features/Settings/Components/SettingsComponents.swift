@@ -26,6 +26,7 @@ struct SettingsSectionHeader: View {
                     Circle()
                         .fill(iconColor.opacity(0.15))
                 )
+                .accessibilityHidden(true)  // Decorative icon
 
             Text(title)
                 .font(MZTypography.titleSmall)
@@ -77,6 +78,7 @@ struct SettingsRow: View {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(iconColor.opacity(0.15))
                 )
+                .accessibilityHidden(true)  // Decorative icon
 
             // Text
             VStack(alignment: .leading, spacing: 2) {
@@ -104,6 +106,7 @@ struct SettingsRow: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(themeManager.textTertiaryColor)
+                    .accessibilityHidden(true)  // Decorative chevron
             }
         }
         .padding(MZSpacing.md)
@@ -171,6 +174,7 @@ struct SettingsToggleRow: View {
 struct AnimatedToggle: View {
     @Binding var isOn: Bool
     var isDisabled: Bool = false
+    var accessibilityLabelText: String = "مفتاح التبديل"
 
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -198,6 +202,11 @@ struct AnimatedToggle: View {
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityValue(isOn ? "مفعّل" : "متوقف")
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityHint("اضغط مرتين للتبديل")
     }
 }
 

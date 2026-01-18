@@ -203,7 +203,7 @@ struct RamadanModeView: View {
     // MARK: - Color Helpers
 
     private var lanternColor: Color {
-        let colors: [Color] = [ramadanGold, .orange, themeManager.warningColor, themeManager.errorColor]
+        let colors: [Color] = [ramadanGold, themeManager.warningColor, themeManager.warningColor.opacity(0.8), themeManager.errorColor]
         return colors.randomElement() ?? ramadanGold
     }
 }

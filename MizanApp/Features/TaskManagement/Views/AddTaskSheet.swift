@@ -99,6 +99,7 @@ struct AddTaskSheet: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -117,7 +118,7 @@ struct AddTaskSheet: View {
                             .frame(width: 44, height: 44)
                             .background(
                                 Circle()
-                                    .fill(themeManager.surfaceColor.opacity(0.3))
+                                    .fill(themeManager.textOnPrimaryColor.opacity(0.15))
                             )
                             .contentShape(Circle())
                     }

@@ -65,6 +65,7 @@ struct AboutView: View {
                         .font(.system(size: 36))
                         .foregroundColor(themeManager.textOnPrimaryColor)
                 )
+                .accessibilityLabel("أيقونة تطبيق ميزان")
 
             // App Name
             Text("ميزان")
@@ -108,6 +109,7 @@ struct AboutView: View {
                             .fontWeight(.semibold)
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundColor(themeManager.primaryColor)
+                            .accessibilityHidden(true)  // Decorative - Pro text is sufficient
                     }
                 }
             }

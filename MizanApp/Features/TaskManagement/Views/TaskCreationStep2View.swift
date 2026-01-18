@@ -118,7 +118,7 @@ struct TaskCreationStep2View: View {
             } label: {
                 ZStack {
                     Circle()
-                        .fill(themeManager.surfaceColor.opacity(0.3))
+                        .fill(themeManager.textOnPrimaryColor.opacity(0.15))
                         .frame(width: 56, height: 56)
 
                     Image(systemName: icon)

@@ -111,6 +111,9 @@ struct NawafilSettingsView: View {
                 }
                 .disabled(!isPro)
                 .tint(themeManager.primaryColor)
+                .accessibilityLabel("تفعيل النوافل")
+                .accessibilityValue(userSettings.nawafilEnabled ? "مفعّل" : "متوقف")
+                .accessibilityHint(isPro ? "" : "يتطلب اشتراك Pro")
             }
         } header: {
             Text("عام")
@@ -143,6 +146,9 @@ struct NawafilSettingsView: View {
                 }
             }
             .tint(themeManager.primaryColor)
+            .accessibilityLabel("جميع السنن الرواتب")
+            .accessibilityValue(areAllRawatibEnabled ? "مفعّل" : "متوقف")
+            .accessibilityHint("تفعيل أو إيقاف جميع السنن الرواتب معًا")
 
             // Individual Rawatib
             ForEach(rawatibNawafil) { nawafil in
@@ -317,6 +323,8 @@ struct NawafilToggleRow: View {
             ))
             .tint(themeManager.primaryColor)
             .labelsHidden()
+            .accessibilityLabel("تفعيل \(nawafil.arabicName)")
+            .accessibilityValue(isEnabled ? "مفعّل" : "متوقف")
         }
         .padding(.vertical, 4)
     }

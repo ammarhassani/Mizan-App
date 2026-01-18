@@ -33,7 +33,28 @@ final class Task {
     var recurrenceRule: RecurrenceRule?
     var isRecurring: Bool
     var parentTaskId: UUID? // for recurring instances
-    var dismissedInstanceDates: [Date]? // dates where recurring instances were intentionally deleted
+    // Stored as JSON string to avoid CoreData array materialization issues
+    private var dismissedInstanceDatesJSON: String?
+
+    /// Dates where recurring instances were intentionally deleted (computed from JSON storage)
+    @Transient
+    var dismissedInstanceDates: [Date]? {
+        get {
+            guard let json = dismissedInstanceDatesJSON, !json.isEmpty else { return nil }
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try? decoder.decode([Date].self, from: Data(json.utf8))
+        }
+        set {
+            if let dates = newValue {
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+                dismissedInstanceDatesJSON = (try? String(data: encoder.encode(dates), encoding: .utf8)) ?? nil
+            } else {
+                dismissedInstanceDatesJSON = nil
+            }
+        }
+    }
 
     // MARK: - Metadata
     var order: Int // for inbox ordering
@@ -67,7 +88,7 @@ final class Task {
         self.recurrenceRule = nil
         self.isRecurring = false
         self.parentTaskId = nil
-        self.dismissedInstanceDates = nil
+        self.dismissedInstanceDatesJSON = nil
         self.order = 0
         self.colorHex = category.defaultColorHex
     }
@@ -264,9 +285,25 @@ struct RecurrenceRule: Codable {
 
     var frequency: Frequency
     var interval: Int // every N days/weeks/months
-    var daysOfWeek: [Int]? // 1 = Sunday, 7 = Saturday (for weekly)
+    // Stored as JSON string to avoid CoreData array materialization issues
+    private var daysOfWeekJSON: String?
     var endDate: Date?
     var occurrences: Int? // end after N occurrences
+
+    /// Days of week for weekly recurrence: 1 = Sunday, 7 = Saturday
+    var daysOfWeek: [Int]? {
+        get {
+            guard let json = daysOfWeekJSON, !json.isEmpty else { return nil }
+            return try? JSONDecoder().decode([Int].self, from: Data(json.utf8))
+        }
+        set {
+            if let days = newValue {
+                daysOfWeekJSON = (try? String(data: JSONEncoder().encode(days), encoding: .utf8)) ?? nil
+            } else {
+                daysOfWeekJSON = nil
+            }
+        }
+    }
 
     init(
         frequency: Frequency,
@@ -277,9 +314,22 @@ struct RecurrenceRule: Codable {
     ) {
         self.frequency = frequency
         self.interval = interval
-        self.daysOfWeek = daysOfWeek
+        if let days = daysOfWeek {
+            self.daysOfWeekJSON = (try? String(data: JSONEncoder().encode(days), encoding: .utf8)) ?? nil
+        } else {
+            self.daysOfWeekJSON = nil
+        }
         self.endDate = endDate
         self.occurrences = occurrences
+    }
+
+    // Custom coding keys to handle the JSON storage
+    enum CodingKeys: String, CodingKey {
+        case frequency
+        case interval
+        case daysOfWeekJSON
+        case endDate
+        case occurrences
     }
 
     // MARK: - Next Occurrence Calculation

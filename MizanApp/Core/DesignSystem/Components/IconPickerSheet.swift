@@ -187,9 +187,18 @@ struct IconPickerSheet: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(themeManager.textSecondaryColor)
 
-            TextField("Search icons...", text: $searchText)
-                .font(MZTypography.bodyMedium)
-                .foregroundColor(themeManager.textPrimaryColor)
+            ZStack(alignment: .leading) {
+                // Custom placeholder for theme compliance
+                if searchText.isEmpty {
+                    Text("Search icons...")
+                        .font(MZTypography.bodyMedium)
+                        .foregroundColor(themeManager.textSecondaryColor)
+                }
+
+                TextField("", text: $searchText)
+                    .font(MZTypography.bodyMedium)
+                    .foregroundColor(themeManager.textPrimaryColor)
+            }
 
             if !searchText.isEmpty {
                 Button {

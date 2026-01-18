@@ -80,6 +80,11 @@ struct TimelineView: View {
     @State private var showRecurringDeleteConfirmation = false
     @State private var taskToDelete: Task? = nil
 
+    // MARK: - Auto-Scroll During Drag
+    @State private var dragScrollDirection: PremiumTaskCard.DragEdgeDirection = .none
+    @State private var autoScrollTimer: Timer? = nil
+    @State private var scrollProxy: ScrollViewProxy? = nil
+
     // MARK: - Queries
     @Query private var allTasks: [Task]
     @Query private var allPrayers: [PrayerTime]
@@ -90,6 +95,23 @@ struct TimelineView: View {
     private let minNawafilBlockHeight: CGFloat = 60
     private let minTaskBlockHeight: CGFloat = 60
     private let contentHourHeight: CGFloat = 100 // Points per hour within content regions
+
+    // MARK: - Scaled Heights (for zoom)
+
+    /// Scaled minimum prayer block height based on zoom level
+    private var scaledMinPrayerBlockHeight: CGFloat {
+        minPrayerBlockHeight * timelineScale
+    }
+
+    /// Scaled minimum nawafil block height based on zoom level
+    private var scaledMinNawafilBlockHeight: CGFloat {
+        minNawafilBlockHeight * timelineScale
+    }
+
+    /// Scaled minimum task block height based on zoom level
+    private var scaledMinTaskBlockHeight: CGFloat {
+        minTaskBlockHeight * timelineScale
+    }
 
     // MARK: - Timeline Segments (computed)
 
@@ -155,6 +177,26 @@ struct TimelineView: View {
         }
 
         return seen.values.sorted { $0.suggestedTime < $1.suggestedTime }
+    }
+
+    /// Determines if Ramadan mode should be displayed
+    /// Shows when user has enabled it manually OR during actual Ramadan (Hijri month 9)
+    private var shouldShowRamadanMode: Bool {
+        // Check if user has manually enabled Ramadan mode
+        if appEnvironment.userSettings.ramadanModeEnabled {
+            return true
+        }
+
+        // Auto-detect Ramadan from Hijri date (month 9)
+        if let firstPrayer = todayPrayers.first {
+            let hijriDate = firstPrayer.hijriDate
+            // Check for Arabic "رمضان" or month number 09
+            if hijriDate.contains("رمضان") || hijriDate.contains("Ramadan") || hijriDate.contains("-09-") {
+                return true
+            }
+        }
+
+        return false
     }
 
     /// Returns the next approaching prayer within 30 minutes
@@ -258,6 +300,16 @@ struct TimelineView: View {
                         .ignoresSafeArea()
                 }
 
+                // Ramadan mode overlay - shows special effects during Ramadan
+                if shouldShowRamadanMode {
+                    RamadanModeView(
+                        prayers: todayPrayers,
+                        currentDate: selectedDate
+                    )
+                    .environmentObject(themeManager)
+                    .allowsHitTesting(false) // Allow touches to pass through to timeline
+                }
+
                 // Timeline with swipe and pinch gestures
                 timelineScrollView
                     .safeAreaInset(edge: .top, spacing: 0) {
@@ -296,31 +348,26 @@ struct TimelineView: View {
                     Spacer()
                 }
 
-                // TODO: Re-enable zoom controls once segment height scaling is implemented
-                // The zoom feature requires passing scaledHourHeight to all segment views
-                // and having them recalculate their heights based on the scale factor.
-                // For now, disabled to prevent broken UI.
-                //
                 // Scale indicator overlay
-                // if showScaleIndicator {
-                //     VStack {
-                //         Spacer()
-                //         TimelineScaleIndicator(scale: timelineScale)
-                //             .environmentObject(themeManager)
-                //             .padding(.bottom, MZSpacing.xl)
-                //     }
-                // }
-                //
-                // Zoom controls (optional - positioned at bottom right)
-                // VStack {
-                //     Spacer()
-                //     HStack {
-                //         Spacer()
-                //         TimelineZoomControls(scale: $timelineScale)
-                //             .environmentObject(themeManager)
-                //             .padding(MZSpacing.md)
-                //     }
-                // }
+                if showScaleIndicator {
+                    VStack {
+                        Spacer()
+                        TimelineScaleIndicator(scale: timelineScale)
+                            .environmentObject(themeManager)
+                            .padding(.bottom, MZSpacing.xl)
+                    }
+                }
+
+                // Zoom controls (positioned at bottom right)
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        TimelineZoomControls(scale: $timelineScale)
+                            .environmentObject(themeManager)
+                            .padding(MZSpacing.md)
+                    }
+                }
             }
             .navigationBarHidden(true)
         }
@@ -328,14 +375,13 @@ struct TimelineView: View {
             // Force view to re-query nawafil data
             nawafilRefreshID = UUID()
         }
-        // TODO: Re-enable when zoom feature is fully implemented
-        // .onChange(of: timelineScale) { _, _ in
-        //     // Show scale indicator briefly when zooming
-        //     showScaleIndicator = true
-        //     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-        //         showScaleIndicator = false
-        //     }
-        // }
+        .onChange(of: timelineScale) { _, _ in
+            // Show scale indicator briefly when zooming
+            showScaleIndicator = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                showScaleIndicator = false
+            }
+        }
         .id(nawafilRefreshID)
         .sheet(item: $countdownPrayer) { prayer in
             MesmerizingPrayerCountdown(
@@ -398,7 +444,13 @@ struct TimelineView: View {
                 // Generate recurring task instances for the selected date
                 appEnvironment.generateRecurringTaskInstances(for: newDate)
             }
+            .onChange(of: dragScrollDirection) { _, direction in
+                handleDragScrollDirectionChange(direction, proxy: proxy)
+            }
             .onAppear {
+                // Store the proxy for auto-scroll
+                scrollProxy = proxy
+
                 // Always check if prayers need to be fetched when view appears
                 fetchPrayersAndNawafilIfNeeded(for: selectedDate)
                 // Generate recurring task instances for today
@@ -409,6 +461,66 @@ struct TimelineView: View {
                         scrollToCurrentPrayer(proxy: proxy)
                     }
                 }
+            }
+            .onDisappear {
+                // Clean up auto-scroll timer
+                stopAutoScroll()
+            }
+        }
+    }
+
+    // MARK: - Auto-Scroll During Drag
+
+    /// Handle drag scroll direction changes from task cards
+    private func handleDragScrollDirectionChange(_ direction: PremiumTaskCard.DragEdgeDirection, proxy: ScrollViewProxy) {
+        switch direction {
+        case .none:
+            stopAutoScroll()
+        case .up, .down:
+            startAutoScroll(direction: direction, proxy: proxy)
+        }
+    }
+
+    /// Start auto-scrolling in the given direction
+    private func startAutoScroll(direction: PremiumTaskCard.DragEdgeDirection, proxy: ScrollViewProxy) {
+        // Stop existing timer if any
+        stopAutoScroll()
+
+        // Find current segment index and calculate next segment to scroll to
+        autoScrollTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [self] _ in
+            performAutoScroll(direction: direction, proxy: proxy)
+        }
+    }
+
+    /// Stop auto-scrolling
+    private func stopAutoScroll() {
+        autoScrollTimer?.invalidate()
+        autoScrollTimer = nil
+    }
+
+    /// Perform one step of auto-scrolling
+    private func performAutoScroll(direction: PremiumTaskCard.DragEdgeDirection, proxy: ScrollViewProxy) {
+        guard !timelineSegments.isEmpty else { return }
+
+        // Find the segment to scroll to based on direction
+        let currentTime = Date()
+        let targetSegment: TimelineSegment?
+
+        if direction == .up {
+            // Find the first segment with endTime before current time, or first segment
+            targetSegment = timelineSegments.reversed().first { segment in
+                segment.endTime < currentTime
+            } ?? timelineSegments.first
+        } else {
+            // Find the first segment with startTime after current time, or last segment
+            targetSegment = timelineSegments.first { segment in
+                segment.startTime > currentTime
+            } ?? timelineSegments.last
+        }
+
+        if let segment = targetSegment {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                proxy.scrollTo(segment.id, anchor: direction == .up ? .top : .bottom)
             }
         }
     }
@@ -455,7 +567,7 @@ struct TimelineView: View {
     private func segmentContent(for segment: TimelineSegment) -> some View {
         switch segment.segmentType {
         case .gap:
-            GapSegmentView(segment: segment, usePremiumFlow: usePremiumCards)
+            GapSegmentView(segment: segment, usePremiumFlow: usePremiumCards, scale: timelineScale)
                 .environmentObject(themeManager)
 
         case .prayer:
@@ -487,7 +599,7 @@ struct TimelineView: View {
                     // Legacy prayer block
                     TimelinePrayerBlock(
                         prayer: prayer,
-                        minHeight: minPrayerBlockHeight,
+                        minHeight: scaledMinPrayerBlockHeight,
                         preNawafil: preNawafil,
                         postNawafil: postNawafil,
                         onShowCountdown: appEnvironment.userSettings.enablePrayerCountdownScreen ? {
@@ -502,7 +614,7 @@ struct TimelineView: View {
 
         case .nawafil:
             if let nawafil = segment.nawafil {
-                TimelineNawafilBlock(nawafil: nawafil, minHeight: minNawafilBlockHeight)
+                TimelineNawafilBlock(nawafil: nawafil, minHeight: scaledMinNawafilBlockHeight)
             }
 
         case .task:
@@ -511,7 +623,7 @@ struct TimelineView: View {
                 if usePremiumCards {
                     PremiumTaskCard(
                         task: task,
-                        minHeight: minTaskBlockHeight,
+                        minHeight: scaledMinTaskBlockHeight,
                         hasTaskOverlap: segment.hasTaskOverlap,
                         overlappingTaskCount: segment.overlappingTaskCount,
                         onToggleCompletion: {
@@ -522,13 +634,22 @@ struct TimelineView: View {
                         },
                         onDelete: {
                             deleteTask(task)
-                        }
+                        },
+                        hourHeight: scaledHourHeight,
+                        prayers: todayPrayers,
+                        onTimeChange: { newTime in
+                            updateTaskTimeWithDisplacement(task, to: newTime)
+                        },
+                        onDragNearEdge: { direction in
+                            dragScrollDirection = direction
+                        },
+                        scheduledTasks: todayTasks
                     )
                     .environmentObject(themeManager)
                 } else {
                     TimelineTaskBlock(
                         task: task,
-                        minHeight: minTaskBlockHeight,
+                        minHeight: scaledMinTaskBlockHeight,
                         onToggleCompletion: {
                             toggleTaskCompletion(task)
                         }
@@ -546,6 +667,7 @@ struct TimelineView: View {
                     prayerNawafilMap: segment.prayerNawafilMap,
                     hasTaskOverlap: segment.hasTaskOverlap,
                     overlappingTaskCount: segment.overlappingTaskCount,
+                    scale: timelineScale,
                     onToggleCompletion: {
                         toggleTaskCompletion(task)
                     },
@@ -571,6 +693,7 @@ struct TimelineView: View {
                 containedPrayers: segment.containedPrayers,
                 containedNawafil: segment.containedNawafil,
                 prayerNawafilMap: segment.prayerNawafilMap,
+                scale: timelineScale,
                 onToggleCompletion: { task in
                     toggleTaskCompletion(task)
                 },
@@ -599,7 +722,7 @@ struct TimelineView: View {
     ) -> some View {
         let card = GlassmorphicPrayerCard(
             prayer: prayer,
-            minHeight: minPrayerBlockHeight,
+            minHeight: scaledMinPrayerBlockHeight,
             preNawafil: preNawafil,
             postNawafil: postNawafil,
             isCurrentPrayer: isCurrentPrayer,
@@ -628,6 +751,204 @@ struct TimelineView: View {
             }
             try? modelContext.save()
         }
+    }
+
+    /// Update task's scheduled time (from drag and drop)
+    private func updateTaskTime(_ task: Task, to newTime: Date) {
+        print("📍 [TIMELINE] UPDATE TASK TIME: '\(task.title)' → \(newTime.formatted(date: .omitted, time: .shortened))")
+
+        task.scheduledStartTime = newTime
+        task.scheduledDate = Calendar.current.startOfDay(for: newTime)
+        task.updatedAt = Date()
+
+        try? modelContext.save()
+
+        // Reschedule notification for the new time
+        appEnvironment.notificationManager.removeTaskNotifications(for: task)
+        _Concurrency.Task {
+            await appEnvironment.notificationManager.scheduleTaskNotification(
+                for: task,
+                userSettings: appEnvironment.userSettings
+            )
+        }
+    }
+
+    /// Update task's scheduled time with smart displacement of overlapping tasks
+    private func updateTaskTimeWithDisplacement(_ droppedTask: Task, to newTime: Date) {
+        print("📍 [TIMELINE] UPDATE TASK TIME WITH DISPLACEMENT: '\(droppedTask.title)' → \(newTime.formatted(date: .omitted, time: .shortened))")
+
+        let droppedStart = newTime
+        let droppedEnd = newTime.addingTimeInterval(Double(droppedTask.duration * 60))
+
+        // Find all tasks that will overlap with the dropped task (excluding itself)
+        let overlappingTasks = todayTasks.filter { task in
+            guard task.id != droppedTask.id,
+                  let taskStart = task.scheduledStartTime,
+                  let taskEnd = task.endTime else { return false }
+
+            // Check if time ranges overlap
+            return taskStart < droppedEnd && taskEnd > droppedStart
+        }
+
+        print("   → Found \(overlappingTasks.count) overlapping tasks")
+
+        // Smart displacement: tasks starting before the drop point push earlier,
+        // tasks starting after push later
+        var displacedTasks: [Task] = []
+
+        for task in overlappingTasks {
+            guard let taskStart = task.scheduledStartTime else { continue }
+
+            let newTaskTime: Date
+            if taskStart < droppedStart {
+                // Task starts before dropped task - push it earlier
+                // New end time = dropped task start - 1 minute buffer
+                let newEnd = droppedStart.addingTimeInterval(-60)
+                let newStart = newEnd.addingTimeInterval(-Double(task.duration * 60))
+                newTaskTime = snapTimeToGrid(newStart)
+                print("   → Pushing '\(task.title)' EARLIER to \(newTaskTime.formatted(date: .omitted, time: .shortened))")
+            } else {
+                // Task starts during/after dropped task - push it later
+                // New start time = dropped task end + 1 minute buffer
+                let newStart = droppedEnd.addingTimeInterval(60)
+                newTaskTime = snapTimeToGrid(newStart)
+                print("   → Pushing '\(task.title)' LATER to \(newTaskTime.formatted(date: .omitted, time: .shortened))")
+            }
+
+            // Check if new time collides with any prayer
+            var finalTime = newTaskTime
+            if checkPrayerCollision(at: finalTime, duration: task.duration) {
+                // Find next available slot after the prayer
+                finalTime = findNextAvailableSlot(after: finalTime, duration: task.duration)
+                print("   → Prayer collision! Moved to \(finalTime.formatted(date: .omitted, time: .shortened))")
+            }
+
+            // Update the displaced task
+            task.scheduledStartTime = finalTime
+            task.scheduledDate = Calendar.current.startOfDay(for: finalTime)
+            task.updatedAt = Date()
+            displacedTasks.append(task)
+
+            // Reschedule notification
+            appEnvironment.notificationManager.removeTaskNotifications(for: task)
+        }
+
+        // Update the dropped task itself
+        droppedTask.scheduledStartTime = newTime
+        droppedTask.scheduledDate = Calendar.current.startOfDay(for: newTime)
+        droppedTask.updatedAt = Date()
+
+        // Save all changes
+        try? modelContext.save()
+
+        // Reschedule notifications for all affected tasks
+        _Concurrency.Task {
+            await appEnvironment.notificationManager.scheduleTaskNotification(
+                for: droppedTask,
+                userSettings: appEnvironment.userSettings
+            )
+            for task in displacedTasks {
+                await appEnvironment.notificationManager.scheduleTaskNotification(
+                    for: task,
+                    userSettings: appEnvironment.userSettings
+                )
+            }
+        }
+
+        // Handle cascade effects (displaced tasks may now overlap with other tasks)
+        handleCascadeDisplacement(displacedTasks: displacedTasks, excludeIds: [droppedTask.id] + displacedTasks.map { $0.id })
+    }
+
+    /// Handle cascade displacement - displaced tasks may now overlap with other tasks
+    private func handleCascadeDisplacement(displacedTasks: [Task], excludeIds: [UUID]) {
+        for displacedTask in displacedTasks {
+            guard let taskStart = displacedTask.scheduledStartTime,
+                  let taskEnd = displacedTask.endTime else { continue }
+
+            // Find tasks that now overlap with this displaced task
+            let newOverlaps = todayTasks.filter { task in
+                guard !excludeIds.contains(task.id),
+                      let otherStart = task.scheduledStartTime,
+                      let otherEnd = task.endTime else { return false }
+
+                return otherStart < taskEnd && otherEnd > taskStart
+            }
+
+            // Displace these newly overlapping tasks
+            for task in newOverlaps {
+                guard let otherStart = task.scheduledStartTime else { continue }
+
+                let newTaskTime: Date
+                if otherStart < taskStart {
+                    // Push earlier
+                    let newEnd = taskStart.addingTimeInterval(-60)
+                    let newStart = newEnd.addingTimeInterval(-Double(task.duration * 60))
+                    newTaskTime = snapTimeToGrid(newStart)
+                } else {
+                    // Push later
+                    let newStart = taskEnd.addingTimeInterval(60)
+                    newTaskTime = snapTimeToGrid(newStart)
+                }
+
+                // Check for prayer collision
+                var finalTime = newTaskTime
+                if checkPrayerCollision(at: finalTime, duration: task.duration) {
+                    finalTime = findNextAvailableSlot(after: finalTime, duration: task.duration)
+                }
+
+                task.scheduledStartTime = finalTime
+                task.scheduledDate = Calendar.current.startOfDay(for: finalTime)
+                task.updatedAt = Date()
+
+                print("   → CASCADE: Pushing '\(task.title)' to \(finalTime.formatted(date: .omitted, time: .shortened))")
+            }
+        }
+
+        try? modelContext.save()
+    }
+
+    /// Snap time to 15-minute grid
+    private func snapTimeToGrid(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let minute = components.minute ?? 0
+        let roundedMinute = Int(round(Double(minute) / 15.0) * 15.0) % 60
+        let hourAdjustment = minute >= 53 ? 1 : 0
+
+        var newComponents = components
+        newComponents.minute = roundedMinute
+        newComponents.hour = (components.hour ?? 0) + hourAdjustment
+
+        return calendar.date(from: newComponents) ?? date
+    }
+
+    /// Check if a time collides with any prayer
+    private func checkPrayerCollision(at time: Date, duration: Int) -> Bool {
+        let endTime = time.addingTimeInterval(Double(duration * 60))
+        for prayer in todayPrayers {
+            if prayer.overlaps(with: time, duration: duration) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Find next available slot after a given time that doesn't collide with prayers
+    private func findNextAvailableSlot(after time: Date, duration: Int) -> Date {
+        var candidateTime = time
+
+        // Try up to 24 iterations (6 hours of 15-min slots)
+        for _ in 0..<24 {
+            if !checkPrayerCollision(at: candidateTime, duration: duration) {
+                return candidateTime
+            }
+            // Move to next 15-minute slot
+            candidateTime = candidateTime.addingTimeInterval(15 * 60)
+            candidateTime = snapTimeToGrid(candidateTime)
+        }
+
+        // Fallback: return original time if no slot found (shouldn't happen)
+        return time
     }
 
     private func deleteTask(_ task: Task) {
@@ -1522,22 +1843,25 @@ extension TimelineView {
 struct GapSegmentView: View {
     let segment: TimelineSegment
     var usePremiumFlow: Bool = true
+    var scale: CGFloat = 1.0
 
     @EnvironmentObject var themeManager: ThemeManager
 
-    /// Height for this gap segment
+    /// Height for this gap segment (scaled by zoom level)
     var height: CGFloat {
         let duration = segment.durationMinutes
+        let baseHeight: CGFloat
         if duration < 30 {
             // Short gaps: proportional height (100pt/hr)
-            return max(30, CGFloat(duration) / 60.0 * 80)
+            baseHeight = max(30, CGFloat(duration) / 60.0 * 80)
         } else if duration < 120 {
             // Medium gaps: compressed
-            return 40
+            baseHeight = 40
         } else {
             // Large gaps: collapsed
-            return 35
+            baseHeight = 35
         }
+        return baseHeight * scale
     }
 
     /// Format duration for display

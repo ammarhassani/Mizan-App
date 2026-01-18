@@ -64,7 +64,7 @@ struct SettingsView: View {
                                     .environmentObject(appEnvironment)
                                     .environmentObject(themeManager)
                             } label: {
-                                SettingsRow(icon: "clock.fill", iconColor: .blue, title: "طريقة الحساب", subtitle: "تخصيص أوقات الصلاة")
+                                SettingsRow(icon: "clock.fill", iconColor: themeManager.infoColor, title: "طريقة الحساب", subtitle: "تخصيص أوقات الصلاة")
                                     .environmentObject(themeManager)
                             }
                             .buttonStyle(.plain)
@@ -76,7 +76,7 @@ struct SettingsView: View {
                                     .environmentObject(appEnvironment)
                                     .environmentObject(themeManager)
                             } label: {
-                                SettingsRow(icon: "bell.badge.fill", iconColor: .red, title: "الإشعارات", subtitle: "تنبيهات الأذان والمهام")
+                                SettingsRow(icon: "bell.badge.fill", iconColor: themeManager.errorColor, title: "الإشعارات", subtitle: "تنبيهات الأذان والمهام")
                                     .environmentObject(themeManager)
                             }
                             .buttonStyle(.plain)
@@ -90,7 +90,7 @@ struct SettingsView: View {
                             } label: {
                                 SettingsRow(
                                     icon: "moon.stars.fill",
-                                    iconColor: .purple,
+                                    iconColor: themeManager.primaryColor,
                                     title: "النوافل",
                                     subtitle: "السنن والرواتب",
                                     showProBadge: !appEnvironment.userSettings.isPro
@@ -104,7 +104,7 @@ struct SettingsView: View {
 
                     // Appearance Section
                     VStack(alignment: .leading, spacing: MZSpacing.sm) {
-                        SettingsSectionHeader(icon: "paintbrush.fill", title: "المظهر", iconColor: .pink)
+                        SettingsSectionHeader(icon: "paintbrush.fill", title: "المظهر", iconColor: themeManager.primaryColor)
                             .environmentObject(themeManager)
 
                         SettingsCard {
@@ -113,7 +113,7 @@ struct SettingsView: View {
                                     .environmentObject(appEnvironment)
                                     .environmentObject(themeManager)
                             } label: {
-                                SettingsRow(icon: "circle.hexagongrid.fill", iconColor: .pink, title: "اختيار الثيم", subtitle: themeManager.currentTheme.name)
+                                SettingsRow(icon: "circle.hexagongrid.fill", iconColor: themeManager.primaryColor, title: "اختيار الثيم", subtitle: themeManager.currentTheme.name)
                                     .environmentObject(themeManager)
                             }
                             .buttonStyle(.plain)
@@ -125,9 +125,9 @@ struct SettingsView: View {
                                 HStack(spacing: MZSpacing.sm) {
                                     Image(systemName: "moon.stars.fill")
                                         .font(.system(size: 18))
-                                        .foregroundColor(.indigo)
+                                        .foregroundColor(themeManager.primaryColor)
                                         .frame(width: 32, height: 32)
-                                        .background(Color.indigo.opacity(0.15))
+                                        .background(themeManager.primaryColor.opacity(0.15))
                                         .cornerRadius(8)
 
                                     VStack(alignment: .leading, spacing: 2) {
@@ -152,6 +152,8 @@ struct SettingsView: View {
                                 ))
                                 .tint(themeManager.primaryColor)
                                 .labelsHidden()
+                                .accessibilityLabel("التاريخ الهجري")
+                                .accessibilityValue(appEnvironment.userSettings.showHijriDate ? "مفعّل" : "متوقف")
                             }
                             .padding(MZSpacing.md)
                         }
@@ -160,7 +162,7 @@ struct SettingsView: View {
 
                     // About & Data Section
                     VStack(alignment: .leading, spacing: MZSpacing.sm) {
-                        SettingsSectionHeader(icon: "info.circle.fill", title: "عام", iconColor: .gray)
+                        SettingsSectionHeader(icon: "info.circle.fill", title: "عام", iconColor: themeManager.textSecondaryColor)
                             .environmentObject(themeManager)
 
                         SettingsCard {
@@ -169,7 +171,7 @@ struct SettingsView: View {
                                     .environmentObject(appEnvironment)
                                     .environmentObject(themeManager)
                             } label: {
-                                SettingsRow(icon: "info.circle.fill", iconColor: .gray, title: "عن التطبيق")
+                                SettingsRow(icon: "info.circle.fill", iconColor: themeManager.textSecondaryColor, title: "عن التطبيق")
                                     .environmentObject(themeManager)
                             }
                             .buttonStyle(.plain)
@@ -180,7 +182,7 @@ struct SettingsView: View {
                                 showClearDataAlert = true
                                 HapticManager.shared.trigger(.warning)
                             } label: {
-                                SettingsRow(icon: "arrow.clockwise", iconColor: .orange, title: "إعادة تحميل البيانات", subtitle: "تحديث أوقات الصلاة", showChevron: false)
+                                SettingsRow(icon: "arrow.clockwise", iconColor: themeManager.warningColor, title: "إعادة تحميل البيانات", subtitle: "تحديث أوقات الصلاة", showChevron: false)
                                     .environmentObject(themeManager)
                             }
                             .buttonStyle(PressableButtonStyle())

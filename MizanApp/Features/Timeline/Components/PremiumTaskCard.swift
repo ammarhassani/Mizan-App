@@ -17,6 +17,18 @@ struct PremiumTaskCard: View {
     var onTap: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
+    // MARK: - Drag Support (Optional)
+    var hourHeight: CGFloat? = nil
+    var prayers: [PrayerTime]? = nil
+    var onTimeChange: ((Date) -> Void)? = nil
+    var onDragNearEdge: ((DragEdgeDirection) -> Void)? = nil
+    var scheduledTasks: [Task]? = nil  // For displacement preview
+
+    /// Direction for auto-scroll edge detection
+    enum DragEdgeDirection {
+        case none, up, down
+    }
+
     @EnvironmentObject var themeManager: ThemeManager
     @State private var isPressed: Bool = false
     @State private var checkScale: CGFloat = 1.0
@@ -24,25 +36,115 @@ struct PremiumTaskCard: View {
     @State private var appearOffset: CGFloat = 20
     @State private var appearOpacity: Double = 0
 
+    // MARK: - Drag State
+    @State private var isDragging: Bool = false
+    @State private var dragOffset: CGFloat = 0
+    @State private var hasCollision: Bool = false
+    @State private var cardGlobalY: CGFloat = 0
+    @State private var currentEdgeDirection: DragEdgeDirection = .none
+
+    /// Whether drag is enabled (requires hourHeight and prayers)
+    private var isDragEnabled: Bool {
+        hourHeight != nil && prayers != nil && onTimeChange != nil
+    }
+
     private var taskColor: Color {
         Color(hex: task.colorHex)
     }
 
+    /// Calculate proposed time based on drag offset
+    private var proposedTime: Date? {
+        guard let hourHeight = hourHeight, let startTime = task.scheduledStartTime else { return nil }
+        let hoursDragged = Double(dragOffset) / Double(hourHeight)
+        let secondsOffset = hoursDragged * 3600
+        let newTime = startTime.addingTimeInterval(secondsOffset)
+        return snapToGrid(newTime)
+    }
+
+    /// Check if proposed time collides with prayers
+    private var proposedHasCollision: Bool {
+        guard let prayers = prayers, let proposedTime = proposedTime else { return false }
+        for prayer in prayers {
+            if prayer.overlaps(with: proposedTime, duration: task.duration) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Snap time to 15-minute grid
+    private func snapToGrid(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let minute = components.minute ?? 0
+        let roundedMinute = Int(round(Double(minute) / 15.0) * 15.0) % 60
+        let hourAdjustment = minute >= 53 ? 1 : 0
+
+        var newComponents = components
+        newComponents.minute = roundedMinute
+        newComponents.hour = (components.hour ?? 0) + hourAdjustment
+
+        return calendar.date(from: newComponents) ?? date
+    }
+
     // MARK: - Body
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Time row above the card
-            timeRow
+    /// Direction of drag for drop zone indicator
+    private var dragDirection: DragDirection {
+        if dragOffset < -20 { return .up }
+        if dragOffset > 20 { return .down }
+        return .none
+    }
 
-            // Main card with neubrutalist accent
-            mainCard
+    private enum DragDirection {
+        case up, down, none
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            // Ghost preview at original position when dragging (shows where task came from)
+            // No offset needed - it naturally stays at the original position in the ZStack
+            if isDragging {
+                ghostPreview
+            }
+
+            // Drop zone indicator - stays at original position, shows direction
+            // No offset needed - it naturally stays at the original position in the ZStack
+            if isDragging && !hasCollision && dragDirection != .none {
+                dropZoneIndicatorPositioned
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                // Scroll edge indicator (when near top)
+                if isDragging && currentEdgeDirection == .up {
+                    scrollEdgeIndicator(direction: .up)
+                }
+
+                // Time row above the card (shows proposed time when dragging)
+                timeRow
+
+                // Main card with neubrutalist accent
+                mainCard
+
+                // Collision warning when dragging
+                if isDragging && hasCollision {
+                    collisionWarning
+                }
+
+                // Scroll edge indicator (when near bottom)
+                if isDragging && currentEdgeDirection == .down {
+                    scrollEdgeIndicator(direction: .down)
+                }
+            }
+            .frame(minHeight: minHeight)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 4)
+            .offset(x: appearOffset, y: isDragging ? dragOffset : 0)
+            .opacity(isDragging ? 0.95 : appearOpacity)
+            .scaleEffect(isDragging ? 1.05 : 1.0)
+            .zIndex(isDragging ? 100 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDragging)
         }
-        .frame(minHeight: minHeight)
-        .padding(.horizontal, 4)
-        .padding(.vertical, 4)
-        .offset(x: appearOffset)
-        .opacity(appearOpacity)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(task.title)، \(task.isCompleted ? "مكتملة" : "غير مكتملة")")
         .accessibilityValue("المدة \(task.duration.formattedDuration)، يبدأ \(task.startTime.formatted(date: .omitted, time: .shortened))")
@@ -52,26 +154,273 @@ struct PremiumTaskCard: View {
                 appearOpacity = 1.0
             }
         }
+        .gesture(dragGesture)
+    }
+
+    // MARK: - Positioned Drop Zone Indicator
+
+    private var dropZoneIndicatorPositioned: some View {
+        VStack {
+            // Show at top when dragging UP (task will land above original position)
+            if dragDirection == .up {
+                dropZoneIndicator
+                Spacer()
+            }
+
+            // Show at bottom when dragging DOWN (task will land below original position)
+            if dragDirection == .down {
+                Spacer()
+                dropZoneIndicator
+            }
+        }
+        .frame(minHeight: minHeight)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .animation(.easeInOut(duration: 0.2), value: dragDirection)
+    }
+
+    // MARK: - Ghost Preview (Original Position)
+
+    private var ghostPreview: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Time label
+            Text(task.startTime.formatted(date: .omitted, time: .shortened))
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundColor(themeManager.textTertiaryColor)
+                .padding(.leading, 4)
+
+            // Ghost card outline
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(
+                    style: StrokeStyle(lineWidth: 2, dash: [6, 4])
+                )
+                .foregroundColor(taskColor.opacity(0.3))
+                .frame(minHeight: minHeight - 24)
+                .overlay(
+                    Text("الموضع الأصلي")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(themeManager.textTertiaryColor)
+                )
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .opacity(0.5)
+    }
+
+    // MARK: - Drop Zone Indicator
+
+    private var dropZoneIndicator: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(hasCollision ? themeManager.errorColor : themeManager.successColor)
+                .frame(width: 8, height: 8)
+
+            Rectangle()
+                .fill(hasCollision ? themeManager.errorColor : themeManager.successColor)
+                .frame(height: 2)
+
+            Circle()
+                .fill(hasCollision ? themeManager.errorColor : themeManager.successColor)
+                .frame(width: 8, height: 8)
+        }
+        .padding(.horizontal, 8)
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    // MARK: - Edge Detection for Auto-Scroll
+
+    /// Edge threshold for triggering auto-scroll (points from screen edge)
+    private let edgeScrollThreshold: CGFloat = 100
+
+    /// Detect if card is near screen edges and signal for auto-scroll
+    private func detectEdgeProximity(globalY: CGFloat) {
+        let screenHeight = UIScreen.main.bounds.height
+        let safeAreaTop: CGFloat = 100 // Account for navigation bar area
+        let safeAreaBottom: CGFloat = 100 // Account for tab bar area
+
+        let newDirection: DragEdgeDirection
+        if globalY < safeAreaTop + edgeScrollThreshold {
+            newDirection = .up
+        } else if globalY > screenHeight - safeAreaBottom - edgeScrollThreshold {
+            newDirection = .down
+        } else {
+            newDirection = .none
+        }
+
+        // Only trigger callback if direction changed
+        if newDirection != currentEdgeDirection {
+            currentEdgeDirection = newDirection
+            onDragNearEdge?(newDirection)
+        }
+    }
+
+    // MARK: - Drag Gesture
+
+    private var dragGesture: some Gesture {
+        LongPressGesture(minimumDuration: 0.3)
+            .sequenced(before: DragGesture(coordinateSpace: .global))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    // Long press recognized, prepare for drag
+                    if isDragEnabled && !isDragging {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            isDragging = true
+                        }
+                        HapticManager.shared.trigger(.medium)
+                    }
+                case .second(true, let drag):
+                    // Dragging
+                    if isDragEnabled, let drag = drag {
+                        dragOffset = drag.translation.height
+                        hasCollision = proposedHasCollision
+                        if hasCollision {
+                            HapticManager.shared.trigger(.warning)
+                        }
+
+                        // Track global position for edge detection (auto-scroll)
+                        let globalY = drag.location.y
+                        detectEdgeProximity(globalY: globalY)
+                    }
+                default:
+                    break
+                }
+            }
+            .onEnded { value in
+                // Reset edge direction when drag ends
+                if currentEdgeDirection != .none {
+                    currentEdgeDirection = .none
+                    onDragNearEdge?(.none)
+                }
+
+                if case .second(true, let drag) = value, isDragEnabled {
+                    if hasCollision {
+                        // Bounce back on collision
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                            dragOffset = 0
+                            isDragging = false
+                            hasCollision = false
+                        }
+                        HapticManager.shared.trigger(.error)
+                    } else if let proposedTime = proposedTime, drag != nil {
+                        // Apply new time
+                        onTimeChange?(proposedTime)
+                        HapticManager.shared.trigger(.success)
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            dragOffset = 0
+                            isDragging = false
+                        }
+                    } else {
+                        // Reset
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            dragOffset = 0
+                            isDragging = false
+                            hasCollision = false
+                        }
+                    }
+                } else {
+                    // Long press ended without drag - treat as tap
+                    if !isDragging {
+                        onTap?()
+                        HapticManager.shared.trigger(.light)
+                    }
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        dragOffset = 0
+                        isDragging = false
+                        hasCollision = false
+                    }
+                }
+            }
+    }
+
+    // MARK: - Collision Warning
+
+    private var collisionWarning: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 12))
+            Text("يتعارض مع وقت صلاة")
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .foregroundColor(themeManager.textOnPrimaryColor)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(themeManager.errorColor)
+        .cornerRadius(8)
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    // MARK: - Scroll Edge Indicator
+
+    private func scrollEdgeIndicator(direction: DragEdgeDirection) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: direction == .up ? "chevron.up.2" : "chevron.down.2")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(themeManager.primaryColor)
+
+            Text(direction == .up ? "التمرير للأعلى" : "التمرير للأسفل")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(themeManager.primaryColor)
+
+            Image(systemName: direction == .up ? "chevron.up.2" : "chevron.down.2")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(themeManager.primaryColor)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(themeManager.primaryColor.opacity(0.15))
+        )
+        .transition(.scale.combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3).repeatForever(autoreverses: true), value: currentEdgeDirection)
     }
 
     // MARK: - Time Row
 
     private var timeRow: some View {
         HStack(spacing: 6) {
-            Text(task.startTime.formatted(date: .omitted, time: .shortened))
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .foregroundColor(taskColor)
+            // Show proposed time when dragging, otherwise show current time
+            if isDragging, let proposed = proposedTime {
+                // Original time (struck through)
+                Text(task.startTime.formatted(date: .omitted, time: .shortened))
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(themeManager.textTertiaryColor)
+                    .strikethrough(true, color: themeManager.textTertiaryColor)
 
-            Text("•")
-                .font(.system(size: 8))
-                .foregroundColor(themeManager.textTertiaryColor)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(hasCollision ? themeManager.errorColor : themeManager.successColor)
 
-            Text(task.duration.formattedDuration)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(themeManager.textSecondaryColor)
+                // New proposed time (highlighted)
+                Text(proposed.formatted(date: .omitted, time: .shortened))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(hasCollision ? themeManager.errorColor : themeManager.successColor)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill((hasCollision ? themeManager.errorColor : themeManager.successColor).opacity(0.15))
+                    )
+            } else {
+                Text(task.startTime.formatted(date: .omitted, time: .shortened))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(taskColor)
+
+                Text("•")
+                    .font(.system(size: 8))
+                    .foregroundColor(themeManager.textTertiaryColor)
+
+                Text(task.duration.formattedDuration)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(themeManager.textSecondaryColor)
+            }
         }
         .padding(.leading, 4)
+        .animation(.easeInOut(duration: 0.2), value: isDragging)
     }
 
     // MARK: - Main Card
@@ -88,8 +437,9 @@ struct PremiumTaskCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(glassBorder)
         .overlay(completionOverlay)
+        .overlay(dragCollisionBorder)
         .overlapWarning(hasOverlap: hasTaskOverlap, overlapCount: overlappingTaskCount)
-        .shadow(color: taskColor.opacity(0.08), radius: 8, y: 3)
+        .shadow(color: taskColor.opacity(isDragging ? 0.3 : 0.08), radius: isDragging ? 16 : 8, y: isDragging ? 8 : 3)
         .shadow(color: themeManager.backgroundColor.opacity(0.4), radius: 2, x: 2, y: 2) // Neubrutalist hard shadow
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .overlay(
@@ -99,12 +449,6 @@ struct PremiumTaskCard: View {
         .opacity(task.isCompleted ? 0.7 : 1.0)
         .animation(MZAnimation.cardPress, value: isPressed)
         .contentShape(Rectangle()) // Make entire card tappable
-        .onTapGesture {
-            if let onTap = onTap {
-                HapticManager.shared.trigger(.light)
-                onTap()
-            }
-        }
         .contextMenu {
             // Edit option
             Button {
@@ -134,15 +478,31 @@ struct PremiumTaskCard: View {
     // MARK: - Accent Bar (Neubrutalist)
 
     private var accentBar: some View {
-        Rectangle()
-            .fill(
-                LinearGradient(
-                    colors: [taskColor, taskColor.opacity(0.7)],
-                    startPoint: .top,
-                    endPoint: .bottom
+        ZStack {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: isDragging
+                            ? [themeManager.primaryColor, themeManager.primaryColor.opacity(0.7)]
+                            : [taskColor, taskColor.opacity(0.7)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
-            )
-            .frame(width: 4)
+
+            // Drag handle lines when draggable
+            if isDragEnabled && !isDragging {
+                VStack(spacing: 2) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(themeManager.textOnPrimaryColor.opacity(0.5))
+                            .frame(width: 2, height: 1)
+                    }
+                }
+            }
+        }
+        .frame(width: isDragging ? 6 : 4)
+        .animation(.easeInOut(duration: 0.2), value: isDragging)
     }
 
     // MARK: - Card Content
@@ -154,11 +514,21 @@ struct PremiumTaskCard: View {
 
             // Task info
             VStack(alignment: .leading, spacing: 3) {
-                Text(task.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(themeManager.textPrimaryColor)
-                    .strikethrough(task.isCompleted, color: themeManager.textSecondaryColor)
-                    .lineLimit(2)
+                HStack(spacing: 6) {
+                    Text(task.title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(themeManager.textPrimaryColor)
+                        .strikethrough(task.isCompleted, color: themeManager.textSecondaryColor)
+                        .lineLimit(2)
+
+                    // Drag indicator when dragging
+                    if isDragging {
+                        Image(systemName: "arrow.up.and.down")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(themeManager.primaryColor)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
 
                 HStack(spacing: 6) {
                     // Task icon chip
@@ -275,6 +645,16 @@ struct PremiumTaskCard: View {
             Text(task.duration.formattedDuration)
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(themeManager.textSecondaryColor)
+        }
+    }
+
+    // MARK: - Drag Collision Border
+
+    @ViewBuilder
+    private var dragCollisionBorder: some View {
+        if isDragging && hasCollision {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(themeManager.errorColor, lineWidth: 3)
         }
     }
 

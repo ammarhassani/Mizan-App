@@ -17,6 +17,7 @@ struct TaskContainerBlock: View {
     var prayerNawafilMap: [UUID: (pre: NawafilPrayer?, post: NawafilPrayer?)] = [:]
     let hasTaskOverlap: Bool
     var overlappingTaskCount: Int = 0
+    var scale: CGFloat = 1.0
     var onToggleCompletion: (() -> Void)? = nil
     var onPrayerTap: ((PrayerTime) -> Void)? = nil
     var onTap: (() -> Void)? = nil
@@ -29,6 +30,9 @@ struct TaskContainerBlock: View {
     private var hasContainedItems: Bool {
         !containedPrayers.isEmpty || !containedNawafil.isEmpty
     }
+
+    /// Scaled min height for contained prayers
+    private var scaledContainedPrayerHeight: CGFloat { 60 * scale }
 
     // MARK: - Body
 
@@ -173,6 +177,9 @@ struct TaskContainerBlock: View {
                 .foregroundColor(task.isCompleted ? themeManager.successColor : taskColor)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(task.isCompleted ? "إلغاء إكمال \(task.title)" : "إكمال \(task.title)")
+        .accessibilityHint("اضغط مرتين لتبديل حالة الإكمال")
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Expand/Collapse Button
@@ -196,6 +203,8 @@ struct TaskContainerBlock: View {
             .background(Capsule().fill(themeManager.surfaceSecondaryColor))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(isExpanded ? "طي \(containedPrayers.count) صلوات" : "عرض \(containedPrayers.count) صلوات")
+        .accessibilityHint("اضغط مرتين لتبديل عرض الصلوات")
     }
 
     // MARK: - Contained Items Section
@@ -214,7 +223,7 @@ struct TaskContainerBlock: View {
                     let nawafilPair = prayerNawafilMap[prayer.id]
                     GlassmorphicPrayerCard(
                         prayer: prayer,
-                        minHeight: 60,
+                        minHeight: scaledContainedPrayerHeight,
                         preNawafil: nawafilPair?.pre,
                         postNawafil: nawafilPair?.post,
                         showDivineEffects: false

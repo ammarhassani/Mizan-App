@@ -131,7 +131,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Schedule all notifications for a prayer time
     func schedulePrayerNotifications(for prayer: PrayerTime, userSettings: UserSettings) async {
-        guard isEnabled, userSettings.notificationsEnabled else { return }
+        guard isEnabled, userSettings.notificationsEnabled, userSettings.prayerNotificationsEnabled else { return }
 
         // Get notification settings from config
         let prayerNotifications = config.prayerNotifications
@@ -149,8 +149,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
         // At adhan time - use user's selected adhan sound
         let atTimeNotif = prayerNotifications.atPrayerTime
-        let adhanNotificationSound = userSettings.selectedAdhanAudio
-            .replacingOccurrences(of: ".mp3", with: "_notification.mp3")
+        let adhanNotificationSound = resolveNotificationSoundFile(for: userSettings.selectedAdhanAudio)
         await schedulePrayerNotification(
             prayer: prayer,
             timing: .atAdhan,
@@ -262,7 +261,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Schedule notification for a task
     func scheduleTaskNotification(for task: Task, userSettings: UserSettings) async {
-        guard isEnabled, userSettings.notificationsEnabled else { return }
+        guard isEnabled, userSettings.notificationsEnabled, userSettings.taskNotificationsEnabled else { return }
         guard let scheduledTime = task.scheduledStartTime else { return }
         guard scheduledTime > Date() else { return } // Don't schedule past tasks
 
@@ -363,6 +362,40 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 
     // MARK: - Adhan Playback
+
+    /// Resolve the notification sound file for adhan - tries notification version first, then original
+    private func resolveNotificationSoundFile(for selectedAdhan: String) -> String? {
+        // Extract the base name without extension
+        let baseName = selectedAdhan.replacingOccurrences(of: ".mp3", with: "")
+
+        // Try notification-specific version first (shorter, optimized for notifications)
+        let notificationVersion = "\(baseName)_notification"
+        if Bundle.main.url(forResource: notificationVersion, withExtension: "mp3") != nil {
+            return "\(notificationVersion).mp3"
+        }
+
+        // Try the original adhan file
+        if Bundle.main.url(forResource: baseName, withExtension: "mp3") != nil {
+            print("⚠️ Using original adhan file for notification (notification version not found): \(baseName)")
+            return selectedAdhan
+        }
+
+        // Try alternative naming patterns
+        let alternativeNames = [
+            "adhan_\(baseName)",
+            baseName.replacingOccurrences(of: "_adhan", with: ""),
+            "\(baseName)_adhan"
+        ]
+        for altName in alternativeNames {
+            if Bundle.main.url(forResource: altName, withExtension: "mp3") != nil {
+                print("⚠️ Using alternative adhan file for notification: \(altName)")
+                return "\(altName).mp3"
+            }
+        }
+
+        print("❌ No adhan sound file found for: \(selectedAdhan) - using default notification sound")
+        return nil
+    }
 
     /// Check if a specific adhan audio file is available
     func isAdhanAvailable(id: String) -> Bool {

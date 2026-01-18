@@ -37,6 +37,9 @@ final class AppEnvironment: ObservableObject {
     @Published var onboardingCompleted = false
     @Published var nawafilRefreshTrigger = 0
 
+    /// Tracks the last date notifications were scheduled for (to avoid duplicate scheduling)
+    private var lastNotificationScheduleDate: Date?
+
     // MARK: - Observers
     private var notificationObservers: [NSObjectProtocol] = []
 
@@ -246,6 +249,27 @@ final class AppEnvironment: ObservableObject {
                 userSettings: userSettings
             )
 
+            // Schedule notifications for tomorrow's prayers to ensure next-day coverage
+            if let lat = userSettings.lastKnownLatitude,
+               let lon = userSettings.lastKnownLongitude,
+               let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) {
+                do {
+                    let tomorrowPrayers = try await prayerTimeService.fetchPrayerTimes(
+                        for: tomorrow,
+                        latitude: lat,
+                        longitude: lon,
+                        method: userSettings.calculationMethod
+                    )
+                    await notificationManager.schedulePrayerNotifications(
+                        for: tomorrowPrayers,
+                        userSettings: userSettings
+                    )
+                    print("✅ Scheduled tomorrow's prayer notifications")
+                } catch {
+                    print("⚠️ Failed to schedule tomorrow's notifications: \(error)")
+                }
+            }
+
             // Schedule notifications for all scheduled tasks
             let descriptor = FetchDescriptor<Task>(
                 predicate: #Predicate { $0.scheduledStartTime != nil && !$0.isCompleted }
@@ -256,6 +280,9 @@ final class AppEnvironment: ObservableObject {
                     userSettings: userSettings
                 )
             }
+
+            // Track when we last scheduled notifications
+            lastNotificationScheduleDate = Calendar.current.startOfDay(for: Date())
         }
 
         isInitialized = true
@@ -288,6 +315,63 @@ final class AppEnvironment: ObservableObject {
             print("✅ Prayer times refreshed")
         } catch {
             print("❌ Failed to refresh prayer times: \(error)")
+        }
+    }
+
+    /// Called when app becomes active - reschedules notifications if it's a new day
+    func checkAndRescheduleNotifications() async {
+        let today = Calendar.current.startOfDay(for: Date())
+
+        // Only reschedule if it's a new day since last schedule
+        guard lastNotificationScheduleDate != today else {
+            return
+        }
+
+        guard let lat = userSettings.lastKnownLatitude,
+              let lon = userSettings.lastKnownLongitude else {
+            return
+        }
+
+        guard notificationManager.isEnabled && userSettings.notificationsEnabled else {
+            return
+        }
+
+        print("📅 New day detected - rescheduling notifications...")
+
+        // Remove old prayer notifications
+        notificationManager.removeAllPrayerNotifications()
+
+        // Fetch and schedule today's prayers
+        do {
+            let todayPrayers = try await prayerTimeService.fetchPrayerTimes(
+                for: Date(),
+                latitude: lat,
+                longitude: lon,
+                method: userSettings.calculationMethod
+            )
+            await notificationManager.schedulePrayerNotifications(
+                for: todayPrayers,
+                userSettings: userSettings
+            )
+
+            // Also schedule tomorrow's prayers
+            if let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) {
+                let tomorrowPrayers = try await prayerTimeService.fetchPrayerTimes(
+                    for: tomorrow,
+                    latitude: lat,
+                    longitude: lon,
+                    method: userSettings.calculationMethod
+                )
+                await notificationManager.schedulePrayerNotifications(
+                    for: tomorrowPrayers,
+                    userSettings: userSettings
+                )
+            }
+
+            lastNotificationScheduleDate = today
+            print("✅ Notifications rescheduled for new day")
+        } catch {
+            print("❌ Failed to reschedule notifications: \(error)")
         }
     }
 

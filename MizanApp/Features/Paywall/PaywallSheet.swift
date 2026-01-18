@@ -98,6 +98,7 @@ struct PaywallSheet: View {
                             .font(.system(size: 24))
                             .foregroundColor(themeManager.textSecondaryColor)
                     }
+                    .accessibilityLabel("إغلاق نافذة الاشتراك")
                 }
             }
             .alert("خطأ", isPresented: $showError) {
@@ -450,6 +451,9 @@ struct PricingCard: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(product.isLifetime ? "مدى الحياة" : product.periodText)، \(product.localizedPrice)\(badge != nil ? "، \(badge!)" : "")")
+        .accessibilityValue(isSelected ? "محدد" : "غير محدد")
+        .accessibilityHint("اضغط مرتين للاختيار")
     }
 }
 

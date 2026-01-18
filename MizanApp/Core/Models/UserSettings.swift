@@ -22,9 +22,20 @@ final class UserSettings {
 
     // MARK: - Prayer Settings
     var calculationMethod: CalculationMethod
-    var prayerAdjustments: [String: Int] // PrayerType.rawValue -> offset minutes
+    private var prayerAdjustmentsJSON: String = "{}" // Store as JSON to avoid SwiftData array issues
     var enableJummahMode: Bool
     var jummahCustomTime: Date? // If different from Dhuhr
+
+    /// PrayerType.rawValue -> offset minutes
+    @Transient
+    var prayerAdjustments: [String: Int] {
+        get {
+            (try? JSONDecoder().decode([String: Int].self, from: Data(prayerAdjustmentsJSON.utf8))) ?? [:]
+        }
+        set {
+            prayerAdjustmentsJSON = (try? String(data: JSONEncoder().encode(newValue), encoding: .utf8)) ?? "{}"
+        }
+    }
 
     // MARK: - Location
     var lastKnownLatitude: Double?
@@ -45,10 +56,49 @@ final class UserSettings {
     var proExpiryDate: Date?
     var proSubscriptionType: String? // "monthly", "annual", "lifetime"
     var nawafilEnabled: Bool
-    var enabledNawafil: [String] // NawafilType IDs
-    var nawafilRakaatPreferences: [String: Int] = [:] // nawafil type -> user's chosen rakaat count
-    var nawafilTimePreferences: [String: Int] = [:] // nawafil type -> minutes since midnight (e.g., 9:30 AM = 570)
+
+    // SwiftData requires explicit storage configuration for arrays/dictionaries
+    // Store as JSON strings internally, provide typed accessors
+    private var enabledNawafilJSON: String = "[]"
+    private var nawafilRakaatPreferencesJSON: String = "{}"
+    private var nawafilTimePreferencesJSON: String = "{}"
+
     var calendarSyncEnabled: Bool
+
+    // MARK: - Computed Accessors for Array/Dictionary Properties
+
+    /// NawafilType IDs that are enabled
+    @Transient
+    var enabledNawafil: [String] {
+        get {
+            (try? JSONDecoder().decode([String].self, from: Data(enabledNawafilJSON.utf8))) ?? []
+        }
+        set {
+            enabledNawafilJSON = (try? String(data: JSONEncoder().encode(newValue), encoding: .utf8)) ?? "[]"
+        }
+    }
+
+    /// Nawafil type -> user's chosen rakaat count
+    @Transient
+    var nawafilRakaatPreferences: [String: Int] {
+        get {
+            (try? JSONDecoder().decode([String: Int].self, from: Data(nawafilRakaatPreferencesJSON.utf8))) ?? [:]
+        }
+        set {
+            nawafilRakaatPreferencesJSON = (try? String(data: JSONEncoder().encode(newValue), encoding: .utf8)) ?? "{}"
+        }
+    }
+
+    /// Nawafil type -> minutes since midnight (e.g., 9:30 AM = 570)
+    @Transient
+    var nawafilTimePreferences: [String: Int] {
+        get {
+            (try? JSONDecoder().decode([String: Int].self, from: Data(nawafilTimePreferencesJSON.utf8))) ?? [:]
+        }
+        set {
+            nawafilTimePreferencesJSON = (try? String(data: JSONEncoder().encode(newValue), encoding: .utf8)) ?? "{}"
+        }
+    }
 
     // MARK: - Onboarding
     var hasCompletedOnboarding: Bool
@@ -74,7 +124,7 @@ final class UserSettings {
 
         // Prayer settings
         self.calculationMethod = .mwl // Will be detected based on location
-        self.prayerAdjustments = [:]
+        // prayerAdjustments uses default JSON string "{}"
         self.enableJummahMode = true
         self.jummahCustomTime = nil
 
@@ -97,9 +147,7 @@ final class UserSettings {
         self.proExpiryDate = nil
         self.proSubscriptionType = nil
         self.nawafilEnabled = false
-        self.enabledNawafil = []
-        self.nawafilRakaatPreferences = [:]
-        self.nawafilTimePreferences = [:]
+        // enabledNawafil, nawafilRakaatPreferences, nawafilTimePreferences use default JSON strings
         self.calendarSyncEnabled = false
 
         // Onboarding
