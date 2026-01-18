@@ -117,6 +117,43 @@ struct SettingsView: View {
                                     .environmentObject(themeManager)
                             }
                             .buttonStyle(.plain)
+
+                            SettingsDivider().environmentObject(themeManager)
+
+                            // Hijri Date Toggle
+                            HStack {
+                                HStack(spacing: MZSpacing.sm) {
+                                    Image(systemName: "moon.stars.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(.indigo)
+                                        .frame(width: 32, height: 32)
+                                        .background(Color.indigo.opacity(0.15))
+                                        .cornerRadius(8)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("التاريخ الهجري")
+                                            .font(MZTypography.bodyLarge)
+                                            .foregroundColor(themeManager.textPrimaryColor)
+                                        Text("عرض التاريخ الهجري في الجدول")
+                                            .font(MZTypography.labelSmall)
+                                            .foregroundColor(themeManager.textSecondaryColor)
+                                    }
+                                }
+
+                                Spacer()
+
+                                Toggle("", isOn: Binding(
+                                    get: { appEnvironment.userSettings.showHijriDate },
+                                    set: { newValue in
+                                        appEnvironment.userSettings.showHijriDate = newValue
+                                        appEnvironment.save()
+                                        HapticManager.shared.trigger(.selection)
+                                    }
+                                ))
+                                .tint(themeManager.primaryColor)
+                                .labelsHidden()
+                            }
+                            .padding(MZSpacing.md)
                         }
                         .environmentObject(themeManager)
                     }

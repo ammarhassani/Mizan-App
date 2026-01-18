@@ -511,6 +511,13 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 }
 
+// MARK: - Notification Names for App Communication
+
+extension Notification.Name {
+    /// Posted when user taps "Mark Complete" on a task notification
+    static let taskCompletedFromNotification = Notification.Name("taskCompletedFromNotification")
+}
+
 // MARK: - UNUserNotificationCenterDelegate
 
 extension NotificationManager: UNUserNotificationCenterDelegate {
@@ -531,17 +538,51 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
+        let originalContent = response.notification.request.content
 
         switch response.actionIdentifier {
         case Action.completeTask.rawValue:
-            if let taskId = userInfo["taskId"] as? String {
-                // TODO: Mark task as complete
-                print("✅ Completing task: \(taskId)")
+            if let taskIdString = userInfo["taskId"] as? String {
+                // Post notification to main thread for task completion
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: .taskCompletedFromNotification,
+                        object: nil,
+                        userInfo: ["taskId": taskIdString]
+                    )
+                }
+                print("✅ Posted task completion for: \(taskIdString)")
             }
 
         case Action.snooze.rawValue:
             // Reschedule notification for 15 minutes later
-            print("⏰ Snoozing notification")
+            let snoozeMinutes = 15
+            let newContent = UNMutableNotificationContent()
+            newContent.title = originalContent.title
+            newContent.body = "⏰ تم التأجيل - \(originalContent.body)"
+            newContent.sound = .default
+            newContent.categoryIdentifier = originalContent.categoryIdentifier
+            newContent.userInfo = userInfo
+
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: TimeInterval(snoozeMinutes * 60),
+                repeats: false
+            )
+
+            let identifier = "snoozed_\(UUID().uuidString)"
+            let request = UNNotificationRequest(
+                identifier: identifier,
+                content: newContent,
+                trigger: trigger
+            )
+
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("❌ Failed to snooze notification: \(error)")
+                } else {
+                    print("⏰ Snoozed notification for \(snoozeMinutes) minutes")
+                }
+            }
 
         default:
             break

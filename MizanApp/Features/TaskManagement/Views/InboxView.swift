@@ -46,6 +46,10 @@ struct InboxView: View {
     @State private var showScheduleSheet = false
     @State private var taskToSchedule: Task?
 
+    // MARK: - Recurring Task Confirmation
+    @State private var showRecurringDeleteConfirmation = false
+    @State private var taskToDelete: Task? = nil
+
     // MARK: - Filtered Tasks
 
     private var filteredTasks: [Task] {
@@ -64,12 +68,14 @@ struct InboxView: View {
     }
 
     private var taskCounts: [TaskFilter: Int] {
-        [
-            .all: allTasks.filter { !$0.isCompleted }.count,
-            .inbox: allTasks.filter { $0.scheduledStartTime == nil && !$0.isCompleted }.count,
-            .scheduled: allTasks.filter { $0.scheduledStartTime != nil && !$0.isCompleted }.count,
-            .overdue: allTasks.filter { $0.isOverdue }.count,
-            .completed: allTasks.filter { $0.isCompleted }.count
+        // Only count parent/standalone tasks, not recurring instances
+        let parentTasks = allTasks.filter { $0.parentTaskId == nil }
+        return [
+            .all: parentTasks.filter { !$0.isCompleted }.count,
+            .inbox: parentTasks.filter { $0.scheduledStartTime == nil && !$0.isCompleted }.count,
+            .scheduled: parentTasks.filter { $0.scheduledStartTime != nil && !$0.isCompleted }.count,
+            .overdue: parentTasks.filter { $0.isOverdue }.count,
+            .completed: parentTasks.filter { $0.isCompleted }.count
         ]
     }
 
@@ -205,6 +211,27 @@ struct InboxView: View {
                         .environmentObject(appEnvironment)
                         .environmentObject(themeManager)
                 }
+            }
+            .confirmationDialog(
+                "حذف المهمة المتكررة",
+                isPresented: $showRecurringDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("حذف هذه المرة فقط", role: .destructive) {
+                    if let task = taskToDelete {
+                        deleteThisInstanceOnly(task)
+                    }
+                }
+                Button("حذف جميع التكرارات", role: .destructive) {
+                    if let task = taskToDelete {
+                        deleteAllInstances(task)
+                    }
+                }
+                Button("إلغاء", role: .cancel) {
+                    taskToDelete = nil
+                }
+            } message: {
+                Text("هل تريد حذف هذه المرة فقط أم جميع تكرارات المهمة؟")
             }
         }
     }
@@ -471,55 +498,94 @@ struct InboxView: View {
     }
 
     private func deleteTask(_ task: Task) {
-        print("🗑️ [INBOX] DELETE TASK: '\(task.title)'")
-        print("   - task.id: \(task.id)")
-        print("   - parentTaskId: \(task.parentTaskId?.uuidString ?? "nil")")
-        print("   - scheduledDate: \(task.scheduledDate?.description ?? "nil")")
-        print("   - recurrenceRule: \(task.recurrenceRule != nil ? "YES" : "nil")")
-        print("   - isRecurring: \(task.isRecurring)")
+        // Check if this is a recurring task (has parent or has recurrence rule)
+        let isRecurringTask = task.parentTaskId != nil || task.recurrenceRule != nil
 
-        var parentTaskToSave: Task? = nil
+        if isRecurringTask {
+            // Show confirmation dialog
+            taskToDelete = task
+            showRecurringDeleteConfirmation = true
+        } else {
+            // Regular task - delete directly
+            deleteNonRecurringTask(task)
+        }
+    }
 
-        // If this is a recurring instance, mark it as dismissed on the parent
+    /// Delete a non-recurring task directly
+    private func deleteNonRecurringTask(_ task: Task) {
+        print("🗑️ [INBOX] DELETE NON-RECURRING TASK: '\(task.title)'")
+        modelContext.delete(task)
+        try? modelContext.save()
+        HapticManager.shared.trigger(.warning)
+    }
+
+    /// Delete only this instance of a recurring task
+    private func deleteThisInstanceOnly(_ task: Task) {
+        print("🗑️ [INBOX] DELETE THIS INSTANCE ONLY: '\(task.title)'")
+
+        // If this is a child instance, mark the date as dismissed on parent
         if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
-            print("   → This is a CHILD instance, looking for parent...")
             let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
             if let parentTask = try? modelContext.fetch(descriptor).first {
-                print("   → Found parent '\(parentTask.title)' (id: \(parentTask.id)), dismissing date \(scheduledDate)")
-                print("   → Parent dismissedInstanceDates BEFORE: \(parentTask.dismissedInstanceDates ?? [])")
                 parentTask.dismissRecurringInstance(for: scheduledDate)
-                print("   → Parent dismissedInstanceDates AFTER: \(parentTask.dismissedInstanceDates ?? [])")
-                parentTaskToSave = parentTask
-            } else {
-                print("   ❌ Parent task NOT FOUND!")
+                print("   → Dismissed date \(scheduledDate) on parent")
             }
         }
-        // If this is a parent recurring task being deleted for a specific date, mark that date as dismissed
+        // If this is a parent task, just dismiss the date (don't delete the parent)
         else if task.recurrenceRule != nil, let scheduledDate = task.scheduledDate {
-            print("   → This is a PARENT recurring task, dismissing date \(scheduledDate)")
             task.dismissRecurringInstance(for: scheduledDate)
-            print("   → dismissedInstanceDates: \(task.dismissedInstanceDates ?? [])")
-            print("   ⚠️ WARNING: Deleting parent task - dismissed date will be lost!")
-        } else {
-            print("   → This is a REGULAR (non-recurring) task")
+            // Don't delete the parent - just save the dismissal and return
+            try? modelContext.save()
+            taskToDelete = nil
+            HapticManager.shared.trigger(.warning)
+            return
         }
 
-        // Delete the task first
+        // Delete the instance
         modelContext.delete(task)
+        try? modelContext.save()
+        taskToDelete = nil
+        HapticManager.shared.trigger(.warning)
+    }
 
-        // Single atomic save for all changes (dismissal + deletion)
-        do {
-            try modelContext.save()
-            print("   ✅ Task deleted and all changes saved successfully")
+    /// Delete all instances of a recurring task (parent + all children)
+    private func deleteAllInstances(_ task: Task) {
+        print("🗑️ [INBOX] DELETE ALL INSTANCES: '\(task.title)'")
 
-            // Verify the parent's dismissedInstanceDates persisted
-            if let parent = parentTaskToSave {
-                print("   🔍 VERIFY: Parent dismissedInstanceDates after save: \(parent.dismissedInstanceDates ?? [])")
-            }
-        } catch {
-            print("   ❌ Failed to save: \(error)")
+        // Find the parent task ID
+        let parentId: UUID
+        if let pid = task.parentTaskId {
+            // This is a child instance - get parent ID
+            parentId = pid
+        } else {
+            // This is the parent task itself
+            parentId = task.id
         }
 
+        // Find all tasks with this parentTaskId (children)
+        let childDescriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.parentTaskId == parentId })
+        let childTasks = (try? modelContext.fetch(childDescriptor)) ?? []
+
+        // Find and delete the parent task
+        let parentDescriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
+        if let parentTask = try? modelContext.fetch(parentDescriptor).first {
+            modelContext.delete(parentTask)
+            print("   → Deleted parent task")
+        }
+
+        // Delete all child instances
+        for child in childTasks {
+            modelContext.delete(child)
+        }
+        print("   → Deleted \(childTasks.count) child instances")
+
+        // Also delete the current task if it wasn't already deleted
+        if task.parentTaskId == nil && task.id != parentId {
+            modelContext.delete(task)
+        }
+
+        try? modelContext.save()
+        taskToDelete = nil
         HapticManager.shared.trigger(.warning)
     }
 
@@ -611,13 +677,13 @@ struct TaskRowWithCheckbox: View {
             // Task content (tappable for editing)
             Button(action: onTap) {
                 HStack(spacing: 12) {
-                    // Category icon
+                    // Task icon
                     ZStack {
                         Circle()
                             .fill(Color(hex: task.colorHex).opacity(0.2))
                             .frame(width: 40, height: 40)
 
-                        Image(systemName: task.category.icon)
+                        Image(systemName: task.icon)
                             .font(.system(size: 18))
                             .foregroundColor(Color(hex: task.colorHex))
                     }
@@ -688,7 +754,7 @@ struct TaskRowWithCheckbox: View {
         .background(themeManager.surfaceColor)
         .cornerRadius(themeManager.cornerRadius(.medium))
         .shadow(
-            color: Color.black.opacity(0.05),
+            color: themeManager.overlayColor.opacity(0.05),
             radius: 4,
             x: 0,
             y: 2
@@ -736,13 +802,13 @@ struct TaskRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Category icon
+            // Task icon
             ZStack {
                 Circle()
                     .fill(Color(hex: task.colorHex).opacity(0.2))
                     .frame(width: 44, height: 44)
 
-                Image(systemName: task.category.icon)
+                Image(systemName: task.icon)
                     .font(.system(size: 20))
                     .foregroundColor(Color(hex: task.colorHex))
             }
@@ -763,11 +829,6 @@ struct TaskRow: View {
                             .font(.system(size: 14))
                     }
                     .foregroundColor(themeManager.textSecondaryColor)
-
-                    // Category
-                    Text(task.category.nameArabic)
-                        .font(.system(size: 14))
-                        .foregroundColor(themeManager.textSecondaryColor)
 
                     if task.recurrenceRule != nil {
                         HStack(spacing: 4) {
@@ -792,7 +853,7 @@ struct TaskRow: View {
         .background(themeManager.surfaceColor)
         .cornerRadius(themeManager.cornerRadius(.medium))
         .shadow(
-            color: Color.black.opacity(0.05),
+            color: themeManager.overlayColor.opacity(0.05),
             radius: 4,
             x: 0,
             y: 2
@@ -841,7 +902,7 @@ struct CompletedTaskRow: View {
         .background(themeManager.surfaceColor.opacity(0.6))
         .cornerRadius(themeManager.cornerRadius(.medium))
         .shadow(
-            color: Color.black.opacity(0.03),
+            color: themeManager.overlayColor.opacity(0.03),
             radius: 2,
             x: 0,
             y: 1
@@ -917,10 +978,10 @@ struct ScheduleTaskSheet: View {
                     Section {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(themeManager.warningColor)
                             Text("يتعارض هذا الوقت مع وقت صلاة")
                                 .font(.system(size: 15))
-                                .foregroundColor(.orange)
+                                .foregroundColor(themeManager.warningColor)
                         }
                     }
                 }
@@ -933,12 +994,12 @@ struct ScheduleTaskSheet: View {
                             Spacer()
                             Text(hasConflict ? "جدولة على أي حال" : "جدولة")
                                 .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(themeManager.textOnPrimaryColor)
                             Spacer()
                         }
                     }
                     .listRowBackground(
-                        (hasConflict ? Color.orange : themeManager.primaryColor)
+                        (hasConflict ? themeManager.warningColor : themeManager.primaryColor)
                             .cornerRadius(8)
                     )
                 }

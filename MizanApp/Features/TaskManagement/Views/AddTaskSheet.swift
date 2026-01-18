@@ -2,7 +2,9 @@
 //  AddTaskSheet.swift
 //  Mizan
 //
-//  Modern two-tier task creation sheet with progressive disclosure
+//  Two-step task creation flow (Structured-style)
+//  Step 1: Title + Intelligent Icon + Suggestions
+//  Step 2: Date, Time, Duration scheduling
 //
 
 import SwiftUI
@@ -16,53 +18,56 @@ struct AddTaskSheet: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.modelContext) private var modelContext
 
-    // MARK: - Queries
-    @Query(sort: \UserCategory.order) private var userCategories: [UserCategory]
+    // MARK: - Step State
+
+    enum Step {
+        case step1 // Title + Icon
+        case step2 // Scheduling
+    }
+
+    @State private var currentStep: Step = .step1
 
     // MARK: - Form State
+
     @State private var title = ""
+    @State private var icon = "circle.fill"
     @State private var duration = 30
     @State private var selectedCategory: TaskCategory = .personal
-    @State private var selectedUserCategory: UserCategory?
     @State private var notes = ""
     @State private var enableRecurrence = false
     @State private var recurrenceFrequency: RecurrenceRule.Frequency = .daily
     @State private var recurrenceDays: [Int] = []
-    @State private var scheduleNow = false
     @State private var scheduledDate = Date()
     @State private var scheduledTime = Date()
-    @State private var hasDueDate = false
-    @State private var dueDate = Date()
 
     // MARK: - UI State
-    @State private var showAdvancedOptions = false
-    @State private var showCustomDurationPicker = false
-    @FocusState private var isTitleFocused: Bool
 
-    // MARK: - Available Durations
-    private let availableDurations = [15, 30, 45, 60, 90, 120, 180, 240]
+    @State private var showRecurringDeleteConfirmation = false
 
-    private var isCustomDuration: Bool {
-        !availableDurations.contains(duration)
+    // MARK: - Computed Properties
+
+    private var isEditing: Bool {
+        task != nil
+    }
+
+    private var isPro: Bool {
+        appEnvironment.userSettings.isPro
     }
 
     // MARK: - Initialization
 
-    init(task: Task?) {
+    init(task: Task? = nil) {
         self.task = task
 
         if let task = task {
             _title = State(initialValue: task.title)
+            _icon = State(initialValue: task.icon)
             _duration = State(initialValue: task.duration)
             _selectedCategory = State(initialValue: task.category)
             _notes = State(initialValue: task.notes ?? "")
             _enableRecurrence = State(initialValue: task.recurrenceRule != nil)
-            _showAdvancedOptions = State(initialValue: task.notes?.isEmpty == false || task.recurrenceRule != nil || task.scheduledStartTime != nil || task.dueDate != nil)
-
-            if let taskDueDate = task.dueDate {
-                _hasDueDate = State(initialValue: true)
-                _dueDate = State(initialValue: taskDueDate)
-            }
+            // For editing, skip to step 2
+            _currentStep = State(initialValue: .step2)
 
             if let rule = task.recurrenceRule {
                 _recurrenceFrequency = State(initialValue: rule.frequency)
@@ -72,647 +77,200 @@ struct AddTaskSheet: View {
             }
 
             if let scheduledStart = task.scheduledStartTime {
-                _scheduleNow = State(initialValue: true)
                 _scheduledDate = State(initialValue: scheduledStart)
                 _scheduledTime = State(initialValue: scheduledStart)
             }
         }
     }
 
-    // MARK: - Computed Properties
-
-    private var isFormValid: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var isEditing: Bool {
-        task != nil
-    }
-
     // MARK: - Body
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 themeManager.backgroundColor.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // Scrollable content
-                    ScrollView {
-                        VStack(spacing: MZSpacing.lg) {
-                            // TIER 1: ESSENTIALS (Always Visible)
-                            titleSection
-                            durationSection
-                            categorySection
+                switch currentStep {
+                case .step1:
+                    step1View
 
-                            // TIER 2: ADVANCED (Collapsible)
-                            advancedSection
-                        }
-                        .padding(MZSpacing.screenPadding)
-                        .padding(.bottom, 100) // Space for fixed button
-                    }
-
-                    // Fixed Save Button
-                    saveButtonSection
+                case .step2:
+                    step2View
                 }
             }
-            .navigationTitle(isEditing ? "تعديل المهمة" : "مهمة جديدة")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("إلغاء") {
-                        dismiss()
+                    Button {
+                        if currentStep == .step2 && !isEditing {
+                            // Go back to step 1
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                currentStep = .step1
+                            }
+                        } else {
+                            dismiss()
+                        }
+                    } label: {
+                        Image(systemName: currentStep == .step2 && !isEditing ? "chevron.left" : "xmark")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(themeManager.textOnPrimaryColor)
+                            .frame(width: 44, height: 44)
+                            .background(
+                                Circle()
+                                    .fill(themeManager.surfaceColor.opacity(0.3))
+                            )
+                            .contentShape(Circle())
                     }
+                    .accessibilityLabel(currentStep == .step2 && !isEditing ? "رجوع" : "إغلاق")
+                    .accessibilityHint(currentStep == .step2 && !isEditing ? "العودة للخطوة السابقة" : "إغلاق النموذج")
                 }
 
                 if isEditing {
                     ToolbarItem(placement: .destructiveAction) {
                         Button(role: .destructive) {
-                            deleteTask()
+                            handleDeleteTapped()
                         } label: {
                             Image(systemName: "trash")
                                 .foregroundColor(themeManager.errorColor)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
                         }
+                        .accessibilityLabel("حذف المهمة")
+                        .accessibilityHint("اضغط لحذف هذه المهمة")
                     }
                 }
             }
-            .onTapGesture {
-                // Dismiss keyboard when tapping outside
-                hideKeyboard()
+            .confirmationDialog(
+                "Delete Recurring Task",
+                isPresented: $showRecurringDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete this instance only", role: .destructive) {
+                    deleteThisInstanceOnly()
+                }
+                Button("Delete all instances", role: .destructive) {
+                    deleteAllInstances()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Do you want to delete only this instance or all recurring instances?")
             }
         }
     }
 
-    // MARK: - Title Section
+    // MARK: - Step 1 View
 
-    private var titleSection: some View {
-        VStack(alignment: .leading, spacing: MZSpacing.xs) {
-            MZFloatingTextField(
-                text: $title,
-                placeholder: "عنوان المهمة",
-                icon: "pencil"
-            )
-            .environmentObject(themeManager)
-            .focused($isTitleFocused)
-            .validationFeedback(titleValidationState)
-        }
-    }
-
-    private var titleValidationState: ValidationState {
-        if title.isEmpty {
-            return .idle
-        } else if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return .error("العنوان لا يمكن أن يكون فارغاً")
-        } else {
-            return .idle
-        }
-    }
-
-    // MARK: - Duration Section (Horizontal Chips)
-
-    private var durationSection: some View {
-        VStack(alignment: .leading, spacing: MZSpacing.sm) {
-            Text("المدة")
-                .font(MZTypography.labelLarge)
-                .foregroundColor(themeManager.textSecondaryColor)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: MZSpacing.xs + 2) {
-                    ForEach(availableDurations, id: \.self) { minutes in
-                        DurationChipNew(
-                            minutes: minutes,
-                            isSelected: duration == minutes,
-                            action: {
-                                withAnimation(MZAnimation.snappy) {
-                                    duration = minutes
-                                }
-                                HapticManager.shared.trigger(.selection)
-                            }
-                        )
-                        .environmentObject(themeManager)
-                    }
-
-                    // Custom duration chip
-                    Button {
-                        showCustomDurationPicker = true
-                        HapticManager.shared.trigger(.selection)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 12))
-                            Text(isCustomDuration ? formatCustomDuration(duration) : "مخصص")
-                                .font(MZTypography.labelLarge)
-                        }
-                        .foregroundColor(isCustomDuration ? themeManager.textOnPrimaryColor : themeManager.textPrimaryColor)
-                        .frame(minWidth: 56)
-                        .padding(.horizontal, MZSpacing.md)
-                        .padding(.vertical, MZSpacing.xs)
-                        .background(
-                            Capsule()
-                                .fill(isCustomDuration ? themeManager.primaryColor : themeManager.surfaceSecondaryColor)
-                        )
-                    }
-                    .buttonStyle(PressableButtonStyle())
+    private var step1View: some View {
+        TaskCreationStep1View(
+            title: $title,
+            icon: $icon,
+            duration: $duration,
+            scheduledTime: $scheduledTime,
+            onContinue: {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    currentStep = .step2
                 }
-                .padding(.vertical, 4)
-            }
-            // Removed: .flipsForRightToLeftLayoutDirection + .environment(\.layoutDirection) causes text inversion
-        }
-        .sheet(isPresented: $showCustomDurationPicker) {
-            CustomDurationPickerSheet(duration: $duration)
-                .environmentObject(themeManager)
-        }
-    }
-
-    private func formatCustomDuration(_ minutes: Int) -> String {
-        if minutes < 60 {
-            return "\(minutes) د"
-        } else {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            if remainingMinutes == 0 {
-                return "\(hours) س"
-            } else {
-                return "\(hours):\(String(format: "%02d", remainingMinutes))"
-            }
-        }
-    }
-
-    // MARK: - Category Section (Horizontal Scroll with 3D Chips)
-
-    private var categorySection: some View {
-        VStack(alignment: .leading, spacing: MZSpacing.sm) {
-            Text("الفئة")
-                .font(MZTypography.labelLarge)
-                .foregroundColor(themeManager.textSecondaryColor)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: MZSpacing.sm) {
-                    // Use UserCategories if available, fall back to TaskCategory enum
-                    if !userCategories.isEmpty {
-                        ForEach(userCategories) { category in
-                            MZUserCategoryChip3D(
-                                category: category,
-                                isSelected: selectedUserCategory?.id == category.id,
-                                action: {
-                                    withAnimation(MZAnimation.bouncy) {
-                                        selectedUserCategory = category
-                                        // Also update legacy category for backwards compatibility
-                                        if let legacyCategory = TaskCategory(rawValue: category.name.lowercased()) {
-                                            selectedCategory = legacyCategory
-                                        }
-                                    }
-                                    HapticManager.shared.trigger(.selection)
-                                }
-                            )
-                            .environmentObject(themeManager)
-                        }
-                    } else {
-                        // Fallback to legacy TaskCategory enum with 3D chips
-                        ForEach(TaskCategory.allCases, id: \.self) { category in
-                            MZTaskCategoryChip3D(
-                                category: category,
-                                isSelected: selectedCategory == category,
-                                action: {
-                                    withAnimation(MZAnimation.bouncy) {
-                                        selectedCategory = category
-                                    }
-                                    HapticManager.shared.trigger(.selection)
-                                }
-                            )
-                            .environmentObject(themeManager)
-                        }
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-            // Removed: .flipsForRightToLeftLayoutDirection + .environment(\.layoutDirection) causes text inversion
-            .fixedSize(horizontal: false, vertical: true)
-
-            // Category hint text
-            Text(selectedCategory.hintArabic)
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(themeManager.textSecondaryColor)
-                .padding(.horizontal, 4)
-                .padding(.top, 2)
-                .animation(.easeInOut(duration: 0.2), value: selectedCategory)
-        }
-        .onAppear {
-            // Set initial selected category if not already set
-            if selectedUserCategory == nil && !userCategories.isEmpty {
-                // Find matching category or use first
-                if let task = task, let taskCategory = task.userCategory {
-                    selectedUserCategory = taskCategory
-                } else {
-                    let legacyName = selectedCategory.rawValue.capitalized
-                    selectedUserCategory = userCategories.first { $0.name == legacyName } ?? userCategories.first
+            },
+            onSelectSuggestion: { _ in
+                // Auto-continue to step 2 when suggestion selected
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    currentStep = .step2
                 }
             }
-        }
-    }
-
-    // MARK: - Advanced Section (Collapsible)
-
-    private var advancedSection: some View {
-        VStack(spacing: MZSpacing.md) {
-            // Disclosure button
-            Button {
-                withAnimation(MZAnimation.gentle) {
-                    showAdvancedOptions.toggle()
-                }
-                HapticManager.shared.trigger(.light)
-            } label: {
-                HStack {
-                    Text("خيارات إضافية")
-                        .font(MZTypography.titleSmall)
-                        .foregroundColor(themeManager.textPrimaryColor)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(themeManager.textSecondaryColor)
-                        .rotationEffect(.degrees(showAdvancedOptions ? 180 : 0))
-                }
-                .padding(MZSpacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(themeManager.surfaceSecondaryColor)
-                )
-            }
-            .buttonStyle(PressableButtonStyle())
-
-            // Collapsible content
-            if showAdvancedOptions {
-                VStack(spacing: MZSpacing.md) {
-                    scheduleSection
-                    dueDateSection
-                    recurrenceSection
-                    notesSection
-                }
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .move(edge: .top)),
-                    removal: .opacity
-                ))
-            }
-        }
-    }
-
-    // MARK: - Schedule Section
-
-    private var scheduleSection: some View {
-        VStack(spacing: MZSpacing.sm) {
-            // Toggle row
-            HStack {
-                HStack(spacing: MZSpacing.sm) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 18))
-                        .foregroundColor(themeManager.primaryColor)
-                        .symbolEffect(.bounce, value: scheduleNow)
-
-                    Text("جدولة")
-                        .font(MZTypography.bodyLarge)
-                        .foregroundColor(themeManager.textPrimaryColor)
-                }
-
-                Spacer()
-
-                Toggle("", isOn: $scheduleNow)
-                    .labelsHidden()
-                    .tint(themeManager.primaryColor)
-            }
-            .padding(MZSpacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(themeManager.surfaceSecondaryColor)
-            )
-            .onChange(of: scheduleNow) { _, value in
-                HapticManager.shared.trigger(value ? .success : .light)
-            }
-
-            // Date/Time pickers
-            if scheduleNow {
-                VStack(spacing: MZSpacing.sm) {
-                    DatePicker(
-                        "التاريخ",
-                        selection: $scheduledDate,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.compact)
-                    .padding(MZSpacing.md)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(themeManager.surfaceSecondaryColor)
-                    )
-
-                    DatePicker(
-                        "الوقت",
-                        selection: $scheduledTime,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .datePickerStyle(.compact)
-                    .padding(MZSpacing.md)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(themeManager.surfaceSecondaryColor)
-                    )
-                }
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
-        }
-    }
-
-    // MARK: - Due Date Section
-
-    private var dueDateSection: some View {
-        VStack(spacing: MZSpacing.sm) {
-            // Toggle row
-            HStack {
-                HStack(spacing: MZSpacing.sm) {
-                    Image(systemName: "flag")
-                        .font(.system(size: 18))
-                        .foregroundColor(themeManager.primaryColor)
-                        .symbolEffect(.bounce, value: hasDueDate)
-
-                    Text("موعد التسليم")
-                        .font(MZTypography.bodyLarge)
-                        .foregroundColor(themeManager.textPrimaryColor)
-                }
-
-                Spacer()
-
-                Toggle("", isOn: $hasDueDate)
-                    .labelsHidden()
-                    .tint(themeManager.primaryColor)
-            }
-            .padding(MZSpacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(themeManager.surfaceSecondaryColor)
-            )
-            .onChange(of: hasDueDate) { _, value in
-                HapticManager.shared.trigger(value ? .success : .light)
-                if value && dueDate < Date() {
-                    // Default to tomorrow if no due date set
-                    dueDate = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-                }
-            }
-
-            // Due date picker
-            if hasDueDate {
-                DatePicker(
-                    "التاريخ",
-                    selection: $dueDate,
-                    in: Date()...,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .datePickerStyle(.compact)
-                .padding(MZSpacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(themeManager.surfaceSecondaryColor)
-                )
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
-        }
-    }
-
-    // MARK: - Recurrence Section (Pro)
-
-    private var recurrenceSection: some View {
-        VStack(spacing: MZSpacing.sm) {
-            // Toggle row with Pro badge
-            HStack {
-                HStack(spacing: MZSpacing.sm) {
-                    Image(systemName: "repeat")
-                        .font(.system(size: 18))
-                        .foregroundColor(themeManager.primaryColor)
-                        .symbolEffect(.bounce, value: enableRecurrence)
-
-                    Text("التكرار")
-                        .font(MZTypography.bodyLarge)
-                        .foregroundColor(themeManager.textPrimaryColor)
-
-                    if !appEnvironment.userSettings.isPro {
-                        Text("Pro")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(themeManager.textPrimaryColor)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                Capsule()
-                                    .fill(themeManager.warningColor)
-                            )
-                    }
-                }
-
-                Spacer()
-
-                Toggle("", isOn: $enableRecurrence)
-                    .labelsHidden()
-                    .tint(themeManager.primaryColor)
-                    .disabled(!appEnvironment.userSettings.isPro)
-            }
-            .padding(MZSpacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(themeManager.surfaceSecondaryColor)
-            )
-            .onChange(of: enableRecurrence) { _, newValue in
-                if newValue && !appEnvironment.userSettings.isPro {
-                    enableRecurrence = false
-                    // TODO: Show paywall
-                } else {
-                    HapticManager.shared.trigger(newValue ? .success : .light)
-                }
-            }
-
-            // Recurrence options
-            if enableRecurrence && appEnvironment.userSettings.isPro {
-                VStack(spacing: MZSpacing.sm) {
-                    Picker("النمط", selection: $recurrenceFrequency) {
-                        Text("يومي").tag(RecurrenceRule.Frequency.daily)
-                        Text("أسبوعي").tag(RecurrenceRule.Frequency.weekly)
-                        Text("شهري").tag(RecurrenceRule.Frequency.monthly)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(MZSpacing.md)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(themeManager.surfaceSecondaryColor)
-                    )
-
-                    if recurrenceFrequency == .weekly {
-                        customDaysPicker
-                    }
-                }
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
-        }
-    }
-
-    // MARK: - Custom Days Picker
-
-    private var customDaysPicker: some View {
-        VStack(alignment: .leading, spacing: MZSpacing.xs) {
-            Text("اختر الأيام")
-                .font(MZTypography.labelLarge)
-                .foregroundColor(themeManager.textSecondaryColor)
-
-            HStack(spacing: MZSpacing.xs) {
-                ForEach(Array(1...7), id: \.self) { day in
-                    let dayName = Calendar.current.shortWeekdaySymbols[day - 1]
-                    let isSelected = recurrenceDays.contains(day)
-
-                    Button {
-                        withAnimation(MZAnimation.snappy) {
-                            if isSelected {
-                                recurrenceDays.removeAll { $0 == day }
-                            } else {
-                                recurrenceDays.append(day)
-                            }
-                        }
-                        HapticManager.shared.trigger(.selection)
-                    } label: {
-                        Text(dayName)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(isSelected ? themeManager.textOnPrimaryColor : themeManager.textPrimaryColor)
-                            .frame(width: 40, height: 40)
-                            .background(
-                                Circle()
-                                    .fill(isSelected ? themeManager.primaryColor : themeManager.surfaceSecondaryColor)
-                            )
-                    }
-                    .buttonStyle(PressableButtonStyle())
-                }
-            }
-        }
-        .padding(MZSpacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(themeManager.surfaceSecondaryColor)
         )
+        .environmentObject(themeManager)
     }
 
-    // MARK: - Notes Section
+    // MARK: - Step 2 View
 
-    private var notesSection: some View {
-        VStack(alignment: .leading, spacing: MZSpacing.xs) {
-            Text("ملاحظات")
-                .font(MZTypography.labelLarge)
-                .foregroundColor(themeManager.textSecondaryColor)
-
-            TextEditor(text: $notes)
-                .font(MZTypography.bodyLarge)
-                .frame(minHeight: 80, maxHeight: 150)
-                .padding(MZSpacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(themeManager.surfaceSecondaryColor)
-                )
-                .scrollContentBackground(.hidden)
-        }
-    }
-
-    // MARK: - Save Button (Fixed Bottom)
-
-    private var saveButtonSection: some View {
-        VStack(spacing: 0) {
-            Divider()
-                .opacity(0.5)
-
-            Button {
+    private var step2View: some View {
+        TaskCreationStep2View(
+            title: $title,
+            icon: $icon,
+            duration: $duration,
+            scheduledDate: $scheduledDate,
+            scheduledTime: $scheduledTime,
+            notes: $notes,
+            enableRecurrence: $enableRecurrence,
+            recurrenceFrequency: $recurrenceFrequency,
+            recurrenceDays: $recurrenceDays,
+            isEditing: isEditing,
+            isPro: isPro,
+            onSave: {
                 saveTask()
-            } label: {
-                Text(isEditing ? "حفظ التعديلات" : "إضافة المهمة")
-                    .font(MZTypography.titleSmall)
-                    .foregroundColor(themeManager.textOnPrimaryColor)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, MZSpacing.buttonPaddingV)
-                    .background(
-                        Capsule()
-                            .fill(isFormValid ? themeManager.primaryColor : themeManager.textSecondaryColor.opacity(0.5))
-                            .shadow(
-                                color: isFormValid ? themeManager.primaryColor.opacity(0.4) : .clear,
-                                radius: 8,
-                                y: 4
-                            )
-                    )
+            },
+            onBack: {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    currentStep = .step1
+                }
+            },
+            onAddToInbox: {
+                saveToInbox()
             }
-            .disabled(!isFormValid)
-            .buttonStyle(PressableButtonStyle())
-            .padding(.horizontal, MZSpacing.screenPadding)
-            .padding(.vertical, MZSpacing.md)
-            .background(themeManager.backgroundColor)
-        }
+        )
+        .environmentObject(themeManager)
+        .environmentObject(appEnvironment)
     }
 
-    // MARK: - Actions
+    // MARK: - Save Task
 
     private func saveTask() {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return }
+        let combinedTime = combineDateAndTime()
 
         if let existingTask = task {
             // Update existing task
-            existingTask.title = trimmedTitle
+            existingTask.title = title
+            existingTask.icon = icon
             existingTask.duration = duration
-            existingTask.category = selectedCategory
-            existingTask.userCategory = selectedUserCategory
             existingTask.notes = notes.isEmpty ? nil : notes
-            existingTask.dueDate = hasDueDate ? dueDate : nil
+            existingTask.scheduledStartTime = combinedTime
+            existingTask.scheduledDate = Calendar.current.startOfDay(for: combinedTime)
+            existingTask.updatedAt = Date()
 
-            if enableRecurrence && appEnvironment.userSettings.isPro {
-                let rule = RecurrenceRule(
+            // Handle recurrence
+            if enableRecurrence && isPro {
+                existingTask.recurrenceRule = RecurrenceRule(
                     frequency: recurrenceFrequency,
-                    interval: 1,
                     daysOfWeek: recurrenceFrequency == .weekly ? recurrenceDays : nil
                 )
-                existingTask.recurrenceRule = rule
                 existingTask.isRecurring = true
             } else {
                 existingTask.recurrenceRule = nil
                 existingTask.isRecurring = false
             }
 
-            if scheduleNow {
-                let combined = combineDateAndTime()
-                existingTask.scheduleAt(time: combined)
-            } else {
-                existingTask.moveToInbox()
+            // Reschedule notifications
+            appEnvironment.notificationManager.removeTaskNotifications(for: existingTask)
+            _Concurrency.Task {
+                await appEnvironment.notificationManager.scheduleTaskNotification(for: existingTask, userSettings: appEnvironment.userSettings)
             }
-
         } else {
             // Create new task
             let newTask = Task(
-                title: trimmedTitle,
+                title: title,
                 duration: duration,
                 category: selectedCategory,
+                icon: icon,
                 notes: notes.isEmpty ? nil : notes
             )
-            newTask.userCategory = selectedUserCategory
+            newTask.scheduledStartTime = combinedTime
+            newTask.scheduledDate = Calendar.current.startOfDay(for: combinedTime)
 
-            if enableRecurrence && appEnvironment.userSettings.isPro {
-                let rule = RecurrenceRule(
+            // Handle recurrence
+            if enableRecurrence && isPro {
+                newTask.recurrenceRule = RecurrenceRule(
                     frequency: recurrenceFrequency,
-                    interval: 1,
                     daysOfWeek: recurrenceFrequency == .weekly ? recurrenceDays : nil
                 )
-                newTask.recurrenceRule = rule
                 newTask.isRecurring = true
             }
 
-            if scheduleNow {
-                let combined = combineDateAndTime()
-                newTask.scheduleAt(time: combined)
-            }
-
-            // Set due date if enabled
-            if hasDueDate {
-                newTask.dueDate = dueDate
-            }
-
             modelContext.insert(newTask)
+
+            // Schedule notification
+            _Concurrency.Task {
+                await appEnvironment.notificationManager.scheduleTaskNotification(for: newTask, userSettings: appEnvironment.userSettings)
+            }
         }
 
         try? modelContext.save()
@@ -720,50 +278,29 @@ struct AddTaskSheet: View {
         dismiss()
     }
 
-    private func deleteTask() {
-        guard let task = task else { return }
-
-        print("🗑️ [ADDTASKSHEET] DELETE TASK: '\(task.title)'")
-        print("   - task.id: \(task.id)")
-        print("   - parentTaskId: \(task.parentTaskId?.uuidString ?? "nil")")
-        print("   - scheduledDate: \(task.scheduledDate?.description ?? "nil")")
-        print("   - recurrenceRule: \(task.recurrenceRule != nil ? "YES" : "nil")")
-
-        // If this is a recurring instance, mark it as dismissed on the parent
-        if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
-            print("   → This is a CHILD instance, looking for parent...")
-            let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
-            if let parentTask = try? modelContext.fetch(descriptor).first {
-                print("   → Found parent '\(parentTask.title)' (id: \(parentTask.id)), dismissing date \(scheduledDate)")
-                print("   → Parent dismissedInstanceDates BEFORE: \(parentTask.dismissedInstanceDates ?? [])")
-                parentTask.dismissRecurringInstance(for: scheduledDate)
-                print("   → Parent dismissedInstanceDates AFTER: \(parentTask.dismissedInstanceDates ?? [])")
-            } else {
-                print("   ❌ Parent task NOT FOUND!")
-            }
-        }
-        // If this is a parent recurring task being deleted for a specific date, mark that date as dismissed
-        else if task.recurrenceRule != nil, let scheduledDate = task.scheduledDate {
-            print("   → This is a PARENT recurring task, dismissing date \(scheduledDate)")
-            task.dismissRecurringInstance(for: scheduledDate)
-            print("   → dismissedInstanceDates: \(task.dismissedInstanceDates ?? [])")
-            print("   ⚠️ WARNING: Deleting parent task - dismissed date will be lost!")
+    private func saveToInbox() {
+        // Save task without scheduling (inbox)
+        if let existingTask = task {
+            existingTask.title = title
+            existingTask.icon = icon
+            existingTask.duration = duration
+            existingTask.notes = notes.isEmpty ? nil : notes
+            existingTask.scheduledStartTime = nil
+            existingTask.scheduledDate = nil
+            existingTask.updatedAt = Date()
         } else {
-            print("   → This is a REGULAR (non-recurring) task")
+            let newTask = Task(
+                title: title,
+                duration: duration,
+                category: selectedCategory,
+                icon: icon,
+                notes: notes.isEmpty ? nil : notes
+            )
+            modelContext.insert(newTask)
         }
 
-        // Delete the task
-        modelContext.delete(task)
-
-        // Single atomic save for all changes
-        do {
-            try modelContext.save()
-            print("   ✅ Task deleted and all changes saved successfully")
-        } catch {
-            print("   ❌ Failed to save: \(error)")
-        }
-
-        HapticManager.shared.trigger(.warning)
+        try? modelContext.save()
+        HapticManager.shared.trigger(.success)
         dismiss()
     }
 
@@ -779,400 +316,90 @@ struct AddTaskSheet: View {
         combined.hour = timeComponents.hour
         combined.minute = timeComponents.minute
 
-        // Round to nearest 15 minutes
-        let minute = combined.minute ?? 0
-        combined.minute = (minute / 15) * 15
-
         return calendar.date(from: combined) ?? Date()
     }
-}
 
-// MARK: - Duration Chip (New Design)
+    // MARK: - Delete Handling
 
-struct DurationChipNew: View {
-    let minutes: Int
-    let isSelected: Bool
-    let action: () -> Void
+    private func handleDeleteTapped() {
+        guard let task = task else { return }
 
-    @EnvironmentObject var themeManager: ThemeManager
+        let isRecurringTask = task.parentTaskId != nil || task.recurrenceRule != nil
 
-    private var displayText: String {
-        if minutes < 60 {
-            return "\(minutes) د"
+        if isRecurringTask {
+            showRecurringDeleteConfirmation = true
         } else {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            if remainingMinutes == 0 {
-                return "\(hours) س"
-            } else {
-                return "\(hours):\(remainingMinutes) س"
+            deleteNonRecurringTask()
+        }
+    }
+
+    private func deleteNonRecurringTask() {
+        guard let task = task else { return }
+        modelContext.delete(task)
+        try? modelContext.save()
+        HapticManager.shared.trigger(.warning)
+        dismiss()
+    }
+
+    private func deleteThisInstanceOnly() {
+        guard let task = task else { return }
+
+        if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
+            let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
+            if let parentTask = try? modelContext.fetch(descriptor).first {
+                parentTask.dismissRecurringInstance(for: scheduledDate)
             }
+        } else if task.recurrenceRule != nil, let scheduledDate = task.scheduledDate {
+            task.dismissRecurringInstance(for: scheduledDate)
+            try? modelContext.save()
+            HapticManager.shared.trigger(.warning)
+            dismiss()
+            return
         }
+
+        modelContext.delete(task)
+        try? modelContext.save()
+        HapticManager.shared.trigger(.warning)
+        dismiss()
     }
 
-    var body: some View {
-        Button(action: action) {
-            Text(displayText)
-                .font(MZTypography.labelLarge)
-                .foregroundColor(isSelected ? themeManager.textOnPrimaryColor : themeManager.textPrimaryColor)
-                .frame(minWidth: 56)
-                .padding(.horizontal, MZSpacing.md)
-                .padding(.vertical, MZSpacing.xs)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? themeManager.primaryColor : themeManager.surfaceSecondaryColor)
-                )
-        }
-        .buttonStyle(PressableButtonStyle())
-    }
-}
+    private func deleteAllInstances() {
+        guard let task = task else { return }
 
-// MARK: - Category Chip (New Design - Horizontal)
-
-struct CategoryChipNew: View {
-    let category: TaskCategory
-    let isSelected: Bool
-    let action: () -> Void
-
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: MZSpacing.xs) {
-                Image(systemName: category.icon)
-                    .font(.system(size: 14))
-                Text(category.nameArabic)
-                    .font(MZTypography.labelLarge)
-            }
-            .foregroundColor(isSelected ? themeManager.textOnPrimaryColor : Color(hex: category.defaultColorHex))
-            .padding(.horizontal, MZSpacing.md)
-            .padding(.vertical, MZSpacing.sm)
-            .background(
-                Capsule()
-                    .fill(isSelected ? Color(hex: category.defaultColorHex) : Color(hex: category.defaultColorHex).opacity(0.15))
-            )
-        }
-        .buttonStyle(PressableButtonStyle())
-        .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(MZAnimation.bouncy, value: isSelected)
-    }
-}
-
-// MARK: - User Category Chip (For UserCategory Model)
-
-struct UserCategoryChip: View {
-    let category: UserCategory
-    let isSelected: Bool
-    let action: () -> Void
-
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: MZSpacing.xs) {
-                Image(systemName: category.icon)
-                    .font(.system(size: 14))
-                Text(category.displayName)
-                    .font(MZTypography.labelLarge)
-            }
-            .foregroundColor(isSelected ? themeManager.textOnPrimaryColor : Color(hex: category.colorHex))
-            .padding(.horizontal, MZSpacing.md)
-            .padding(.vertical, MZSpacing.sm)
-            .background(
-                Capsule()
-                    .fill(isSelected ? Color(hex: category.colorHex) : Color(hex: category.colorHex).opacity(0.15))
-            )
-        }
-        .buttonStyle(PressableButtonStyle())
-        .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(MZAnimation.bouncy, value: isSelected)
-    }
-}
-
-// MARK: - Legacy Chips (For Compatibility)
-
-struct DurationChip: View {
-    let minutes: Int
-    let isSelected: Bool
-    let action: () -> Void
-
-    @EnvironmentObject var themeManager: ThemeManager
-
-    private var displayText: String {
-        if minutes < 60 {
-            return "\(minutes) د"
+        let parentId: UUID
+        if let pid = task.parentTaskId {
+            parentId = pid
         } else {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            if remainingMinutes == 0 {
-                return "\(hours) ساعة"
-            } else {
-                return "\(hours):\(remainingMinutes) س"
-            }
+            parentId = task.id
         }
-    }
 
-    var body: some View {
-        Button(action: action) {
-            Text(displayText)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(isSelected ? themeManager.textOnPrimaryColor : themeManager.textPrimaryColor)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? themeManager.primaryColor : themeManager.surfaceColor)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isSelected ? themeManager.primaryColor : Color.clear, lineWidth: 2)
-                )
+        let childDescriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.parentTaskId == parentId })
+        let childTasks = (try? modelContext.fetch(childDescriptor)) ?? []
+
+        let parentDescriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
+        if let parentTask = try? modelContext.fetch(parentDescriptor).first {
+            modelContext.delete(parentTask)
         }
-        .buttonStyle(.plain)
-    }
-}
 
-struct CategoryChip: View {
-    let category: TaskCategory
-    let isSelected: Bool
-    let action: () -> Void
-
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: category.defaultColorHex).opacity(isSelected ? 1.0 : 0.2))
-                        .frame(width: 50, height: 50)
-
-                    Image(systemName: category.icon)
-                        .font(.system(size: 22))
-                        .foregroundColor(isSelected ? themeManager.textOnPrimaryColor : Color(hex: category.defaultColorHex))
-                }
-
-                Text(category.nameArabic)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(themeManager.textPrimaryColor)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color(hex: category.defaultColorHex).opacity(0.1) : themeManager.surfaceColor)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color(hex: category.defaultColorHex) : Color.clear, lineWidth: 2)
-            )
+        for child in childTasks {
+            modelContext.delete(child)
         }
-        .buttonStyle(.plain)
-    }
-}
 
-// MARK: - Custom Duration Picker Sheet
-
-struct CustomDurationPickerSheet: View {
-    @Binding var duration: Int
-
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        NavigationView {
-            ZStack {
-                themeManager.backgroundColor.ignoresSafeArea()
-
-                VStack(spacing: MZSpacing.lg) {
-                    // Radial Duration Picker (up to 14 hours)
-                    MZRadialDurationPicker(duration: $duration, maxDuration: 840)
-                        .environmentObject(themeManager)
-                        .padding(.top, MZSpacing.md)
-
-                    Spacer()
-
-                    // Save button
-                    Button {
-                        HapticManager.shared.trigger(.success)
-                        dismiss()
-                    } label: {
-                        Text("حفظ")
-                            .font(MZTypography.titleSmall)
-                            .foregroundColor(themeManager.textOnPrimaryColor)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, MZSpacing.buttonPaddingV)
-                            .background(
-                                Capsule()
-                                    .fill(duration > 0 ? themeManager.primaryColor : themeManager.textSecondaryColor.opacity(0.5))
-                            )
-                    }
-                    .disabled(duration == 0)
-                    .buttonStyle(PressableButtonStyle())
-                    .padding(.horizontal, MZSpacing.screenPadding)
-                    .padding(.bottom, MZSpacing.lg)
-                }
-            }
-            .navigationTitle("مدة مخصصة")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("إلغاء") {
-                        dismiss()
-                    }
-                }
-            }
+        if task.parentTaskId == nil && task.id != parentId {
+            modelContext.delete(task)
         }
-    }
-}
 
-// MARK: - Legacy Duration Picker (Wheel Style)
-
-struct LegacyDurationPicker: View {
-    @Binding var duration: Int
-
-    @EnvironmentObject var themeManager: ThemeManager
-
-    @State private var hours: Int = 0
-    @State private var minutes: Int = 30
-
-    var body: some View {
-        VStack(spacing: MZSpacing.xl) {
-            // Duration display
-            Text(durationDisplayText)
-                .font(.system(size: 48, weight: .bold, design: .rounded))
-                .foregroundColor(themeManager.primaryColor)
-                .contentTransition(.numericText())
-                .animation(MZAnimation.snappy, value: totalMinutes)
-
-            // Picker wheels
-            HStack(spacing: 0) {
-                // Hours picker
-                VStack(spacing: MZSpacing.xs) {
-                    Text("ساعات")
-                        .font(MZTypography.labelMedium)
-                        .foregroundColor(themeManager.textSecondaryColor)
-
-                    Picker("Hours", selection: $hours) {
-                        ForEach(0..<13) { hour in
-                            Text("\(hour)").tag(hour)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: 100, height: 150)
-                    .clipped()
-                }
-
-                Text(":")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(themeManager.textSecondaryColor)
-                    .padding(.top, 20)
-
-                // Minutes picker
-                VStack(spacing: MZSpacing.xs) {
-                    Text("دقائق")
-                        .font(MZTypography.labelMedium)
-                        .foregroundColor(themeManager.textSecondaryColor)
-
-                    Picker("Minutes", selection: $minutes) {
-                        ForEach(Array(stride(from: 0, through: 55, by: 5)), id: \.self) { minute in
-                            Text(String(format: "%02d", minute)).tag(minute)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: 100, height: 150)
-                    .clipped()
-                }
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(themeManager.surfaceSecondaryColor)
-            )
-
-            // Quick presets
-            VStack(alignment: .leading, spacing: MZSpacing.sm) {
-                Text("اختصارات")
-                    .font(MZTypography.labelLarge)
-                    .foregroundColor(themeManager.textSecondaryColor)
-
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: MZSpacing.sm) {
-                    ForEach([25, 50, 75, 100, 150, 300], id: \.self) { preset in
-                        Button {
-                            setFromMinutes(preset)
-                            HapticManager.shared.trigger(.selection)
-                        } label: {
-                            Text(formatPreset(preset))
-                                .font(MZTypography.labelMedium)
-                                .foregroundColor(themeManager.textPrimaryColor)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, MZSpacing.sm)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(themeManager.surfaceSecondaryColor)
-                                )
-                        }
-                        .buttonStyle(PressableButtonStyle())
-                    }
-                }
-            }
-            .padding(.horizontal, MZSpacing.screenPadding)
-        }
-        .onAppear {
-            setFromMinutes(duration)
-        }
-        .onChange(of: hours) { _, _ in updateDuration() }
-        .onChange(of: minutes) { _, _ in updateDuration() }
-    }
-
-    private var totalMinutes: Int {
-        hours * 60 + minutes
-    }
-
-    private var durationDisplayText: String {
-        if hours == 0 {
-            return "\(minutes) دقيقة"
-        } else if minutes == 0 {
-            return hours == 1 ? "ساعة" : "\(hours) ساعات"
-        } else {
-            return "\(hours):\(String(format: "%02d", minutes))"
-        }
-    }
-
-    private func setFromMinutes(_ totalMins: Int) {
-        hours = totalMins / 60
-        minutes = (totalMins % 60 / 5) * 5 // Round to nearest 5
-    }
-
-    private func updateDuration() {
-        duration = totalMinutes
-    }
-
-    private func formatPreset(_ mins: Int) -> String {
-        if mins < 60 {
-            return "\(mins) د"
-        } else {
-            let h = mins / 60
-            let m = mins % 60
-            if m == 0 {
-                return "\(h) س"
-            } else {
-                return "\(h):\(String(format: "%02d", m))"
-            }
-        }
+        try? modelContext.save()
+        HapticManager.shared.trigger(.warning)
+        dismiss()
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    AddTaskSheet(task: nil)
-        .environmentObject(AppEnvironment.preview())
-        .environmentObject(AppEnvironment.preview().themeManager)
-        .modelContainer(AppEnvironment.preview().modelContainer)
+    AddTaskSheet()
+        .environmentObject(AppEnvironment.shared)
+        .environmentObject(ThemeManager())
+        .modelContainer(for: Task.self, inMemory: true)
 }

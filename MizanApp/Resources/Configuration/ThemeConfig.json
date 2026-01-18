@@ -17,27 +17,88 @@
         "accent": "#D4A373",
         "text_primary": "#1A1A1A",
         "text_secondary": "#4B5563",
-        "text_tertiary": "#4B5563",
+        "text_tertiary": "#6B7280",
         "text_on_primary": "#FFFFFF",
         "placeholder_text": "#6B7280",
         "prayer_gradient_start": "#14746F",
         "prayer_gradient_end": "#52B788",
-        "success": "#10B981",
-        "warning": "#F59E0B",
+        "success": "#059669",
+        "warning": "#92400E",
         "error": "#EF4444",
         "info": "#3B82F6",
-        "divider": "#E5E7EB",
-        "urgency_low": "#9CA3AF",
-        "urgency_medium": "#F59E0B",
-        "urgency_high": "#F97316",
+        "divider": "#9CA3AF",
+        "urgency_low": "#4B5563",
+        "urgency_medium": "#B45309",
+        "urgency_high": "#DC2626",
         "urgency_critical": "#EF4444",
         "task_colors": {
           "work": "#3B82F6",
-          "personal": "#10B981",
+          "personal": "#059669",
           "study": "#8B5CF6",
           "health": "#EF4444",
-          "social": "#F59E0B",
+          "social": "#92400E",
           "worship": "#6366F1"
+        },
+        "splash_text": "#FFFFFF",
+        "splash_moon": "#FFD700",
+        "splash_gradient": ["#0F4C3A", "#14746F", "#1E3A5F"],
+        "overlay": "#000000",
+        "atmosphere": {
+          "fajr": ["#1a1a2e", "#16213e", "#0f3460"],
+          "sunrise": ["#14746F", "#52B788"],
+          "morning": ["#a8edea", "#fed6e3"],
+          "dhuhr": ["#ffecd2", "#fcb69f"],
+          "asr": ["#52B788", "#14746F"],
+          "maghrib": ["#fa709a", "#fee140"],
+          "isha": ["#2c3e50", "#4ca1af"],
+          "night": ["#0f0c29", "#302b63", "#24243e"]
+        },
+        "particles": {
+          "fajr": "#E8D5B7",
+          "sunrise": "#FFE4B5",
+          "dhuhr": "#FFE4B5",
+          "asr": "#DDA0DD",
+          "maghrib": "#FF6B6B",
+          "isha": "#B8C4CE"
+        },
+        "disabled": "#6B7280",
+        "disabled_background": "#F3F4F6",
+        "border": "#D1D5DB",
+        "border_focused": "#14746F",
+        "pressed": "#0E4F4A"
+      },
+      "glassmorphism": {
+        "subtle": {
+          "blur_radius": 0.5,
+          "background_opacity": 0.7,
+          "border_opacity_leading": 0.3,
+          "border_opacity_trailing": 0.1,
+          "accent_tint_opacity": 0.05,
+          "highlight_opacity": 0.1
+        },
+        "standard": {
+          "blur_radius": 8,
+          "background_opacity": 0.5,
+          "border_opacity_leading": 0.4,
+          "border_opacity_trailing": 0.1,
+          "accent_tint_opacity": 0.08,
+          "highlight_opacity": 0.15
+        },
+        "frosted": {
+          "blur_radius": 20,
+          "background_opacity": 0.3,
+          "border_opacity_leading": 0.5,
+          "border_opacity_trailing": 0.15,
+          "accent_tint_opacity": 0.1,
+          "highlight_opacity": 0.2
+        },
+        "prayer": {
+          "blur_radius": 12,
+          "background_opacity": 0.4,
+          "border_opacity_leading": 0.45,
+          "border_opacity_trailing": 0.12,
+          "accent_tint_opacity": 0.12,
+          "highlight_opacity": 0.18
         }
       },
       "fonts": {
@@ -106,8 +167,8 @@
         "warning": "#FFA500",
         "error": "#FF6B6B",
         "info": "#60A5FA",
-        "divider": "#3F3F46",
-        "urgency_low": "#6B7280",
+        "divider": "#6B7280",
+        "urgency_low": "#A3A3A3",
         "urgency_medium": "#FFA500",
         "urgency_high": "#F97316",
         "urgency_critical": "#FF6B6B",
@@ -118,6 +179,75 @@
           "health": "#FF6B6B",
           "social": "#FFA500",
           "worship": "#818CF8"
+        },
+        "splash_text": "#F5F5F5",
+        "splash_moon": "#52B788",
+        "splash_gradient": ["#000000", "#1A1A1A", "#2A2A2A"],
+        "overlay": "#000000",
+        "atmosphere": {
+          "fajr": ["#0D1B2A", "#1B263B", "#2A3E50"],
+          "sunrise": ["#2A4F4F", "#52B788"],
+          "morning": ["#1A3A3A", "#2A5050"],
+          "dhuhr": ["#2A4040", "#3A5555"],
+          "asr": ["#1A3535", "#2A4545"],
+          "maghrib": ["#3A2020", "#5A3030"],
+          "isha": ["#0A1520", "#1A2530"],
+          "night": ["#050510", "#0A0A1A", "#101025"]
+        },
+        "particles": {
+          "fajr": "#52B788",
+          "sunrise": "#74C69D",
+          "dhuhr": "#D4A373",
+          "asr": "#52B788",
+          "maghrib": "#D4A373",
+          "isha": "#52B788"
+        },
+        "disabled": "#9CA3AF",
+        "disabled_background": "#1F2937",
+        "border": "#3F3F46",
+        "border_focused": "#74C69D",
+        "pressed": "#40916C"
+      },
+      "glassmorphism": {
+        "subtle": {
+          "blur_radius": 0.5,
+          "background_opacity": 0.6,
+          "border_opacity_leading": 0.35,
+          "border_opacity_trailing": 0.1,
+          "accent_tint_opacity": 0.08,
+          "highlight_opacity": 0.12,
+          "glow_radius": 4,
+          "glow_opacity": 0.15
+        },
+        "standard": {
+          "blur_radius": 10,
+          "background_opacity": 0.4,
+          "border_opacity_leading": 0.45,
+          "border_opacity_trailing": 0.12,
+          "accent_tint_opacity": 0.1,
+          "highlight_opacity": 0.18,
+          "glow_radius": 8,
+          "glow_opacity": 0.25
+        },
+        "frosted": {
+          "blur_radius": 24,
+          "background_opacity": 0.25,
+          "border_opacity_leading": 0.55,
+          "border_opacity_trailing": 0.18,
+          "accent_tint_opacity": 0.12,
+          "highlight_opacity": 0.25,
+          "glow_radius": 12,
+          "glow_opacity": 0.35
+        },
+        "prayer": {
+          "blur_radius": 14,
+          "background_opacity": 0.35,
+          "border_opacity_leading": 0.5,
+          "border_opacity_trailing": 0.15,
+          "accent_tint_opacity": 0.15,
+          "highlight_opacity": 0.22,
+          "glow_radius": 10,
+          "glow_opacity": 0.3
         }
       },
       "fonts": {
@@ -179,27 +309,88 @@
         "accent": "#FCA5A5",
         "text_primary": "#2D2A4A",
         "text_secondary": "#4A4070",
-        "text_tertiary": "#5B4F7A",
+        "text_tertiary": "#3D3660",
         "text_on_primary": "#FFFFFF",
         "placeholder_text": "#6B5F8A",
         "prayer_gradient_start": "#6C63FF",
         "prayer_gradient_end": "#E879F9",
-        "success": "#8B5CF6",
-        "warning": "#FBBF24",
-        "error": "#F87171",
-        "info": "#60A5FA",
-        "divider": "#E9D5FF",
-        "urgency_low": "#9B8FB6",
-        "urgency_medium": "#FBBF24",
-        "urgency_high": "#F97316",
-        "urgency_critical": "#F87171",
+        "success": "#7C3AED",
+        "warning": "#92400E",
+        "error": "#DC2626",
+        "info": "#1E40AF",
+        "divider": "#A78BFA",
+        "urgency_low": "#5B4F7A",
+        "urgency_medium": "#92400E",
+        "urgency_high": "#9A3412",
+        "urgency_critical": "#DC2626",
         "task_colors": {
           "work": "#6C63FF",
-          "personal": "#A78BFA",
-          "study": "#8B5CF6",
-          "health": "#F87171",
-          "social": "#FBBF24",
-          "worship": "#818CF8"
+          "personal": "#7C3AED",
+          "study": "#5851DB",
+          "health": "#DC2626",
+          "social": "#92400E",
+          "worship": "#4F46E5"
+        },
+        "splash_text": "#2D2A4A",
+        "splash_moon": "#E879F9",
+        "splash_gradient": ["#E8DFF5", "#FCE1E4", "#FCF4DD"],
+        "overlay": "#2D2A4A",
+        "atmosphere": {
+          "fajr": ["#1a1a2e", "#2D2A4A", "#6C63FF"],
+          "sunrise": ["#FCE1E4", "#E879F9"],
+          "morning": ["#FAF5FF", "#FCE1E4"],
+          "dhuhr": ["#FCF4DD", "#FCA5A5"],
+          "asr": ["#E8DFF5", "#A78BFA"],
+          "maghrib": ["#E879F9", "#FCA5A5"],
+          "isha": ["#2D2A4A", "#6C63FF"],
+          "night": ["#1a1a2e", "#2D2A4A", "#4A4070"]
+        },
+        "particles": {
+          "fajr": "#A78BFA",
+          "sunrise": "#E879F9",
+          "dhuhr": "#FCA5A5",
+          "asr": "#A78BFA",
+          "maghrib": "#E879F9",
+          "isha": "#6C63FF"
+        },
+        "disabled": "#6B5B95",
+        "disabled_background": "#E8DFF5",
+        "border": "#DDD6FE",
+        "border_focused": "#8B7FFF",
+        "pressed": "#5851DB"
+      },
+      "glassmorphism": {
+        "subtle": {
+          "blur_radius": 0.5,
+          "background_opacity": 0.75,
+          "border_opacity_leading": 0.25,
+          "border_opacity_trailing": 0.08,
+          "accent_tint_opacity": 0.06,
+          "highlight_opacity": 0.12
+        },
+        "standard": {
+          "blur_radius": 6,
+          "background_opacity": 0.55,
+          "border_opacity_leading": 0.35,
+          "border_opacity_trailing": 0.1,
+          "accent_tint_opacity": 0.1,
+          "highlight_opacity": 0.18
+        },
+        "frosted": {
+          "blur_radius": 16,
+          "background_opacity": 0.35,
+          "border_opacity_leading": 0.45,
+          "border_opacity_trailing": 0.12,
+          "accent_tint_opacity": 0.12,
+          "highlight_opacity": 0.22
+        },
+        "prayer": {
+          "blur_radius": 10,
+          "background_opacity": 0.45,
+          "border_opacity_leading": 0.4,
+          "border_opacity_trailing": 0.1,
+          "accent_tint_opacity": 0.14,
+          "highlight_opacity": 0.2
         }
       },
       "fonts": {
@@ -257,7 +448,7 @@
         "primary_light": "#E89668",
         "primary_dark": "#C45A30",
         "secondary": "#8B6F47",
-        "accent": "#C88F5C",
+        "accent": "#705437",
         "text_primary": "#3D2817",
         "text_secondary": "#4A3622",
         "text_tertiary": "#5C4430",
@@ -265,22 +456,83 @@
         "placeholder_text": "#6A5240",
         "prayer_gradient_start": "#D4734C",
         "prayer_gradient_end": "#C88F5C",
-        "success": "#8B6F47",
-        "warning": "#E89668",
+        "success": "#6B5230",
+        "warning": "#9A3412",
         "error": "#C45A30",
-        "info": "#8B6F47",
-        "divider": "#D4B69C",
-        "urgency_low": "#9A7B5B",
-        "urgency_medium": "#E89668",
-        "urgency_high": "#D4734C",
+        "info": "#705437",
+        "divider": "#9A7B5B",
+        "urgency_low": "#6B5230",
+        "urgency_medium": "#9A3412",
+        "urgency_high": "#9A3412",
         "urgency_critical": "#C45A30",
         "task_colors": {
-          "work": "#8B6F47",
-          "personal": "#C88F5C",
-          "study": "#9A7B5B",
+          "work": "#705437",
+          "personal": "#8B6F47",
+          "study": "#6B5230",
           "health": "#C45A30",
-          "social": "#E89668",
-          "worship": "#705437"
+          "social": "#9A3412",
+          "worship": "#5C4430"
+        },
+        "splash_text": "#3D2817",
+        "splash_moon": "#D4734C",
+        "splash_gradient": ["#E9D5C1", "#D4B69C", "#C8A882"],
+        "overlay": "#3D2817",
+        "atmosphere": {
+          "fajr": ["#3D2817", "#4A3622", "#5C4430"],
+          "sunrise": ["#E89668", "#D4734C"],
+          "morning": ["#F5EAD8", "#EFE2CF"],
+          "dhuhr": ["#E9D5C1", "#D4B69C"],
+          "asr": ["#D4B69C", "#C88F5C"],
+          "maghrib": ["#D4734C", "#C45A30"],
+          "isha": ["#4A3622", "#3D2817"],
+          "night": ["#3D2817", "#2A1A0F", "#1A0F08"]
+        },
+        "particles": {
+          "fajr": "#C88F5C",
+          "sunrise": "#E89668",
+          "dhuhr": "#D4734C",
+          "asr": "#C88F5C",
+          "maghrib": "#D4734C",
+          "isha": "#8B6F47"
+        },
+        "disabled": "#7C5E3A",
+        "disabled_background": "#EFE2CF",
+        "border": "#D4B69C",
+        "border_focused": "#E89668",
+        "pressed": "#C45A30"
+      },
+      "glassmorphism": {
+        "subtle": {
+          "blur_radius": 0,
+          "background_opacity": 0.85,
+          "border_opacity_leading": 0.2,
+          "border_opacity_trailing": 0.05,
+          "accent_tint_opacity": 0.03,
+          "highlight_opacity": 0.08
+        },
+        "standard": {
+          "blur_radius": 4,
+          "background_opacity": 0.7,
+          "border_opacity_leading": 0.3,
+          "border_opacity_trailing": 0.08,
+          "accent_tint_opacity": 0.05,
+          "highlight_opacity": 0.12
+        },
+        "frosted": {
+          "blur_radius": 8,
+          "background_opacity": 0.55,
+          "border_opacity_leading": 0.4,
+          "border_opacity_trailing": 0.1,
+          "accent_tint_opacity": 0.08,
+          "highlight_opacity": 0.15
+        },
+        "prayer": {
+          "blur_radius": 6,
+          "background_opacity": 0.6,
+          "border_opacity_leading": 0.35,
+          "border_opacity_trailing": 0.08,
+          "accent_tint_opacity": 0.1,
+          "highlight_opacity": 0.14
         }
       },
       "fonts": {
@@ -341,7 +593,7 @@
         "surface_secondary": "#3730A3",
         "primary": "#FFD700",
         "primary_light": "#FDE047",
-        "primary_dark": "#FFA500",
+        "primary_dark": "#CC9B00",
         "secondary": "#A78BFA",
         "accent": "#F472B6",
         "text_primary": "#FFFFFF",
@@ -355,7 +607,7 @@
         "warning": "#FDE047",
         "error": "#F87171",
         "info": "#60A5FA",
-        "divider": "#4C1D95",
+        "divider": "#7C3AED",
         "urgency_low": "#A5B4FC",
         "urgency_medium": "#FDE047",
         "urgency_high": "#FFA500",
@@ -367,6 +619,75 @@
           "health": "#F87171",
           "social": "#FDE047",
           "worship": "#FFD700"
+        },
+        "splash_text": "#FFFFFF",
+        "splash_moon": "#FFD700",
+        "splash_gradient": ["#1E1B4B", "#312E81", "#3730A3"],
+        "overlay": "#1E1B4B",
+        "atmosphere": {
+          "fajr": ["#1E1B4B", "#312E81", "#4338CA"],
+          "sunrise": ["#FFD700", "#FFA500"],
+          "morning": ["#3730A3", "#4338CA"],
+          "dhuhr": ["#4338CA", "#6366F1"],
+          "asr": ["#312E81", "#4338CA"],
+          "maghrib": ["#FFD700", "#F472B6"],
+          "isha": ["#1E1B4B", "#312E81"],
+          "night": ["#0F0D2B", "#1E1B4B", "#312E81"]
+        },
+        "particles": {
+          "fajr": "#FFD700",
+          "sunrise": "#FDE047",
+          "dhuhr": "#A78BFA",
+          "asr": "#F472B6",
+          "maghrib": "#FFD700",
+          "isha": "#A78BFA"
+        },
+        "disabled": "#A1A1AA",
+        "disabled_background": "#312E81",
+        "border": "#4C1D95",
+        "border_focused": "#FDE047",
+        "pressed": "#FFA500"
+      },
+      "glassmorphism": {
+        "subtle": {
+          "blur_radius": 0.5,
+          "background_opacity": 0.55,
+          "border_opacity_leading": 0.4,
+          "border_opacity_trailing": 0.12,
+          "accent_tint_opacity": 0.1,
+          "highlight_opacity": 0.15,
+          "glow_radius": 6,
+          "glow_opacity": 0.2
+        },
+        "standard": {
+          "blur_radius": 12,
+          "background_opacity": 0.35,
+          "border_opacity_leading": 0.5,
+          "border_opacity_trailing": 0.15,
+          "accent_tint_opacity": 0.15,
+          "highlight_opacity": 0.22,
+          "glow_radius": 12,
+          "glow_opacity": 0.35
+        },
+        "frosted": {
+          "blur_radius": 28,
+          "background_opacity": 0.2,
+          "border_opacity_leading": 0.6,
+          "border_opacity_trailing": 0.2,
+          "accent_tint_opacity": 0.18,
+          "highlight_opacity": 0.28,
+          "glow_radius": 16,
+          "glow_opacity": 0.45
+        },
+        "prayer": {
+          "blur_radius": 16,
+          "background_opacity": 0.3,
+          "border_opacity_leading": 0.55,
+          "border_opacity_trailing": 0.18,
+          "accent_tint_opacity": 0.2,
+          "highlight_opacity": 0.25,
+          "glow_radius": 14,
+          "glow_opacity": 0.4
         }
       },
       "fonts": {

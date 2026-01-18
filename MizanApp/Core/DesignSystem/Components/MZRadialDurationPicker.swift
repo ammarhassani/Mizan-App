@@ -96,6 +96,9 @@ struct MZRadialDurationPicker: View {
                     .position(handlePosition)
                     .gesture(dragGesture)
                     .animation(MZAnimation.snappy, value: isDragging)
+                    .accessibilityLabel("محدد المدة")
+                    .accessibilityValue("\(duration) دقيقة")
+                    .accessibilityHint("اسحب لتغيير المدة")
 
                 // Center display
                 centerDisplay
@@ -158,7 +161,7 @@ struct MZRadialDurationPicker: View {
             path.addLine(to: CGPoint(x: endX, y: endY))
         }
         .stroke(
-            themeManager.textSecondaryColor.opacity(isMajor ? 0.5 : 0.2),
+            themeManager.textSecondaryColor.opacity(isMajor ? 0.6 : 0.4),
             lineWidth: isMajor ? 2 : 1
         )
     }
@@ -269,12 +272,13 @@ struct MZRadialDurationPicker: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var duration = 45
+        let themeManager = ThemeManager()
 
         var body: some View {
             MZRadialDurationPicker(duration: $duration)
                 .padding()
-                .background(Color.gray.opacity(0.1))
-                .environmentObject(ThemeManager())
+                .background(themeManager.surfaceSecondaryColor.opacity(0.3))
+                .environmentObject(themeManager)
         }
     }
 

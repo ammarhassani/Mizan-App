@@ -37,6 +37,11 @@ struct ThemeSelectionView: View {
                     title: "ثيمات Pro",
                     themes: themeManager.proThemes()
                 )
+
+                // App Icon Section (Pro feature)
+                if userSettings.isPro {
+                    appIconSection
+                }
             }
             .padding()
         }
@@ -62,6 +67,75 @@ struct ThemeSelectionView: View {
         .padding(.vertical, 20)
         .background(themeManager.surfaceColor)
         .cornerRadius(16)
+    }
+
+    // MARK: - App Icon Section
+
+    @ViewBuilder
+    private var appIconSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("أيقونة التطبيق")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(themeManager.textPrimaryColor)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 16) {
+                // Auto-switch toggle
+                Toggle(isOn: $themeManager.autoSwitchAppIcon) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("تغيير تلقائي مع الثيم")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(themeManager.textPrimaryColor)
+
+                        Text("الأيقونة تتغير عند تغيير الثيم")
+                            .font(.system(size: 13))
+                            .foregroundColor(themeManager.textSecondaryColor)
+                    }
+                }
+                .tint(themeManager.primaryColor)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(themeManager.surfaceColor)
+                .cornerRadius(12)
+
+                // Icon grid
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("اختر أيقونة")
+                        .font(.system(size: 14))
+                        .foregroundColor(themeManager.textSecondaryColor)
+                        .padding(.horizontal, 4)
+
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 16) {
+                        ForEach(ThemeManager.availableIcons, id: \.id) { icon in
+                            AppIconButton(
+                                iconId: icon.id,
+                                iconName: icon.name,
+                                alternateIconName: icon.iconName,
+                                isSelected: themeManager.isIconActive(icon.iconName),
+                                onSelect: {
+                                    selectAppIcon(icon.iconName)
+                                }
+                            )
+                        }
+                    }
+                }
+                .padding(16)
+                .background(themeManager.surfaceColor)
+                .cornerRadius(12)
+                .opacity(themeManager.autoSwitchAppIcon ? 0.5 : 1.0)
+                .disabled(themeManager.autoSwitchAppIcon)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private func selectAppIcon(_ iconName: String?) {
+        themeManager.setManualIcon(iconName)
+        HapticManager.shared.trigger(.success)
     }
 
     // MARK: - Themes Section
@@ -128,7 +202,7 @@ struct ThemeCard: View {
                     HStack(spacing: 8) {
                         Text(theme.nameArabic)
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(isLocked ? .gray : themeManager.textPrimaryColor)
+                            .foregroundColor(isLocked ? themeManager.textSecondaryColor : themeManager.textPrimaryColor)
 
                         if theme.isPro {
                             ProBadge()
@@ -166,7 +240,7 @@ struct ThemeCard: View {
                 if isLocked {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeManager.textSecondaryColor)
                 } else if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 24))
@@ -184,7 +258,7 @@ struct ThemeCard: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(
-                                isSelected ? Color(hex: theme.colors.primary) : Color.clear,
+                                isSelected ? themeManager.focusedBorderColor : Color.clear,
                                 lineWidth: 2
                             )
                     )
@@ -227,7 +301,7 @@ struct ThemeCard: View {
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: theme.colors.primary).opacity(0.3), lineWidth: 1)
+                .stroke(themeManager.borderColor, lineWidth: 1)
         )
     }
 
@@ -240,6 +314,81 @@ struct ThemeCard: View {
             .padding(.vertical, 2)
             .background(themeManager.backgroundColor.opacity(0.5))
             .cornerRadius(4)
+    }
+}
+
+// MARK: - App Icon Button
+
+struct AppIconButton: View {
+    let iconId: String
+    let iconName: String
+    let alternateIconName: String?
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @EnvironmentObject var themeManager: ThemeManager
+
+    /// Theme colors for icon preview backgrounds
+    private var iconColors: (background: Color, design: Color, accent: Color?) {
+        switch iconId {
+        case "noor":
+            return (Color(hex: "#14746F"), Color(hex: "#D4A373"), nil)
+        case "layl":
+            return (Color(hex: "#000000"), Color(hex: "#52B788"), Color(hex: "#FFD700"))
+        case "fajr":
+            return (Color(hex: "#2D2A4A"), Color(hex: "#6C63FF"), Color(hex: "#E879F9"))
+        case "sahara":
+            return (Color(hex: "#3D2817"), Color(hex: "#D4734C"), Color(hex: "#E9D5C1"))
+        case "ramadan":
+            return (Color(hex: "#1E1B4B"), Color(hex: "#FFD700"), nil)
+        default:
+            return (themeManager.backgroundColor, themeManager.primaryColor, nil)
+        }
+    }
+
+    var body: some View {
+        Button(action: onSelect) {
+            VStack(spacing: 8) {
+                // Icon preview using actual MizanLogo
+                ZStack {
+                    // Background
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(iconColors.background)
+                        .frame(width: 72, height: 72)
+
+                    // Actual Mizan logo
+                    MizanLogo(
+                        size: 56,
+                        designColor: iconColors.design,
+                        accentColor: iconColors.accent
+                    )
+
+                    // Selection overlay
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(themeManager.primaryColor, lineWidth: 3)
+                            .frame(width: 72, height: 72)
+
+                        // Checkmark
+                        Circle()
+                            .fill(themeManager.primaryColor)
+                            .frame(width: 24, height: 24)
+                            .overlay(
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(themeManager.textOnPrimaryColor)
+                            )
+                            .offset(x: 28, y: -28)
+                    }
+                }
+
+                // Icon name
+                Text(iconName)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? themeManager.primaryColor : themeManager.textSecondaryColor)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

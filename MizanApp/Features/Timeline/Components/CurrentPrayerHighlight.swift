@@ -91,6 +91,7 @@ extension View {
         .padding(.horizontal)
 
         Divider()
+            .background(themeManager.dividerColor)
 
         Text("Modifier Version")
             .font(.headline)

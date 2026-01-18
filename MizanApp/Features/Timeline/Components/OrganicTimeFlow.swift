@@ -112,7 +112,7 @@ struct OrganicTimeFlow: View {
                 .fill(themeManager.surfaceColor.opacity(0.85))
                 .overlay(
                     Capsule()
-                        .stroke(themeManager.textSecondaryColor.opacity(0.2), lineWidth: 1)
+                        .stroke(themeManager.textSecondaryColor.opacity(0.5), lineWidth: 1)
                 )
                 .shadow(color: themeManager.backgroundColor.opacity(0.3), radius: 4, y: 2)
         )
@@ -166,15 +166,15 @@ struct CompactFlowDot: View {
     var body: some View {
         VStack(spacing: 4) {
             Circle()
-                .fill(themeManager.textSecondaryColor.opacity(0.2))
+                .fill(themeManager.textSecondaryColor.opacity(0.5))
                 .frame(width: 3, height: 3)
 
             Circle()
-                .fill(themeManager.textSecondaryColor.opacity(0.15))
+                .fill(themeManager.textSecondaryColor.opacity(0.4))
                 .frame(width: 2, height: 2)
 
             Circle()
-                .fill(themeManager.textSecondaryColor.opacity(0.2))
+                .fill(themeManager.textSecondaryColor.opacity(0.5))
                 .frame(width: 3, height: 3)
         }
     }
@@ -183,48 +183,49 @@ struct CompactFlowDot: View {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     ScrollView {
         VStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.blue.opacity(0.3))
+                .fill(themeManager.primaryColor.opacity(0.3))
                 .frame(height: 100)
-                .overlay(Text("Fajr").foregroundColor(.white))
+                .overlay(Text("Fajr").foregroundColor(themeManager.textOnPrimaryColor))
 
             OrganicTimeFlow(
                 height: 50,
-                startColor: .blue.opacity(0.4),
-                endColor: .orange.opacity(0.4),
+                startColor: themeManager.primaryColor.opacity(0.4),
+                endColor: themeManager.warningColor.opacity(0.4),
                 duration: 1800
             )
 
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.orange.opacity(0.3))
+                .fill(themeManager.warningColor.opacity(0.3))
                 .frame(height: 60)
-                .overlay(Text("Task").foregroundColor(.white))
+                .overlay(Text("Task").foregroundColor(themeManager.textOnPrimaryColor))
 
             OrganicTimeFlow(
                 height: 60,
-                startColor: .orange.opacity(0.4),
-                endColor: .purple.opacity(0.4),
+                startColor: themeManager.warningColor.opacity(0.4),
+                endColor: themeManager.categoryColor(.worship).opacity(0.4),
                 duration: 7200,
                 isCollapsed: true
             )
 
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.purple.opacity(0.3))
+                .fill(themeManager.categoryColor(.worship).opacity(0.3))
                 .frame(height: 50)
-                .overlay(Text("Duha").foregroundColor(.white))
+                .overlay(Text("Duha").foregroundColor(themeManager.textOnPrimaryColor))
 
             CompactFlowDot()
                 .frame(height: 20)
 
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.green.opacity(0.3))
+                .fill(themeManager.successColor.opacity(0.3))
                 .frame(height: 100)
-                .overlay(Text("Dhuhr").foregroundColor(.white))
+                .overlay(Text("Dhuhr").foregroundColor(themeManager.textOnPrimaryColor))
         }
         .padding()
     }
-    .background(Color.black.opacity(0.9))
-    .environmentObject(ThemeManager())
+    .background(themeManager.overlayColor.opacity(0.95))
+    .environmentObject(themeManager)
 }

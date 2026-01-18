@@ -22,11 +22,11 @@ struct MZFloatingTextField: View {
         isFocused || !text.isEmpty
     }
 
-    private var borderColor: Color {
+    private var inputBorderColor: Color {
         if isFocused {
-            return themeManager.primaryColor
+            return themeManager.focusedBorderColor
         }
-        return themeManager.surfaceSecondaryColor
+        return themeManager.borderColor
     }
 
     private var borderWidth: CGFloat {
@@ -50,7 +50,7 @@ struct MZFloatingTextField: View {
 
             // Border with glow
             RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
-                .stroke(borderColor, lineWidth: borderWidth)
+                .stroke(inputBorderColor, lineWidth: borderWidth)
                 .shadow(
                     color: isFocused ? themeManager.primaryColor.opacity(MZInteraction.glowOpacity) : .clear,
                     radius: isFocused ? MZInteraction.glowRadius : 0
@@ -122,6 +122,6 @@ extension MZFloatingTextField {
         MZFloatingTextField(text: .constant(""), placeholder: "العنوان", icon: "pencil")
     }
     .padding()
-    .background(Color.gray.opacity(0.1))
+    .background(ThemeManager().surfaceSecondaryColor.opacity(0.3))
     .environmentObject(ThemeManager())
 }

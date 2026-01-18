@@ -50,6 +50,11 @@ struct GlassmorphicPrayerCard: View {
         Color(hex: prayer.colorHex)
     }
 
+    /// Glass style values for glow effects
+    private var glassValues: GlassStyleValues {
+        themeManager.glassStyle(.prayer)
+    }
+
     /// Determine prayer status based on current time
     private var prayerStatus: PrayerStatus {
         if prayer.hasPassed {
@@ -76,6 +81,9 @@ struct GlassmorphicPrayerCard: View {
         .padding(.vertical, 4)
         .scaleEffect(appearScale)
         .opacity(appearOpacity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(prayer.displayName)، \(prayerStatus.arabicLabel)")
+        .accessibilityValue("الأذان \(prayer.adhanTime.formatted(date: .omitted, time: .shortened))، المدة \(prayer.duration) دقيقة")
         .onAppear {
             withAnimation(MZAnimation.cardAppear) {
                 appearScale = 1.0
@@ -187,6 +195,7 @@ struct GlassmorphicPrayerCard: View {
                 Image(systemName: prayer.prayerType.icon)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(prayerColor)
+                    .accessibilityHidden(true)
             }
 
             // Prayer name
@@ -270,6 +279,8 @@ struct GlassmorphicPrayerCard: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("عرض العد التنازلي")
+        .accessibilityHint("اضغط لعرض العد التنازلي للصلاة")
     }
 
     // MARK: - Info Rows
@@ -353,13 +364,17 @@ struct GlassmorphicPrayerCard: View {
     private var currentPrayerGlow: some View {
         if prayerStatus == .current {
             // Static glow for current prayer (NO animation)
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(prayerColor.opacity(0.4), lineWidth: 2)
-                .blur(radius: 3)
+            // Uses theme-aware glow values when available
+            let glowOpacity = glassValues.glowOpacity ?? 0.4
+            let glowRadius = glassValues.glowRadius ?? 6
 
             RoundedRectangle(cornerRadius: 16)
-                .stroke(prayerColor.opacity(0.2), lineWidth: 4)
-                .blur(radius: 6)
+                .stroke(prayerColor.opacity(glowOpacity), lineWidth: 2)
+                .blur(radius: glowRadius * 0.5)
+
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(prayerColor.opacity(glowOpacity * 0.5), lineWidth: 4)
+                .blur(radius: glowRadius)
         }
     }
 }
@@ -460,6 +475,6 @@ struct GlassmorphicNawafilChip: View {
         }
         .padding()
     }
-    .background(Color.black.opacity(0.9))
+    .background(ThemeManager().overlayColor.opacity(0.95))
     .environmentObject(ThemeManager())
 }

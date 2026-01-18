@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2D2A4A"/>
+      <stop offset="100%" style="stop-color:#3D3660"/>
+    </linearGradient>
+
+    <linearGradient id="design" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B7FFF"/>
+      <stop offset="50%" style="stop-color:#6C63FF"/>
+      <stop offset="100%" style="stop-color:#5851DB"/>
+    </linearGradient>
+
+    <linearGradient id="accent" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F5A9D0"/>
+      <stop offset="50%" style="stop-color:#E879F9"/>
+      <stop offset="100%" style="stop-color:#D946EF"/>
+    </linearGradient>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <g>
+    <!-- Left pillar -->
+    <path d="M 280 760
+             L 280 360
+             Q 280 280, 360 260
+             L 512 200
+             L 512 320
+             L 400 360
+             L 400 760
+             Z"
+          fill="url(#design)"/>
+
+    <!-- Right pillar -->
+    <path d="M 744 760
+             L 744 360
+             Q 744 280, 664 260
+             L 512 200
+             L 512 320
+             L 624 360
+             L 624 760
+             Z"
+          fill="url(#design)"/>
+
+    <!-- 3 horizontal task bars in center - pink accent -->
+    <rect x="440" y="450" width="144" height="40" rx="20" fill="url(#accent)"/>
+    <rect x="440" y="520" width="144" height="40" rx="20" fill="url(#accent)"/>
+    <rect x="440" y="590" width="144" height="40" rx="20" fill="url(#accent)"/>
+  </g>
+</svg>

@@ -37,6 +37,9 @@ final class AppEnvironment: ObservableObject {
     @Published var onboardingCompleted = false
     @Published var nawafilRefreshTrigger = 0
 
+    // MARK: - Observers
+    private var notificationObservers: [NSObjectProtocol] = []
+
     // MARK: - Initialization
     private init() {
         // Initialize SwiftData container
@@ -109,7 +112,54 @@ final class AppEnvironment: ObservableObject {
         // Migrate: Create default UserCategories if none exist
         migrateToUserCategories()
 
+        // Set up notification observers
+        setupNotificationObservers()
+
         print("✅ AppEnvironment initialized")
+    }
+
+    // MARK: - Notification Observers
+
+    private func setupNotificationObservers() {
+        // Listen for task completion from notification actions
+        let taskCompletionObserver = NotificationCenter.default.addObserver(
+            forName: .taskCompletedFromNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self,
+                  let taskIdString = notification.userInfo?["taskId"] as? String,
+                  let taskId = UUID(uuidString: taskIdString) else {
+                return
+            }
+            MainActor.assumeIsolated {
+                self.completeTaskFromNotification(taskId: taskId)
+            }
+        }
+        notificationObservers.append(taskCompletionObserver)
+    }
+
+    /// Complete a task triggered by notification action
+    private func completeTaskFromNotification(taskId: UUID) {
+        let descriptor = FetchDescriptor<Task>(
+            predicate: #Predicate { $0.id == taskId }
+        )
+
+        do {
+            if let task = try modelContext.fetch(descriptor).first {
+                task.isCompleted = true
+                task.completedAt = Date()
+                try modelContext.save()
+
+                // Remove any pending notifications for this task
+                notificationManager.removeTaskNotifications(for: task)
+
+                print("✅ Task completed from notification: \(task.title)")
+                HapticManager.shared.trigger(.success)
+            }
+        } catch {
+            print("❌ Failed to complete task from notification: \(error)")
+        }
     }
 
     // MARK: - App Lifecycle

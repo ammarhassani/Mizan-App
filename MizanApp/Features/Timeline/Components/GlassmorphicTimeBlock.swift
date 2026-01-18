@@ -3,44 +3,13 @@
 //  Mizan
 //
 //  Glass morphism effect wrapper for timeline blocks
+//  Uses theme-based glassmorphism values from ThemeManager
 //
 
 import SwiftUI
 
-/// Glass effect style presets
-enum GlassStyle {
-    case subtle      // Light glass, minimal blur
-    case standard    // Default glass effect
-    case frosted     // Heavy blur, more opaque
-    case prayer      // Special style for prayer cards with glow
-
-    var blurRadius: CGFloat {
-        switch self {
-        case .subtle: return 0.5
-        case .standard: return 8
-        case .frosted: return 20
-        case .prayer: return 12
-        }
-    }
-
-    var backgroundOpacity: CGFloat {
-        switch self {
-        case .subtle: return 0.7
-        case .standard: return 0.6
-        case .frosted: return 0.75
-        case .prayer: return 0.55
-        }
-    }
-
-    var borderOpacity: (leading: CGFloat, trailing: CGFloat) {
-        switch self {
-        case .subtle: return (0.3, 0.1)
-        case .standard: return (0.4, 0.15)
-        case .frosted: return (0.5, 0.2)
-        case .prayer: return (0.5, 0.2)
-        }
-    }
-}
+// GlassStyle enum is defined in ThemeManager.swift
+// Values are loaded from ThemeConfig.json per theme
 
 /// A container view with glassmorphism effect for timeline blocks
 struct GlassmorphicTimeBlock<Content: View>: View {
@@ -67,8 +36,8 @@ struct GlassmorphicTimeBlock<Content: View>: View {
             .overlay(glassOverlay)
             .overlay(pulsingGlow)
             .shadow(
-                color: isElevated ? accentColor.opacity(0.3) : accentColor.opacity(0.1),
-                radius: isElevated ? 12 : 4,
+                color: accentColor.opacity(glassValues.glowOpacity ?? (isElevated ? 0.3 : 0.1)),
+                radius: glassValues.glowRadius ?? (isElevated ? 12 : 4),
                 y: isElevated ? 6 : 2
             )
             .onAppear {
@@ -82,17 +51,21 @@ struct GlassmorphicTimeBlock<Content: View>: View {
 
     // MARK: - Glass Background
 
+    private var glassValues: GlassStyleValues {
+        themeManager.glassStyle(style)
+    }
+
     private var glassBackground: some View {
         ZStack {
             // Base translucent layer with configurable blur
-            themeManager.surfaceColor.opacity(style.backgroundOpacity)
-                .blur(radius: style.blurRadius)
+            themeManager.surfaceColor.opacity(glassValues.backgroundOpacity)
+                .blur(radius: glassValues.blurRadius)
 
             // Top highlight gradient (inner glow effect)
             LinearGradient(
                 colors: [
-                    themeManager.textOnPrimaryColor.opacity(0.1),
-                    themeManager.textOnPrimaryColor.opacity(0.03),
+                    themeManager.textOnPrimaryColor.opacity(glassValues.highlightOpacity),
+                    themeManager.textOnPrimaryColor.opacity(glassValues.highlightOpacity * 0.3),
                     Color.clear
                 ],
                 startPoint: .top,
@@ -100,7 +73,7 @@ struct GlassmorphicTimeBlock<Content: View>: View {
             )
 
             // Subtle accent tint
-            accentColor.opacity(style == .prayer ? 0.08 : 0.05)
+            accentColor.opacity(glassValues.accentTintOpacity)
         }
     }
 
@@ -111,8 +84,8 @@ struct GlassmorphicTimeBlock<Content: View>: View {
             .stroke(
                 LinearGradient(
                     colors: [
-                        accentColor.opacity(style.borderOpacity.leading),
-                        accentColor.opacity(style.borderOpacity.trailing)
+                        accentColor.opacity(glassValues.borderOpacity.leading),
+                        accentColor.opacity(glassValues.borderOpacity.trailing)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -146,24 +119,28 @@ struct GlassmorphicModifier: ViewModifier {
 
     @EnvironmentObject var themeManager: ThemeManager
 
+    private var glassValues: GlassStyleValues {
+        themeManager.glassStyle(style)
+    }
+
     func body(content: Content) -> some View {
         content
             .background(
                 ZStack {
-                    themeManager.surfaceColor.opacity(style.backgroundOpacity)
-                        .blur(radius: style.blurRadius)
+                    themeManager.surfaceColor.opacity(glassValues.backgroundOpacity)
+                        .blur(radius: glassValues.blurRadius)
 
                     LinearGradient(
                         colors: [
-                            themeManager.textOnPrimaryColor.opacity(0.1),
-                            themeManager.textOnPrimaryColor.opacity(0.03),
+                            themeManager.textOnPrimaryColor.opacity(glassValues.highlightOpacity),
+                            themeManager.textOnPrimaryColor.opacity(glassValues.highlightOpacity * 0.3),
                             Color.clear
                         ],
                         startPoint: .top,
                         endPoint: .center
                     )
 
-                    accentColor.opacity(style == .prayer ? 0.08 : 0.05)
+                    accentColor.opacity(glassValues.accentTintOpacity)
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
@@ -172,8 +149,8 @@ struct GlassmorphicModifier: ViewModifier {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                accentColor.opacity(style.borderOpacity.leading),
-                                accentColor.opacity(style.borderOpacity.trailing)
+                                accentColor.opacity(glassValues.borderOpacity.leading),
+                                accentColor.opacity(glassValues.borderOpacity.trailing)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -182,8 +159,8 @@ struct GlassmorphicModifier: ViewModifier {
                     )
             )
             .shadow(
-                color: isElevated ? accentColor.opacity(0.3) : accentColor.opacity(0.1),
-                radius: isElevated ? 12 : 4,
+                color: accentColor.opacity(glassValues.glowOpacity ?? (isElevated ? 0.3 : 0.1)),
+                radius: glassValues.glowRadius ?? (isElevated ? 12 : 4),
                 y: isElevated ? 6 : 2
             )
     }
@@ -262,8 +239,8 @@ struct GlassmorphicTaskBlock: View {
 
                     Spacer()
 
-                    // Category icon
-                    Image(systemName: task.category.icon)
+                    // Task icon
+                    Image(systemName: task.icon)
                         .font(.system(size: 14))
                         .foregroundColor(taskColor.opacity(0.7))
                 }
@@ -324,7 +301,7 @@ struct GlassmorphicTaskBlock: View {
         Text("Glassmorphic Blocks")
             .font(MZTypography.titleSmall)
 
-        GlassmorphicTimeBlock(accentColor: .blue) {
+        GlassmorphicTimeBlock(accentColor: ThemeManager().primaryColor) {
             HStack {
                 Image(systemName: "briefcase.fill")
                 Text("Sample Task Block")
@@ -333,7 +310,7 @@ struct GlassmorphicTaskBlock: View {
             .padding()
         }
 
-        GlassmorphicTimeBlock(accentColor: .purple, isElevated: true) {
+        GlassmorphicTimeBlock(accentColor: ThemeManager().categoryColor(.worship), isElevated: true) {
             HStack {
                 Image(systemName: "moon.stars.fill")
                 Text("Elevated Block")
@@ -351,9 +328,9 @@ struct GlassmorphicTaskBlock: View {
             Spacer()
         }
         .padding()
-        .glassmorphic(accentColor: .red)
+        .glassmorphic(accentColor: ThemeManager().errorColor)
     }
     .padding()
-    .background(Color.gray.opacity(0.2))
+    .background(ThemeManager().surfaceSecondaryColor.opacity(0.2))
     .environmentObject(ThemeManager())
 }

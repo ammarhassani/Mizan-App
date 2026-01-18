@@ -605,7 +605,7 @@ struct AdhanOptionRow: View {
             } label: {
                 Image(systemName: isPlaying ? "stop.circle.fill" : "play.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(!isAudioAvailable ? .gray.opacity(0.5) : themeManager.primaryColor)
+                    .foregroundColor(!isAudioAvailable ? themeManager.disabledColor : themeManager.primaryColor)
             }
             .buttonStyle(.plain)
             .disabled(!isAudioAvailable)

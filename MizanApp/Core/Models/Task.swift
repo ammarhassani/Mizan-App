@@ -20,6 +20,7 @@ final class Task {
     var notes: String?
     var duration: Int // minutes
     var category: TaskCategory
+    var icon: String = "circle.fill" // SF Symbol name (e.g., "book.fill", "figure.walk")
 
     // MARK: - Scheduling
     var scheduledDate: Date? // nil = inbox, non-nil = on timeline
@@ -46,6 +47,7 @@ final class Task {
         title: String,
         duration: Int = 30,
         category: TaskCategory = .personal,
+        icon: String? = nil,
         notes: String? = nil
     ) {
         self.id = UUID()
@@ -54,6 +56,8 @@ final class Task {
         self.title = title
         self.duration = duration
         self.category = category
+        // Use provided icon, or auto-detect from title, or fallback to category icon
+        self.icon = icon ?? TaskIconDetector.shared.detectIcon(from: title)
         self.notes = notes
         self.scheduledDate = nil
         self.scheduledStartTime = nil
@@ -344,6 +348,7 @@ extension Task {
             title: title,
             duration: duration,
             category: category,
+            icon: icon,
             notes: notes
         )
         newTask.parentTaskId = id

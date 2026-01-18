@@ -438,30 +438,32 @@ extension View {
 // MARK: - Preview
 
 #Preview {
+    @Previewable @StateObject var themeManager = ThemeManager()
+
     TabView {
         ZStack {
-            Color.black
+            themeManager.backgroundColor
             SacredGeometryView(patternType: .octagram, opacity: 0.3)
         }
         .tabItem { Text("Octagram") }
 
         ZStack {
-            Color.black.opacity(0.9)
+            themeManager.backgroundColor
             SacredGeometryView(patternType: .hexagonal, opacity: 0.4, glowIntensity: 0.5)
         }
         .tabItem { Text("Hexagonal") }
 
         ZStack {
-            Color.black.opacity(0.95)
+            themeManager.backgroundColor
             SacredGeometryView(patternType: .arabesque, opacity: 0.3)
         }
         .tabItem { Text("Arabesque") }
 
         ZStack {
-            Color.black
+            themeManager.backgroundColor
             SacredGeometryView(patternType: .muqarnas, opacity: 0.5)
         }
         .tabItem { Text("Muqarnas") }
     }
-    .environmentObject(ThemeManager())
+    .environmentObject(themeManager)
 }

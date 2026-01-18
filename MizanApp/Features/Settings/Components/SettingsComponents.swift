@@ -49,7 +49,7 @@ struct SettingsCard<Content: View>: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(themeManager.surfaceColor)
-                .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
+                .shadow(color: themeManager.overlayColor.opacity(0.05), radius: 8, y: 2)
         )
     }
 }
@@ -192,7 +192,7 @@ struct AnimatedToggle: View {
                 Circle()
                     .fill(themeManager.surfaceColor)
                     .frame(width: 27, height: 27)
-                    .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+                    .shadow(color: themeManager.overlayColor.opacity(0.15), radius: 2, y: 1)
                     .offset(x: isOn ? 10 : -10)
             }
         }
@@ -208,6 +208,7 @@ struct SettingsDivider: View {
 
     var body: some View {
         Divider()
+            .background(themeManager.dividerColor)
             .padding(.leading, 60)
     }
 }
@@ -248,7 +249,7 @@ struct ProUpgradeCard: View {
                 // Star icon with glow
                 ZStack {
                     Circle()
-                        .fill(Color.yellow.opacity(0.2))
+                        .fill(themeManager.warningColor.opacity(0.2))
                         .frame(width: 50, height: 50)
                         .blur(radius: 8)
 
@@ -256,7 +257,7 @@ struct ProUpgradeCard: View {
                         .font(.system(size: 28))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [.yellow, .orange],
+                                colors: [themeManager.warningColor, themeManager.warningColor.opacity(0.7)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -325,18 +326,20 @@ struct ProUpgradeCard: View {
 // MARK: - Preview
 
 #Preview {
+    @Previewable @StateObject var themeManager = ThemeManager()
+
     VStack(spacing: 20) {
-        SettingsSectionHeader(icon: "bell.fill", title: "الإشعارات", iconColor: .red)
+        SettingsSectionHeader(icon: "bell.fill", title: "الإشعارات", iconColor: themeManager.errorColor)
 
         SettingsCard {
-            SettingsRow(icon: "moon.stars.fill", iconColor: .purple, title: "النوافل")
+            SettingsRow(icon: "moon.stars.fill", iconColor: themeManager.primaryColor, title: "النوافل")
             SettingsDivider()
-            SettingsToggleRow(icon: "bell.badge.fill", iconColor: .red, title: "الإشعارات", isOn: .constant(true))
+            SettingsToggleRow(icon: "bell.badge.fill", iconColor: themeManager.errorColor, title: "الإشعارات", isOn: .constant(true))
         }
 
         ProUpgradeCard { }
     }
     .padding()
-    .background(Color(UIColor.systemGroupedBackground))
-    .environmentObject(ThemeManager())
+    .background(themeManager.backgroundColor)
+    .environmentObject(themeManager)
 }

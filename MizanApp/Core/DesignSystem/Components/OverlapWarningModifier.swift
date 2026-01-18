@@ -95,29 +95,30 @@ extension View {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     VStack(spacing: 20) {
         // Normal card
         RoundedRectangle(cornerRadius: 14)
-            .fill(Color.gray.opacity(0.2))
+            .fill(themeManager.surfaceSecondaryColor.opacity(0.3))
             .frame(height: 80)
-            .overlay(Text("Normal Task"))
+            .overlay(Text("Normal Task").foregroundColor(themeManager.textPrimaryColor))
             .overlapWarning(hasOverlap: false)
 
         // Overlapping card (single)
         RoundedRectangle(cornerRadius: 14)
-            .fill(Color.gray.opacity(0.2))
+            .fill(themeManager.surfaceSecondaryColor.opacity(0.3))
             .frame(height: 80)
-            .overlay(Text("Overlapping Task"))
+            .overlay(Text("Overlapping Task").foregroundColor(themeManager.textPrimaryColor))
             .overlapWarning(hasOverlap: true, overlapCount: 1)
 
         // Overlapping card (multiple)
         RoundedRectangle(cornerRadius: 14)
-            .fill(Color.gray.opacity(0.2))
+            .fill(themeManager.surfaceSecondaryColor.opacity(0.3))
             .frame(height: 80)
-            .overlay(Text("Multiple Overlaps"))
+            .overlay(Text("Multiple Overlaps").foregroundColor(themeManager.textPrimaryColor))
             .overlapWarning(hasOverlap: true, overlapCount: 3)
     }
     .padding(30)
-    .background(Color.black.opacity(0.05))
-    .environmentObject(ThemeManager())
+    .background(themeManager.overlayColor.opacity(0.05))
+    .environmentObject(themeManager)
 }

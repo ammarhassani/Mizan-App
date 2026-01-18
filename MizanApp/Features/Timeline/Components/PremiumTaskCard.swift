@@ -43,6 +43,9 @@ struct PremiumTaskCard: View {
         .padding(.vertical, 4)
         .offset(x: appearOffset)
         .opacity(appearOpacity)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(task.title)، \(task.isCompleted ? "مكتملة" : "غير مكتملة")")
+        .accessibilityValue("المدة \(task.duration.formattedDuration)، يبدأ \(task.startTime.formatted(date: .omitted, time: .shortened))")
         .onAppear {
             withAnimation(MZAnimation.cardAppear) {
                 appearOffset = 0
@@ -89,6 +92,10 @@ struct PremiumTaskCard: View {
         .shadow(color: taskColor.opacity(0.08), radius: 8, y: 3)
         .shadow(color: themeManager.backgroundColor.opacity(0.4), radius: 2, x: 2, y: 2) // Neubrutalist hard shadow
         .scaleEffect(isPressed ? 0.98 : 1.0)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(themeManager.pressedColor.opacity(isPressed ? 0.1 : 0))
+        )
         .opacity(task.isCompleted ? 0.7 : 1.0)
         .animation(MZAnimation.cardPress, value: isPressed)
         .contentShape(Rectangle()) // Make entire card tappable
@@ -154,11 +161,11 @@ struct PremiumTaskCard: View {
                     .lineLimit(2)
 
                 HStack(spacing: 6) {
-                    // Category chip
+                    // Task icon chip
                     HStack(spacing: 4) {
-                        Image(systemName: task.category.icon)
+                        Image(systemName: task.icon)
                             .font(.system(size: 9))
-                        Text(task.category.displayName)
+                        Text(task.duration.formattedDuration)
                             .font(.system(size: 9, weight: .medium))
                     }
                     .foregroundColor(taskColor.opacity(0.9))
@@ -225,8 +232,12 @@ struct PremiumTaskCard: View {
                     .frame(width: 22, height: 22)
             }
             .scaleEffect(checkScale)
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(task.isCompleted ? "إلغاء إكمال المهمة" : "إكمال المهمة")
+        .accessibilityHint(task.isCompleted ? "اضغط لإلغاء إكمال المهمة" : "اضغط لوضع علامة إكمال")
     }
 
     // MARK: - Completed Badge
@@ -399,6 +410,6 @@ struct PremiumTaskCard: View {
         }
         .padding()
     }
-    .background(Color.black.opacity(0.9))
+    .background(ThemeManager().overlayColor.opacity(0.95))
     .environmentObject(ThemeManager())
 }

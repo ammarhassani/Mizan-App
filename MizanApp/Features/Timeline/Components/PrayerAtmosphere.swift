@@ -89,28 +89,12 @@ struct AtmosphericGlowBorder: View {
 
 struct TimeOfDayBackground: View {
     let date: Date
+    @EnvironmentObject var themeManager: ThemeManager
 
     private var gradientColors: [Color] {
         let hour = Calendar.current.component(.hour, from: date)
-
-        switch hour {
-        case 4..<6: // Fajr time
-            return [Color(hex: "#1a1a2e"), Color(hex: "#16213e"), Color(hex: "#0f3460")]
-        case 6..<8: // Sunrise
-            return [Color(hex: "#ff9966"), Color(hex: "#ff5e62"), Color(hex: "#ff9966").opacity(0.7)]
-        case 8..<12: // Morning
-            return [Color(hex: "#a8edea"), Color(hex: "#fed6e3")]
-        case 12..<15: // Dhuhr
-            return [Color(hex: "#ffecd2"), Color(hex: "#fcb69f")]
-        case 15..<17: // Asr
-            return [Color(hex: "#fbc2eb"), Color(hex: "#a6c1ee")]
-        case 17..<19: // Maghrib
-            return [Color(hex: "#fa709a"), Color(hex: "#fee140"), Color(hex: "#fa709a").opacity(0.5)]
-        case 19..<21: // Isha early
-            return [Color(hex: "#2c3e50"), Color(hex: "#4ca1af")]
-        default: // Night
-            return [Color(hex: "#0f0c29"), Color(hex: "#302b63"), Color(hex: "#24243e")]
-        }
+        let period = AtmospherePeriod.from(hour: hour)
+        return themeManager.atmosphereGradient(for: period)
     }
 
     var body: some View {
@@ -187,7 +171,7 @@ struct PrayerApproachingIndicator: View {
                                 colors: [
                                     themeManager.textOnPrimaryColor.opacity(0.1),
                                     Color.clear,
-                                    Color.black.opacity(0.05)
+                                    themeManager.overlayColor.opacity(0.05)
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
@@ -248,6 +232,7 @@ struct PrayerApproachingIndicator: View {
 /// Subtle floating particles for prayer time atmosphere
 struct AmbientParticles: View {
     let prayerType: PrayerType?
+    @EnvironmentObject var themeManager: ThemeManager
 
     @State private var particles: [AmbientParticle] = []
 
@@ -332,21 +317,20 @@ struct AmbientParticles: View {
 
     private var particleColor: Color {
         guard let prayer = prayerType else {
-            return Color.white.opacity(0.5)
+            return themeManager.textOnPrimaryColor.opacity(0.5)
         }
 
+        // Convert prayer type to atmosphere period for theme-aware colors
+        let period: AtmospherePeriod
         switch prayer {
-        case .fajr:
-            return Color(hex: "#E8D5B7") // Soft cream/gold for dawn
-        case .dhuhr:
-            return Color(hex: "#FFE4B5") // Golden
-        case .asr:
-            return Color(hex: "#DDA0DD") // Soft purple
-        case .maghrib:
-            return Color(hex: "#FF6B6B") // Warm coral
-        case .isha:
-            return Color(hex: "#B8C4CE") // Cool silver/blue
+        case .fajr: period = .fajr
+        case .dhuhr: period = .dhuhr
+        case .asr: period = .asr
+        case .maghrib: period = .maghrib
+        case .isha: period = .isha
         }
+
+        return themeManager.particleColor(for: period)
     }
 }
 
@@ -397,24 +381,24 @@ struct PrayerTimeAmbience: View {
     }
 
     private func gradientColors(for prayer: PrayerType) -> [Color] {
+        // Convert prayer type to atmosphere period for theme-aware colors
+        let period: AtmospherePeriod
         switch prayer {
-        case .fajr:
-            return [Color(hex: "#1a1a2e"), Color(hex: "#16213e"), Color(hex: "#0f3460")]
-        case .dhuhr:
-            return [Color(hex: "#ffecd2"), Color(hex: "#fcb69f")]
-        case .asr:
-            return [Color(hex: "#fbc2eb"), Color(hex: "#a6c1ee")]
-        case .maghrib:
-            return [Color(hex: "#fa709a"), Color(hex: "#fee140")]
-        case .isha:
-            return [Color(hex: "#0f0c29"), Color(hex: "#302b63")]
+        case .fajr: period = .fajr
+        case .dhuhr: period = .dhuhr
+        case .asr: period = .asr
+        case .maghrib: period = .maghrib
+        case .isha: period = .isha
         }
+
+        return themeManager.atmosphereGradient(for: period)
     }
 }
 
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     VStack(spacing: 20) {
         PrayerCountdownBadge(minutes: 3, seconds: 45)
         PrayerCountdownBadge(minutes: 0, seconds: 30)
@@ -425,14 +409,16 @@ struct PrayerTimeAmbience: View {
         )
     }
     .padding()
-    .background(Color.black)
-    .environmentObject(ThemeManager())
+    .background(themeManager.overlayColor.opacity(0.95))
+    .environmentObject(themeManager)
 }
 
 #Preview("Ambient Particles") {
+    let themeManager = ThemeManager()
     ZStack {
-        Color.black
+        themeManager.overlayColor
         AmbientParticles(prayerType: .fajr)
+            .environmentObject(themeManager)
     }
 }
 

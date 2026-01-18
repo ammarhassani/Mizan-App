@@ -21,7 +21,7 @@ struct TimelineFlowConnector: View {
     // MARK: - Computed Properties
 
     private var flowColor: Color {
-        themeManager.textSecondaryColor.opacity(0.2)
+        themeManager.textSecondaryColor.opacity(0.5)
     }
 
     // MARK: - Body
@@ -155,17 +155,17 @@ struct SimpleFlowConnector: View {
         VStack(spacing: 0) {
             // Top dot
             Circle()
-                .fill(themeManager.textSecondaryColor.opacity(0.3))
+                .fill(themeManager.textSecondaryColor.opacity(0.5))
                 .frame(width: 4, height: 4)
 
             // Dashed line
             Rectangle()
-                .fill(themeManager.textSecondaryColor.opacity(0.15))
+                .fill(themeManager.textSecondaryColor.opacity(0.4))
                 .frame(width: 1, height: max(0, height - 8))
 
             // Bottom dot
             Circle()
-                .fill(themeManager.textSecondaryColor.opacity(0.3))
+                .fill(themeManager.textSecondaryColor.opacity(0.5))
                 .frame(width: 4, height: 4)
         }
         .frame(height: height)
@@ -175,10 +175,11 @@ struct SimpleFlowConnector: View {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     VStack(spacing: 0) {
         // Sample content block
         RoundedRectangle(cornerRadius: 8)
-            .fill(Color.blue.opacity(0.2))
+            .fill(themeManager.primaryColor.opacity(0.2))
             .frame(height: 80)
             .overlay(Text("Prayer Block"))
 
@@ -191,7 +192,7 @@ struct SimpleFlowConnector: View {
 
         // Another content block
         RoundedRectangle(cornerRadius: 8)
-            .fill(Color.green.opacity(0.2))
+            .fill(themeManager.successColor.opacity(0.2))
             .frame(height: 60)
             .overlay(Text("Task Block"))
 
@@ -200,11 +201,11 @@ struct SimpleFlowConnector: View {
 
         // Another block
         RoundedRectangle(cornerRadius: 8)
-            .fill(Color.purple.opacity(0.2))
+            .fill(themeManager.categoryColor(.worship).opacity(0.2))
             .frame(height: 50)
             .overlay(Text("Nawafil Block"))
     }
     .padding()
-    .background(Color.gray.opacity(0.1))
-    .environmentObject(ThemeManager())
+    .background(themeManager.surfaceSecondaryColor.opacity(0.1))
+    .environmentObject(themeManager)
 }

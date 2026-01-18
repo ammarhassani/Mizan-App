@@ -21,43 +21,45 @@ struct PaywallSheet: View {
     @State private var errorMessage = ""
     @State private var showPostSubscriptionGuide = false
 
-    private let features: [ProFeature] = [
-        ProFeature(
-            icon: "paintpalette.fill",
-            title: "ثيمات حصرية",
-            subtitle: "4 ثيمات إضافية",
-            description: "ليل، فجر، صحراء، ورمضان",
-            gradient: [Color.purple, Color.blue]
-        ),
-        ProFeature(
-            icon: "moon.stars.fill",
-            title: "النوافل",
-            subtitle: "9 أنواع من النوافل",
-            description: "الضحى، التهجد، الوتر، والرواتب",
-            gradient: [Color.green, Color.teal]
-        ),
-        ProFeature(
-            icon: "repeat",
-            title: "المهام المتكررة",
-            subtitle: "يومي، أسبوعي، شهري",
-            description: "جدول مهامك تلقائيًا",
-            gradient: [Color.orange, Color.red]
-        ),
-        ProFeature(
-            icon: "bell.badge.fill",
-            title: "إشعارات متقدمة",
-            subtitle: "تذكير قبل المهمة",
-            description: "5، 10، 15، أو 30 دقيقة قبل",
-            gradient: [Color.pink, Color.purple]
-        ),
-        ProFeature(
-            icon: "speaker.wave.3.fill",
-            title: "أصوات الأذان",
-            subtitle: "مكة، المدينة، مصر",
-            description: "اختر صوت المؤذن المفضل",
-            gradient: [Color.yellow, Color.orange]
-        )
-    ]
+    private var features: [ProFeature] {
+        [
+            ProFeature(
+                icon: "paintpalette.fill",
+                title: "ثيمات حصرية",
+                subtitle: "4 ثيمات إضافية",
+                description: "ليل، فجر، صحراء، ورمضان",
+                gradient: [themeManager.primaryColor, themeManager.primaryColor.opacity(0.7)]
+            ),
+            ProFeature(
+                icon: "moon.stars.fill",
+                title: "النوافل",
+                subtitle: "9 أنواع من النوافل",
+                description: "الضحى، التهجد، الوتر، والرواتب",
+                gradient: [themeManager.successColor, themeManager.successColor.opacity(0.7)]
+            ),
+            ProFeature(
+                icon: "repeat",
+                title: "المهام المتكررة",
+                subtitle: "يومي، أسبوعي، شهري",
+                description: "جدول مهامك تلقائيًا",
+                gradient: [themeManager.warningColor, themeManager.errorColor]
+            ),
+            ProFeature(
+                icon: "bell.badge.fill",
+                title: "إشعارات متقدمة",
+                subtitle: "تذكير قبل المهمة",
+                description: "5، 10، 15، أو 30 دقيقة قبل",
+                gradient: [themeManager.errorColor, themeManager.primaryColor]
+            ),
+            ProFeature(
+                icon: "speaker.wave.3.fill",
+                title: "أصوات الأذان",
+                subtitle: "مكة، المدينة، مصر",
+                description: "اختر صوت المؤذن المفضل",
+                gradient: [themeManager.warningColor, themeManager.warningColor.opacity(0.7)]
+            )
+        ]
+    }
 
     var body: some View {
         NavigationView {
@@ -137,9 +139,10 @@ struct PaywallSheet: View {
         HStack(spacing: 8) {
             ForEach(features.indices, id: \.self) { index in
                 Circle()
-                    .fill(index == selectedPage ? themeManager.primaryColor : themeManager.textSecondaryColor.opacity(0.3))
+                    .fill(index == selectedPage ? themeManager.primaryColor : themeManager.textSecondaryColor.opacity(0.5))
                     .frame(width: 8, height: 8)
                     .animation(.easeInOut, value: selectedPage)
+                    .accessibilityHidden(true)
             }
         }
     }
@@ -158,7 +161,7 @@ struct PaywallSheet: View {
                     .padding()
             } else if storeManager.products.isEmpty {
                 Text("تعذر تحميل الأسعار")
-                    .foregroundColor(.red)
+                    .foregroundColor(themeManager.errorColor)
                     .padding()
 
                 Button("إعادة المحاولة") {

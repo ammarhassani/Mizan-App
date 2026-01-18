@@ -578,7 +578,7 @@ class ParticleNotificationManager: ObservableObject {
             message: task.title,
             color: Color(hex: task.colorHex),
             importance: .medium,
-            iconName: task.category.icon,
+            iconName: task.icon,
             duration: TimeInterval(task.duration * 60),
             createdAt: Date()
         )
@@ -626,11 +626,13 @@ class ParticleNotificationManager: ObservableObject {
 }
 
 #Preview {
+    @Previewable @StateObject var themeManager = ThemeManager()
+
     ZStack {
-        Color.black.opacity(0.8).ignoresSafeArea()
+        themeManager.backgroundColor.ignoresSafeArea()
 
         ParticleNotificationSystem()
-            .environmentObject(ThemeManager())
+            .environmentObject(themeManager)
             .onAppear {
                 // Show sample notification
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {

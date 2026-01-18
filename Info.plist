@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -57,5 +59,46 @@
 	<string>نحتاج موقعك لحساب أوقات الصلاة بدقة حسب منطقتك</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>نحتاج إذن الإشعارات لتنبيهك بأوقات الصلاة والمهام المجدولة</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>AppIcon-Fajr</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-Fajr60x60</string>
+				</array>
+			</dict>
+			<key>AppIcon-Layl</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-Layl60x60</string>
+				</array>
+			</dict>
+			<key>AppIcon-Noor</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-Noor60x60</string>
+				</array>
+			</dict>
+			<key>AppIcon-Ramadan</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-Ramadan60x60</string>
+				</array>
+			</dict>
+			<key>AppIcon-Sahara</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-Sahara60x60</string>
+				</array>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>

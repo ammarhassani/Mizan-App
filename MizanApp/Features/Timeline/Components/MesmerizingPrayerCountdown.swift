@@ -288,18 +288,18 @@ struct CountdownPrayerNameDisplay: View {
 
     var body: some View {
         VStack(spacing: MZSpacing.sm) {
-            // WCAG2 compliant: white text with shadow for maximum readability
+            // WCAG2 compliant: text with shadow for maximum readability
             Text(prayer.displayName)
                 .font(MZTypography.displayMedium)
-                .foregroundColor(.white)
+                .foregroundColor(themeManager.textOnPrimaryColor)
                 .scaleEffect(1.0 + sin(Double(phase) * .pi * 2) * 0.05)
-                .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 2)
+                .shadow(color: themeManager.overlayColor.opacity(0.4), radius: 3, x: 0, y: 2)
                 .shadow(color: themeManager.primaryColor.opacity(0.6), radius: 15)
 
             Text(isUrgent ? "اقترب وقت الصلاة" : "الصلاة القادمة")
                 .font(MZTypography.bodyLarge)
-                .foregroundColor(.white.opacity(0.9))
-                .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+                .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.9))
+                .shadow(color: themeManager.overlayColor.opacity(0.3), radius: 1, x: 0, y: 1)
         }
         .padding(.horizontal, MZSpacing.lg)
         .padding(.vertical, MZSpacing.md)
@@ -308,7 +308,7 @@ struct CountdownPrayerNameDisplay: View {
                 .fill(themeManager.surfaceColor.opacity(0.4))
                 .overlay(
                     RoundedRectangle(cornerRadius: themeManager.cornerRadius(.large))
-                        .stroke(.white.opacity(0.3), lineWidth: 2)
+                        .stroke(themeManager.textOnPrimaryColor.opacity(0.3), lineWidth: 2)
                 )
                 .shadow(color: themeManager.backgroundColor.opacity(0.3), radius: 10, y: 5)
         )
@@ -403,15 +403,15 @@ struct CountdownTimeDisplay: View {
             // WCAG2 compliant: white text with shadow for maximum contrast
             Text(formattedTime)
                 .font(.system(size: 48, weight: .bold, design: .monospaced))
-                .foregroundColor(isUrgent ? themeManager.errorColor : .white)
+                .foregroundColor(isUrgent ? themeManager.errorColor : themeManager.textOnPrimaryColor)
                 .scaleEffect(1.0 + sin(Double(phase) * .pi * 4) * 0.02)
-                .shadow(color: .black.opacity(0.4), radius: 2, x: 0, y: 1)
+                .shadow(color: themeManager.overlayColor.opacity(0.4), radius: 2, x: 0, y: 1)
                 .shadow(color: (isUrgent ? themeManager.errorColor : themeManager.primaryColor).opacity(0.5), radius: 15)
 
             Text(timeUnitText)
                 .font(MZTypography.bodyMedium)
-                .foregroundColor(.white.opacity(0.9))
-                .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+                .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.9))
+                .shadow(color: themeManager.overlayColor.opacity(0.3), radius: 1, x: 0, y: 1)
         }
         .padding(.horizontal, MZSpacing.lg)
         .padding(.vertical, MZSpacing.md)
@@ -421,7 +421,7 @@ struct CountdownTimeDisplay: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
                         .stroke(
-                            isUrgent ? themeManager.errorColor.opacity(0.6) : .white.opacity(0.3),
+                            isUrgent ? themeManager.errorColor.opacity(0.6) : themeManager.textOnPrimaryColor.opacity(0.3),
                             lineWidth: 1
                         )
                 )

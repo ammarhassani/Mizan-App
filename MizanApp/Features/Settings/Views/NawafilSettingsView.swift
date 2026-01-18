@@ -68,7 +68,7 @@ struct NawafilSettingsView: View {
             HStack(spacing: 12) {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(.purple)
+                    .foregroundColor(themeManager.primaryColor)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("ميزة Pro")
@@ -91,7 +91,7 @@ struct NawafilSettingsView: View {
             HStack(spacing: 12) {
                 Image(systemName: "moon.stars.fill")
                     .font(.system(size: 24))
-                    .foregroundColor(isPro ? themeManager.primaryColor : .gray)
+                    .foregroundColor(isPro ? themeManager.primaryColor : themeManager.disabledColor)
                     .frame(width: 32)
 
                 Toggle(isOn: Binding(
@@ -107,7 +107,7 @@ struct NawafilSettingsView: View {
                 )) {
                     Text("تفعيل النوافل")
                         .font(.system(size: 17))
-                        .foregroundColor(isPro ? themeManager.textPrimaryColor : .gray)
+                        .foregroundColor(isPro ? themeManager.textPrimaryColor : themeManager.disabledColor)
                 }
                 .disabled(!isPro)
                 .tint(themeManager.primaryColor)

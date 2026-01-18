@@ -162,10 +162,11 @@ struct MeshTimelineAmbience: View {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     VStack(spacing: 0) {
         Text("Timeline Ambience")
             .font(.headline)
-            .foregroundColor(.white)
+            .foregroundColor(themeManager.textOnPrimaryColor)
             .padding()
 
         ZStack {
@@ -173,7 +174,7 @@ struct MeshTimelineAmbience: View {
 
             VStack {
                 Text("Fajr Ambience")
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
                 Spacer()
             }
             .padding()
@@ -185,7 +186,7 @@ struct MeshTimelineAmbience: View {
 
             VStack {
                 Text("Dhuhr Ambience")
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
                 Spacer()
             }
             .padding()
@@ -197,12 +198,12 @@ struct MeshTimelineAmbience: View {
 
             VStack {
                 Text("Maghrib Ambience")
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
                 Spacer()
             }
             .padding()
         }
         .frame(height: 200)
     }
-    .environmentObject(ThemeManager())
+    .environmentObject(themeManager)
 }

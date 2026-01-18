@@ -13,6 +13,7 @@ struct TaskCompletionCelebration: View {
     @Binding var isPresented: Bool
     var message: String = "أحسنت!"
 
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var ringProgress: CGFloat = 0
     @State private var checkmarkVisible = false
     @State private var textVisible = false
@@ -22,7 +23,7 @@ struct TaskCompletionCelebration: View {
         if isPresented {
             ZStack {
                 // Dimmed background
-                Color.black.opacity(0.4)
+                themeManager.overlayColor.opacity(0.4)
                     .ignoresSafeArea()
                     .onTapGesture {
                         dismiss()
@@ -33,19 +34,19 @@ struct TaskCompletionCelebration: View {
                     ZStack {
                         // Ring progress
                         Circle()
-                            .stroke(Color.green.opacity(0.3), lineWidth: 8)
+                            .stroke(themeManager.successColor.opacity(0.3), lineWidth: 8)
                             .frame(width: 120, height: 120)
 
                         Circle()
                             .trim(from: 0, to: ringProgress)
-                            .stroke(Color.green, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .stroke(themeManager.successColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                             .frame(width: 120, height: 120)
                             .rotationEffect(.degrees(-90))
 
                         // Checkmark
                         Image(systemName: "checkmark")
                             .font(.system(size: 50, weight: .bold))
-                            .foregroundColor(.green)
+                            .foregroundColor(themeManager.successColor)
                             .scaleEffect(checkmarkVisible ? 1.0 : 0.3)
                             .opacity(checkmarkVisible ? 1.0 : 0.0)
                     }
@@ -53,7 +54,7 @@ struct TaskCompletionCelebration: View {
                     // Celebration text
                     Text(message)
                         .font(MZTypography.headlineMedium)
-                        .foregroundColor(.white)
+                        .foregroundColor(themeManager.textOnPrimaryColor)
                         .opacity(textVisible ? 1 : 0)
                         .scaleEffect(textVisible ? 1 : 0.8)
                 }
@@ -109,6 +110,7 @@ struct TaskCompletionCelebration: View {
 struct ConfettiView: View {
     let trigger: Bool
 
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var particles: [ConfettiParticle] = []
 
     struct ConfettiParticle: Identifiable {
@@ -139,9 +141,17 @@ struct ConfettiView: View {
         }
     }
 
-    private let colors: [Color] = [
-        .green, .yellow, .orange, .pink, .purple, .blue, .mint
-    ]
+    // Theme-aware celebration colors
+    private var colors: [Color] {
+        [
+            themeManager.successColor,
+            themeManager.warningColor,
+            themeManager.primaryColor,
+            themeManager.errorColor,
+            themeManager.primaryColor.opacity(0.7),
+            themeManager.successColor.opacity(0.8)
+        ]
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -204,20 +214,25 @@ struct ConfettiView: View {
 struct AnimatedCheckmark: View {
     @Binding var isChecked: Bool
     var size: CGFloat = 24
-    var color: Color = .green
+    var color: Color? = nil
 
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var animationProgress: CGFloat = 0
+
+    private var checkmarkColor: Color {
+        color ?? themeManager.successColor
+    }
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(isChecked ? color : Color.gray.opacity(0.3))
+                .fill(isChecked ? checkmarkColor : themeManager.textSecondaryColor.opacity(0.3))
                 .frame(width: size, height: size)
 
             if isChecked {
                 Image(systemName: "checkmark")
                     .font(.system(size: size * 0.5, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
                     .scaleEffect(animationProgress)
             }
         }
@@ -242,17 +257,20 @@ struct AnimatedCheckmark: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var showCelebration = true
+        let themeManager = ThemeManager()
 
         var body: some View {
             ZStack {
-                Color.gray.ignoresSafeArea()
+                themeManager.surfaceSecondaryColor.ignoresSafeArea()
 
                 Button("Celebrate!") {
                     showCelebration = true
                 }
+                .foregroundColor(themeManager.textPrimaryColor)
 
                 TaskCompletionCelebration(isPresented: $showCelebration)
             }
+            .environmentObject(themeManager)
         }
     }
 

@@ -30,6 +30,7 @@ struct MZCategoryChip3D<Category: CategoryRepresentable>: View {
                 Image(systemName: category.icon)
                     .font(.system(size: 14))
                     .symbolEffect(.bounce, value: isSelected)
+                    .accessibilityHidden(true)
 
                 Text(category.displayName)
                     .font(MZTypography.labelLarge)
@@ -50,6 +51,9 @@ struct MZCategoryChip3D<Category: CategoryRepresentable>: View {
             .scaleEffect(isPressed ? MZInteraction.pressedScale : (isSelected ? 1.02 : 1.0))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(category.displayName)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .accessibilityHint(isSelected ? "محدد حالياً" : "اضغط للتحديد")
         .animation(MZAnimation.bouncy, value: isSelected)
         .animation(MZAnimation.stiff, value: isPressed)
         .simultaneousGesture(
@@ -73,7 +77,7 @@ struct MZCategoryChip3D<Category: CategoryRepresentable>: View {
                     colors: [
                         themeManager.textOnPrimaryColor.opacity(0.15),
                         Color.clear,
-                        Color.black.opacity(0.1)
+                        themeManager.overlayColor.opacity(0.1)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -181,6 +185,6 @@ struct MZUserCategoryChip3D: View {
         }
     }
     .padding()
-    .background(Color.gray.opacity(0.1))
+    .background(ThemeManager().surfaceSecondaryColor.opacity(0.3))
     .environmentObject(ThemeManager())
 }

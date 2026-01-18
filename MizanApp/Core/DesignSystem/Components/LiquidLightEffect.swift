@@ -429,15 +429,16 @@ struct PulseWave: View {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     ZStack {
-        Color.black
+        themeManager.overlayColor
 
         VStack {
             Text("Touch anywhere")
-                .foregroundColor(.white)
+                .foregroundColor(themeManager.textOnPrimaryColor)
                 .font(MZTypography.titleLarge)
         }
     }
     .liquidTouch()
-    .environmentObject(ThemeManager())
+    .environmentObject(themeManager)
 }

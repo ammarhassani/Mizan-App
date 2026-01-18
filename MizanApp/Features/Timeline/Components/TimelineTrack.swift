@@ -79,35 +79,36 @@ struct TimelineRow<Content: View>: View {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     VStack(spacing: 0) {
-        TimelineRow(accentColor: .blue) {
+        TimelineRow(accentColor: themeManager.primaryColor) {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.blue.opacity(0.2))
+                .fill(themeManager.primaryColor.opacity(0.2))
                 .frame(height: 100)
                 .padding(8)
         }
 
-        TimelineRow(accentColor: .green) {
+        TimelineRow(accentColor: themeManager.successColor) {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.green.opacity(0.2))
+                .fill(themeManager.successColor.opacity(0.2))
                 .frame(height: 80)
                 .padding(8)
         }
 
-        TimelineRow(accentColor: .orange, showDot: false) {
+        TimelineRow(accentColor: themeManager.warningColor, showDot: false) {
             Text("Gap")
                 .frame(height: 40)
                 .frame(maxWidth: .infinity)
         }
 
-        TimelineRow(accentColor: .purple) {
+        TimelineRow(accentColor: themeManager.categoryColor(.worship)) {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.purple.opacity(0.2))
+                .fill(themeManager.categoryColor(.worship).opacity(0.2))
                 .frame(height: 120)
                 .padding(8)
         }
     }
     .padding()
-    .background(Color.black.opacity(0.9))
-    .environmentObject(ThemeManager())
+    .background(themeManager.overlayColor.opacity(0.95))
+    .environmentObject(themeManager)
 }

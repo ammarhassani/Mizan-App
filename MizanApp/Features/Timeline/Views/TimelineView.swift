@@ -76,6 +76,10 @@ struct TimelineView: View {
     @State private var usePremiumCards = true
     @State private var taskToEdit: Task? = nil
 
+    // MARK: - Recurring Task Confirmation
+    @State private var showRecurringDeleteConfirmation = false
+    @State private var taskToDelete: Task? = nil
+
     // MARK: - Queries
     @Query private var allTasks: [Task]
     @Query private var allPrayers: [PrayerTime]
@@ -184,6 +188,26 @@ struct TimelineView: View {
         return currentPrayer
     }
 
+    /// Hijri date for the selected date - uses prayer API data or calculates locally
+    private var hijriDateString: String? {
+        // Respect user's toggle
+        guard appEnvironment.userSettings.showHijriDate else { return nil }
+
+        // Try to get from prayer data first (API provides accurate Hijri date)
+        if let hijriFromPrayer = todayPrayers.first?.hijriDate, !hijriFromPrayer.isEmpty {
+            return hijriFromPrayer
+        }
+
+        // Fallback: Calculate locally using Islamic calendar
+        let islamicCalendar = Calendar(identifier: .islamicUmmAlQura)
+        let formatter = DateFormatter()
+        formatter.calendar = islamicCalendar
+        formatter.locale = Locale(identifier: "ar")
+        formatter.dateFormat = "d MMMM yyyy"
+
+        return formatter.string(from: selectedDate)
+    }
+
     /// Scaled hour height based on zoom level
     private var scaledHourHeight: CGFloat {
         contentHourHeight * timelineScale
@@ -237,8 +261,10 @@ struct TimelineView: View {
                 // Timeline with swipe and pinch gestures
                 timelineScrollView
                     .safeAreaInset(edge: .top, spacing: 0) {
-                        // Invisible spacer - content scrolls under the date bar
-                        Color.clear.frame(height: 56)
+                        // Invisible spacer - content scrolls under the date bar + countdown banner
+                        // 56pt for date navigator, +50pt when countdown banner is visible
+                        Color.clear.frame(height: approachingPrayer != nil ? 106 : 56)
+                            .animation(.easeInOut(duration: 0.3), value: approachingPrayer != nil)
                     }
                     .offset(x: dragOffset)
                     .gesture(horizontalSwipeGesture)
@@ -252,7 +278,7 @@ struct TimelineView: View {
                     // Date Navigator - glass pill at top
                     CinematicDateNavigator(
                         selectedDate: $selectedDate,
-                        hijriDate: todayPrayers.first?.hijriDate,
+                        hijriDate: hijriDateString,
                         currentPrayerPeriod: divinePrayerPeriod
                     )
                     .environmentObject(themeManager)
@@ -325,6 +351,27 @@ struct TimelineView: View {
             AddTaskSheet(task: task)
                 .environmentObject(appEnvironment)
                 .environmentObject(themeManager)
+        }
+        .confirmationDialog(
+            "حذف المهمة المتكررة",
+            isPresented: $showRecurringDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("حذف هذه المرة فقط", role: .destructive) {
+                if let task = taskToDelete {
+                    deleteThisInstanceOnly(task)
+                }
+            }
+            Button("حذف جميع التكرارات", role: .destructive) {
+                if let task = taskToDelete {
+                    deleteAllInstances(task)
+                }
+            }
+            Button("إلغاء", role: .cancel) {
+                taskToDelete = nil
+            }
+        } message: {
+            Text("هل تريد حذف هذه المرة فقط أم جميع تكرارات المهمة؟")
         }
     }
 
@@ -496,6 +543,7 @@ struct TimelineView: View {
                     task: task,
                     containedPrayers: segment.containedPrayers,
                     containedNawafil: segment.containedNawafil,
+                    prayerNawafilMap: segment.prayerNawafilMap,
                     hasTaskOverlap: segment.hasTaskOverlap,
                     overlappingTaskCount: segment.overlappingTaskCount,
                     onToggleCompletion: {
@@ -522,6 +570,7 @@ struct TimelineView: View {
                 clusterEnd: segment.endTime,
                 containedPrayers: segment.containedPrayers,
                 containedNawafil: segment.containedNawafil,
+                prayerNawafilMap: segment.prayerNawafilMap,
                 onToggleCompletion: { task in
                     toggleTaskCompletion(task)
                 },
@@ -582,55 +631,94 @@ struct TimelineView: View {
     }
 
     private func deleteTask(_ task: Task) {
-        print("🗑️ [TIMELINE] DELETE TASK: '\(task.title)'")
-        print("   - task.id: \(task.id)")
-        print("   - parentTaskId: \(task.parentTaskId?.uuidString ?? "nil")")
-        print("   - scheduledDate: \(task.scheduledDate?.description ?? "nil")")
-        print("   - recurrenceRule: \(task.recurrenceRule != nil ? "YES" : "nil")")
-        print("   - isRecurring: \(task.isRecurring)")
+        // Check if this is a recurring task (has parent or has recurrence rule)
+        let isRecurringTask = task.parentTaskId != nil || task.recurrenceRule != nil
 
-        var parentTaskToSave: Task? = nil
+        if isRecurringTask {
+            // Show confirmation dialog
+            taskToDelete = task
+            showRecurringDeleteConfirmation = true
+        } else {
+            // Regular task - delete directly
+            deleteNonRecurringTask(task)
+        }
+    }
 
-        // If this is a recurring instance, mark it as dismissed on the parent
+    /// Delete a non-recurring task directly
+    private func deleteNonRecurringTask(_ task: Task) {
+        print("🗑️ [TIMELINE] DELETE NON-RECURRING TASK: '\(task.title)'")
+        modelContext.delete(task)
+        try? modelContext.save()
+        HapticManager.shared.trigger(.warning)
+    }
+
+    /// Delete only this instance of a recurring task
+    private func deleteThisInstanceOnly(_ task: Task) {
+        print("🗑️ [TIMELINE] DELETE THIS INSTANCE ONLY: '\(task.title)'")
+
+        // If this is a child instance, mark the date as dismissed on parent
         if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
-            print("   → This is a CHILD instance, looking for parent...")
             let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
             if let parentTask = try? modelContext.fetch(descriptor).first {
-                print("   → Found parent '\(parentTask.title)' (id: \(parentTask.id)), dismissing date \(scheduledDate)")
-                print("   → Parent dismissedInstanceDates BEFORE: \(parentTask.dismissedInstanceDates ?? [])")
                 parentTask.dismissRecurringInstance(for: scheduledDate)
-                print("   → Parent dismissedInstanceDates AFTER: \(parentTask.dismissedInstanceDates ?? [])")
-                parentTaskToSave = parentTask
-            } else {
-                print("   ❌ Parent task NOT FOUND!")
+                print("   → Dismissed date \(scheduledDate) on parent")
             }
         }
-        // If this is a parent recurring task being deleted for a specific date, mark that date as dismissed
+        // If this is a parent task, just dismiss the date (don't delete the parent)
         else if task.recurrenceRule != nil, let scheduledDate = task.scheduledDate {
-            print("   → This is a PARENT recurring task, dismissing date \(scheduledDate)")
             task.dismissRecurringInstance(for: scheduledDate)
-            print("   → dismissedInstanceDates: \(task.dismissedInstanceDates ?? [])")
-            print("   ⚠️ WARNING: Deleting parent task - dismissed date will be lost!")
-        } else {
-            print("   → This is a REGULAR (non-recurring) task")
+            // Don't delete the parent - just save the dismissal and return
+            try? modelContext.save()
+            taskToDelete = nil
+            HapticManager.shared.trigger(.warning)
+            return
         }
 
-        // Delete the task first
+        // Delete the instance
         modelContext.delete(task)
+        try? modelContext.save()
+        taskToDelete = nil
+        HapticManager.shared.trigger(.warning)
+    }
 
-        // Single atomic save for all changes (dismissal + deletion)
-        do {
-            try modelContext.save()
-            print("   ✅ Task deleted and all changes saved successfully")
+    /// Delete all instances of a recurring task (parent + all children)
+    private func deleteAllInstances(_ task: Task) {
+        print("🗑️ [TIMELINE] DELETE ALL INSTANCES: '\(task.title)'")
 
-            // Verify the parent's dismissedInstanceDates persisted
-            if let parent = parentTaskToSave {
-                print("   🔍 VERIFY: Parent dismissedInstanceDates after save: \(parent.dismissedInstanceDates ?? [])")
-            }
-        } catch {
-            print("   ❌ Failed to save: \(error)")
+        // Find the parent task ID
+        let parentId: UUID
+        if let pid = task.parentTaskId {
+            // This is a child instance - get parent ID
+            parentId = pid
+        } else {
+            // This is the parent task itself
+            parentId = task.id
         }
 
+        // Find all tasks with this parentTaskId (children)
+        let childDescriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.parentTaskId == parentId })
+        let childTasks = (try? modelContext.fetch(childDescriptor)) ?? []
+
+        // Find and delete the parent task
+        let parentDescriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
+        if let parentTask = try? modelContext.fetch(parentDescriptor).first {
+            modelContext.delete(parentTask)
+            print("   → Deleted parent task")
+        }
+
+        // Delete all child instances
+        for child in childTasks {
+            modelContext.delete(child)
+        }
+        print("   → Deleted \(childTasks.count) child instances")
+
+        // Also delete the current task if it wasn't already deleted
+        if task.parentTaskId == nil && task.id != parentId {
+            modelContext.delete(task)
+        }
+
+        try? modelContext.save()
+        taskToDelete = nil
         HapticManager.shared.trigger(.warning)
     }
 
@@ -924,7 +1012,7 @@ struct TimelinePrayerBlock: View {
             Spacer()
             Image(systemName: nawafil.isCompleted ? "checkmark.circle.fill" : "circle")
                 .font(.system(size: 12))
-                .foregroundColor(nawafil.isCompleted ? themeManager.successColor : themeManager.textOnPrimaryColor.opacity(0.4))
+                .foregroundColor(nawafil.isCompleted ? themeManager.successColor : themeManager.textOnPrimaryColor.opacity(0.6))
         }
         .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.85))
         .padding(.vertical, 4)
@@ -1013,7 +1101,7 @@ struct TimelineNawafilBlock: View {
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                .foregroundColor(nawafilColor.opacity(0.4))
+                .foregroundColor(nawafilColor.opacity(0.5))
         )
         .cornerRadius(12)
     }
@@ -1078,8 +1166,8 @@ struct TimelineTaskBlock: View {
 
             Spacer()
 
-            // Category icon
-            Image(systemName: task.category.icon)
+            // Task icon
+            Image(systemName: task.icon)
                 .font(.system(size: 14))
                 .foregroundColor(Color(hex: task.colorHex).opacity(0.7))
         }
@@ -1109,6 +1197,7 @@ struct TimelineSegment: Identifiable {
     // NEW: For task containers (prayers nested inside tasks)
     var containedPrayers: [PrayerTime] = []
     var containedNawafil: [NawafilPrayer] = []
+    var prayerNawafilMap: [UUID: (pre: NawafilPrayer?, post: NawafilPrayer?)] = [:]  // Rawatib nawafil for each prayer
     var hasTaskOverlap: Bool = false
     var overlappingTaskCount: Int = 0  // Number of overlapping tasks for merge counter
 
@@ -1155,6 +1244,7 @@ struct TimelineSegment: Identifiable {
         nawafil: NawafilPrayer? = nil,
         containedPrayers: [PrayerTime] = [],
         containedNawafil: [NawafilPrayer] = [],
+        prayerNawafilMap: [UUID: (pre: NawafilPrayer?, post: NawafilPrayer?)] = [:],
         hasTaskOverlap: Bool = false,
         overlappingTaskCount: Int = 0,
         clusteredTasks: [Task] = [],
@@ -1168,6 +1258,7 @@ struct TimelineSegment: Identifiable {
         self.nawafil = nawafil
         self.containedPrayers = containedPrayers
         self.containedNawafil = containedNawafil
+        self.prayerNawafilMap = prayerNawafilMap
         self.hasTaskOverlap = hasTaskOverlap
         self.overlappingTaskCount = overlappingTaskCount
         self.clusteredTasks = clusteredTasks
@@ -1217,6 +1308,22 @@ extension TimelineView {
                     return naf.startTime < taskEnd && naf.endTime > taskStart
                 }.sorted { $0.suggestedTime < $1.suggestedTime }
 
+                // Build rawatib nawafil map for each contained prayer
+                var prayerNawafilMap: [UUID: (pre: NawafilPrayer?, post: NawafilPrayer?)] = [:]
+                for prayer in overlappingPrayers {
+                    let preNawafil = nawafil.first { naf in
+                        !naf.isDismissed &&
+                        naf.attachedToPrayer == prayer.prayerType &&
+                        naf.attachmentPosition == .before
+                    }
+                    let postNawafil = nawafil.first { naf in
+                        !naf.isDismissed &&
+                        naf.attachedToPrayer == prayer.prayerType &&
+                        naf.attachmentPosition == .after
+                    }
+                    prayerNawafilMap[prayer.id] = (pre: preNawafil, post: postNawafil)
+                }
+
                 // Mark contained prayers and nawafil
                 for prayer in overlappingPrayers {
                     containedPrayerIDs.insert(prayer.id)
@@ -1240,6 +1347,7 @@ extension TimelineView {
                     task: task,
                     containedPrayers: overlappingPrayers,
                     containedNawafil: overlappingNawafil,
+                    prayerNawafilMap: prayerNawafilMap,
                     hasTaskOverlap: false,  // Single task, no overlap
                     overlappingTaskCount: 0
                 ))
@@ -1260,6 +1368,22 @@ extension TimelineView {
                     return naf.startTime < clusterEnd && naf.endTime > clusterStart
                 }.sorted { $0.suggestedTime < $1.suggestedTime }
 
+                // Build rawatib nawafil map for each contained prayer
+                var prayerNawafilMap: [UUID: (pre: NawafilPrayer?, post: NawafilPrayer?)] = [:]
+                for prayer in overlappingPrayers {
+                    let preNawafil = nawafil.first { naf in
+                        !naf.isDismissed &&
+                        naf.attachedToPrayer == prayer.prayerType &&
+                        naf.attachmentPosition == .before
+                    }
+                    let postNawafil = nawafil.first { naf in
+                        !naf.isDismissed &&
+                        naf.attachedToPrayer == prayer.prayerType &&
+                        naf.attachmentPosition == .after
+                    }
+                    prayerNawafilMap[prayer.id] = (pre: preNawafil, post: postNawafil)
+                }
+
                 // Mark contained prayers and nawafil
                 for prayer in overlappingPrayers {
                     containedPrayerIDs.insert(prayer.id)
@@ -1279,6 +1403,7 @@ extension TimelineView {
                     segmentType: .taskCluster,
                     containedPrayers: overlappingPrayers,
                     containedNawafil: overlappingNawafil,
+                    prayerNawafilMap: prayerNawafilMap,
                     hasTaskOverlap: true,
                     overlappingTaskCount: cluster.count,
                     clusteredTasks: cluster

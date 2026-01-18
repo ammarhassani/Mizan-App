@@ -15,13 +15,15 @@ struct PostSubscriptionGuide: View {
     @State private var showCongrats = true
     @State private var isRevealed = false
 
-    private let unlockedFeatures: [(icon: String, title: String, description: String, color: Color)] = [
-        ("paintpalette.fill", "ثيمات حصرية", "الآن يمكنك اختيار من 4 ثيمات إضافية: ليل، فجر، صحراء، ورمضان", Color.purple),
-        ("moon.stars.fill", "النوافل", "تابع 9 أنواع من النوافل: الضحى، التهجد، الوتر، والرواتب قبل وبعد الصلاة", Color.green),
-        ("repeat", "المهام المتكررة", "أنشئ مهام تتكرر يوميًا أو أسبوعيًا أو شهريًا تلقائيًا", Color.orange),
-        ("bell.badge.fill", "إشعارات متقدمة", "احصل على تذكير قبل 5، 10، 15، أو 30 دقيقة من مهامك", Color.pink),
-        ("speaker.wave.3.fill", "أصوات الأذان", "اختر صوت المؤذن المفضل من مكة أو المدينة أو مصر", Color.yellow)
-    ]
+    private var unlockedFeatures: [(icon: String, title: String, description: String, color: Color)] {
+        [
+            ("paintpalette.fill", "ثيمات حصرية", "الآن يمكنك اختيار من 4 ثيمات إضافية: ليل، فجر، صحراء، ورمضان", themeManager.primaryColor),
+            ("moon.stars.fill", "النوافل", "تابع 9 أنواع من النوافل: الضحى، التهجد، الوتر، والرواتب قبل وبعد الصلاة", themeManager.successColor),
+            ("repeat", "المهام المتكررة", "أنشئ مهام تتكرر يوميًا أو أسبوعيًا أو شهريًا تلقائيًا", themeManager.warningColor),
+            ("bell.badge.fill", "إشعارات متقدمة", "احصل على تذكير قبل 5، 10، 15، أو 30 دقيقة من مهامك", themeManager.errorColor),
+            ("speaker.wave.3.fill", "أصوات الأذان", "اختر صوت المؤذن المفضل من مكة أو المدينة أو مصر", themeManager.warningColor)
+        ]
+    }
 
     var body: some View {
         ZStack {

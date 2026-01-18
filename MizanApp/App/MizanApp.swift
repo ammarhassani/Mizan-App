@@ -22,6 +22,7 @@ struct MizanApp: App {
             ZStack {
                 if isInitializing {
                     SplashScreen()
+                        .environmentObject(appEnvironment.themeManager)
                         .transition(.opacity)
                 } else {
                     ContentView()
@@ -86,6 +87,7 @@ struct ContentView: View {
 // MARK: - Splash Screen (Dramatic)
 
 struct SplashScreen: View {
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var moonRevealed = false
     @State private var starsVisible = false
     @State private var titleRevealed = false
@@ -95,49 +97,53 @@ struct SplashScreen: View {
         ZStack {
             // Animated gradient background
             AnimatedGradientBackground()
+                .environmentObject(themeManager)
 
             // Floating star particles
             ParticleStarsView()
+                .environmentObject(themeManager)
                 .opacity(starsVisible ? 1 : 0)
 
             VStack(spacing: MZSpacing.lg) {
-                // Moon icon with breathing glow
+                // Mizan Logo with breathing glow
                 ZStack {
                     // Glow effect
-                    Circle()
-                        .fill(Color(hex: "#FFD700").opacity(0.3))
-                        .frame(width: 160, height: 160)
+                    MizanLogoPillarsShape()
+                        .fill(themeManager.splashMoonColor.opacity(0.3))
+                        .frame(width: 180, height: 180)
                         .blur(radius: 30)
                         .scaleEffect(1 + glowIntensity * 0.2)
                         .opacity(glowIntensity)
 
-                    Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 100))
-                        .symbolEffect(.pulse.byLayer, options: .repeating)
-                        .foregroundStyle(
-                            .linearGradient(
-                                colors: [.white, Color(hex: "#FFD700")],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .shadow(color: Color(hex: "#FFD700").opacity(0.5), radius: 30)
-                        .scaleEffect(moonRevealed ? 1.0 : 0.3)
-                        .opacity(moonRevealed ? 1.0 : 0.0)
+                    // Animated Mizan Logo
+                    MizanLogoGradient(
+                        size: 160,
+                        designGradient: LinearGradient(
+                            colors: [themeManager.splashTextColor, themeManager.splashMoonColor],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        animated: false,
+                        glowColor: themeManager.splashMoonColor,
+                        glowIntensity: 0
+                    )
+                    .scaleEffect(moonRevealed ? 1.0 : 0.3)
+                    .opacity(moonRevealed ? 1.0 : 0.0)
+                    .shadow(color: themeManager.splashMoonColor.opacity(0.5), radius: 20)
                 }
 
                 VStack(spacing: MZSpacing.sm) {
                     // App Name
                     Text("ميزان")
                         .font(MZTypography.displayLarge)
-                        .foregroundColor(.white)
+                        .foregroundColor(themeManager.splashTextColor)
                         .opacity(titleRevealed ? 1 : 0)
                         .blur(radius: titleRevealed ? 0 : 10)
 
                     // Tagline
                     Text("خطط يومك حول ما يهم حقًا")
                         .font(MZTypography.bodyLarge)
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(themeManager.splashTextColor.opacity(0.9))
                         .multilineTextAlignment(.center)
                         .opacity(titleRevealed ? 1 : 0)
                         .offset(y: titleRevealed ? 0 : 20)
@@ -170,15 +176,12 @@ struct SplashScreen: View {
 // MARK: - Animated Gradient Background
 
 struct AnimatedGradientBackground: View {
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var animateGradient = false
 
     var body: some View {
         LinearGradient(
-            colors: [
-                Color(hex: "#0F4C3A"),
-                Color(hex: "#14746F"),
-                Color(hex: "#1E3A5F")
-            ],
+            colors: themeManager.splashGradientColors,
             startPoint: animateGradient ? .topLeading : .bottomLeading,
             endPoint: animateGradient ? .bottomTrailing : .topTrailing
         )
@@ -194,6 +197,7 @@ struct AnimatedGradientBackground: View {
 // MARK: - Particle Stars View
 
 struct ParticleStarsView: View {
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var stars: [Star] = []
 
     struct Star: Identifiable {
@@ -205,6 +209,8 @@ struct ParticleStarsView: View {
     }
 
     var body: some View {
+        let starColor = themeManager.splashTextColor
+
         Canvas { context, size in
             for star in stars {
                 let rect = CGRect(
@@ -215,7 +221,7 @@ struct ParticleStarsView: View {
                 )
                 context.fill(
                     Circle().path(in: rect),
-                    with: .color(.white.opacity(star.opacity))
+                    with: .color(starColor.opacity(star.opacity))
                 )
             }
         }

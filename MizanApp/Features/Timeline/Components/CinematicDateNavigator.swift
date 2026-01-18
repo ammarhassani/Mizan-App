@@ -40,7 +40,7 @@ struct CinematicDateNavigator: View {
 
             Spacer()
 
-            // Date display
+            // Date display (flexible width)
             dateDisplay
 
             Spacer()
@@ -67,6 +67,8 @@ struct CinematicDateNavigator: View {
             Text(selectedDate.formatted(date: .abbreviated, time: .omitted))
                 .font(MZTypography.titleMedium)
                 .foregroundColor(themeManager.textPrimaryColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .id("date-\(selectedDate.timeIntervalSince1970)")
                 .transition(dateTransition)
                 .scaleEffect(dateScale)
@@ -82,12 +84,14 @@ struct CinematicDateNavigator: View {
                     Text(hijri)
                         .font(MZTypography.labelMedium)
                         .foregroundColor(themeManager.textSecondaryColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
                 .scaleEffect(dateScale)
                 .opacity(dateOpacity)
             }
         }
-        .padding(.horizontal, MZSpacing.lg)
+        .padding(.horizontal, MZSpacing.md)
         .padding(.vertical, MZSpacing.sm)
         .background {
             if #available(iOS 26.0, *) {
@@ -99,6 +103,7 @@ struct CinematicDateNavigator: View {
                     .fill(.ultraThinMaterial)
             }
         }
+        .layoutPriority(-1) // Allow this to shrink when space is tight
     }
 
     // MARK: - Today Button
@@ -119,6 +124,8 @@ struct CinematicDateNavigator: View {
                 .shadow(color: themeManager.primaryColor.opacity(0.3), radius: 6, y: 2)
         }
         .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel("العودة لليوم الحالي")
+        .accessibilityHint("اضغط للعودة لتاريخ اليوم")
         .transition(.scale.combined(with: .opacity))
     }
 
@@ -210,6 +217,8 @@ struct SimpleNavigationArrow: View {
                 .opacity(isPressed ? 0.7 : 1.0)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(direction == .left ? "اليوم التالي" : "اليوم السابق")
+        .accessibilityHint(direction == .left ? "اضغط للانتقال لليوم التالي" : "اضغط للانتقال لليوم السابق")
         .onLongPressGesture(minimumDuration: 0, pressing: { pressing in
             withAnimation(MZAnimation.cardPress) {
                 isPressed = pressing
@@ -275,5 +284,5 @@ struct GlassNavigationArrow: View {
         )
         .environmentObject(ThemeManager())
     }
-    .background(Color.black)
+    .background(ThemeManager().overlayColor)
 }

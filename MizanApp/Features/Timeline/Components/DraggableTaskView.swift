@@ -81,7 +81,7 @@ struct DraggableTaskView: View {
                             .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.6))
                     }
 
-                    Image(systemName: task.category.icon)
+                    Image(systemName: task.icon)
                         .font(.system(size: 16))
                         .foregroundColor(themeManager.textOnPrimaryColor)
 

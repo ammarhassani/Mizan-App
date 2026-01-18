@@ -230,6 +230,7 @@ extension PrayerPeriod {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     TabView {
         DivineScaffold(
             prayerPeriod: .fajr,
@@ -238,7 +239,7 @@ extension PrayerPeriod {
             VStack {
                 Text("صلاة الفجر")
                     .font(MZTypography.displayMedium)
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
                 Spacer()
             }
             .padding(.top, 100)
@@ -253,7 +254,7 @@ extension PrayerPeriod {
             VStack {
                 Text("صلاة العشاء")
                     .font(MZTypography.displayMedium)
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
                 Spacer()
             }
             .padding(.top, 100)
@@ -268,12 +269,12 @@ extension PrayerPeriod {
             VStack {
                 Text("قيام الليل")
                     .font(MZTypography.displayMedium)
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
                 Spacer()
             }
             .padding(.top, 100)
         }
         .tabItem { Text("Tahajjud") }
     }
-    .environmentObject(ThemeManager())
+    .environmentObject(themeManager)
 }

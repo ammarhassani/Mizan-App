@@ -14,6 +14,7 @@ struct TaskContainerBlock: View {
     let task: Task
     let containedPrayers: [PrayerTime]
     let containedNawafil: [NawafilPrayer]
+    var prayerNawafilMap: [UUID: (pre: NawafilPrayer?, post: NawafilPrayer?)] = [:]
     let hasTaskOverlap: Bool
     var overlappingTaskCount: Int = 0
     var onToggleCompletion: (() -> Void)? = nil
@@ -136,11 +137,11 @@ struct TaskContainerBlock: View {
                     .strikethrough(task.isCompleted)
                     .lineLimit(2)
 
-                // Category chip
+                // Task icon chip
                 HStack(spacing: 4) {
-                    Image(systemName: task.category.icon)
+                    Image(systemName: task.icon)
                         .font(.system(size: 9))
-                    Text(task.category.nameArabic)
+                    Text(task.duration.formattedDuration)
                         .font(.system(size: 9, weight: .medium))
                 }
                 .foregroundColor(taskColor.opacity(0.9))
@@ -207,22 +208,31 @@ struct TaskContainerBlock: View {
                 .frame(height: 1)
                 .padding(.horizontal, 12)
 
-            VStack(spacing: 6) {
-                // Prayers
+            VStack(spacing: 8) {
+                // Prayers - use FULL GlassmorphicPrayerCard (same as standalone)
                 ForEach(containedPrayers) { prayer in
-                    ContainedPrayerChip(prayer: prayer, onTap: {
-                        onPrayerTap?(prayer)
-                    })
+                    let nawafilPair = prayerNawafilMap[prayer.id]
+                    GlassmorphicPrayerCard(
+                        prayer: prayer,
+                        minHeight: 60,
+                        preNawafil: nawafilPair?.pre,
+                        postNawafil: nawafilPair?.post,
+                        showDivineEffects: false
+                    )
                     .environmentObject(themeManager)
+                    .onTapGesture {
+                        onPrayerTap?(prayer)
+                        HapticManager.shared.trigger(.selection)
+                    }
                 }
 
-                // Nawafil
+                // Standalone Nawafil (not attached to any prayer)
                 ForEach(containedNawafil) { nawafil in
                     ContainedNawafilChip(nawafil: nawafil)
                         .environmentObject(themeManager)
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 8)
             .padding(.vertical, 8)
         }
         .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
@@ -275,6 +285,8 @@ struct TaskContainerBlock: View {
 
 struct ContainedPrayerChip: View {
     let prayer: PrayerTime
+    var preNawafil: NawafilPrayer? = nil
+    var postNawafil: NawafilPrayer? = nil
     var onTap: (() -> Void)? = nil
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -286,6 +298,25 @@ struct ContainedPrayerChip: View {
     }
 
     var body: some View {
+        VStack(spacing: 4) {
+            // Main prayer chip FIRST (shows athan time)
+            prayerChipContent
+
+            // Pre-nawafil chip (prayed AFTER athan, before iqama)
+            if let pre = preNawafil {
+                ContainedNawafilChip(nawafil: pre, prayerColor: prayerColor)
+                    .environmentObject(themeManager)
+            }
+
+            // Post-nawafil chip (prayed AFTER the fard prayer)
+            if let post = postNawafil {
+                ContainedNawafilChip(nawafil: post, prayerColor: prayerColor)
+                    .environmentObject(themeManager)
+            }
+        }
+    }
+
+    private var prayerChipContent: some View {
         HStack(spacing: 8) {
             // Prayer icon
             Image(systemName: prayer.prayerType.icon)
@@ -342,41 +373,48 @@ struct ContainedPrayerChip: View {
 
 struct ContainedNawafilChip: View {
     let nawafil: NawafilPrayer
+    var prayerColor: Color? = nil  // Optional - use prayer color if provided, else nawafil color
     @EnvironmentObject var themeManager: ThemeManager
 
-    private var nawafilColor: Color { Color(hex: nawafil.colorHex) }
+    private var accentColor: Color {
+        prayerColor ?? Color(hex: nawafil.colorHex)
+    }
 
     var body: some View {
         HStack(spacing: 8) {
+            // Moon icon
             Image(systemName: "moon.stars.fill")
                 .font(.system(size: 10))
-                .foregroundColor(nawafilColor.opacity(0.8))
+                .foregroundColor(accentColor.opacity(0.8))
 
+            // Name and rakaat
             Text(nawafil.arabicName)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(themeManager.textPrimaryColor.opacity(0.9))
 
             Text("•")
+                .font(.system(size: 8))
                 .foregroundColor(themeManager.textSecondaryColor)
 
-            Text("\(nawafil.rakaat) \(nawafil.rakaat.arabicRakaat)")
-                .font(.system(size: 10))
+            Text("\(nawafil.rakaat) ركعات")
+                .font(.system(size: 10, weight: .medium))
                 .foregroundColor(themeManager.textSecondaryColor)
 
             Spacer()
 
+            // Completion indicator
             Image(systemName: nawafil.isCompleted ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 12))
+                .font(.system(size: 14))
                 .foregroundColor(nawafil.isCompleted ? themeManager.successColor : themeManager.textSecondaryColor.opacity(0.4))
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .padding(.horizontal, 10)
         .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(nawafilColor.opacity(0.05))
+            RoundedRectangle(cornerRadius: 8)
+                .fill(accentColor.opacity(0.08))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(nawafilColor.opacity(0.15), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(accentColor.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
                 )
         )
     }
@@ -412,6 +450,6 @@ struct ContainedNawafilChip: View {
         )
     }
     .padding()
-    .background(Color.black.opacity(0.9))
+    .background(ThemeManager().overlayColor.opacity(0.95))
     .environmentObject(ThemeManager())
 }

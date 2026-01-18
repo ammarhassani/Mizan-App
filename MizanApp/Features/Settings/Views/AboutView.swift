@@ -63,7 +63,7 @@ struct AboutView: View {
                 .overlay(
                     Image(systemName: "calendar.badge.clock")
                         .font(.system(size: 36))
-                        .foregroundColor(.white)
+                        .foregroundColor(themeManager.textOnPrimaryColor)
                 )
 
             // App Name
@@ -130,7 +130,9 @@ struct AboutView: View {
                 action: { openAppStore() }
             )
 
-            Divider().padding(.leading, 52)
+            Divider()
+                .background(themeManager.dividerColor)
+                .padding(.leading, 52)
 
             linkRow(
                 icon: "square.and.arrow.up",
@@ -139,7 +141,9 @@ struct AboutView: View {
                 action: { shareApp() }
             )
 
-            Divider().padding(.leading, 52)
+            Divider()
+                .background(themeManager.dividerColor)
+                .padding(.leading, 52)
 
             linkRow(
                 icon: "envelope.fill",
@@ -148,7 +152,9 @@ struct AboutView: View {
                 action: { sendFeedback() }
             )
 
-            Divider().padding(.leading, 52)
+            Divider()
+                .background(themeManager.dividerColor)
+                .padding(.leading, 52)
 
             linkRow(
                 icon: "questionmark.circle.fill",
@@ -213,11 +219,12 @@ struct AboutView: View {
     private var debugSection: some View {
         VStack(spacing: 12) {
             Divider()
+                .background(themeManager.dividerColor)
                 .padding(.vertical, 8)
 
             Text("🛠️ Debug Options")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.orange)
+                .foregroundColor(themeManager.warningColor)
 
             Toggle(isOn: Binding(
                 get: { appEnvironment.userSettings.isPro },
@@ -230,11 +237,11 @@ struct AboutView: View {
                 Text("Enable Pro (Testing)")
                     .font(.system(size: 14))
             }
-            .tint(.orange)
+            .tint(themeManager.warningColor)
             .padding(.horizontal, 20)
         }
         .padding(.vertical, 8)
-        .background(Color.orange.opacity(0.1))
+        .background(themeManager.warningColor.opacity(0.1))
         .cornerRadius(12)
     }
     #endif

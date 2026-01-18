@@ -45,6 +45,7 @@ struct TaskClusterView: View {
     let clusterEnd: Date
     let containedPrayers: [PrayerTime]
     let containedNawafil: [NawafilPrayer]
+    var prayerNawafilMap: [UUID: (pre: NawafilPrayer?, post: NawafilPrayer?)] = [:]
     var onToggleCompletion: ((Task) -> Void)?
     var onPrayerTap: ((PrayerTime) -> Void)?
     var onTaskTap: ((Task) -> Void)?
@@ -118,7 +119,7 @@ struct TaskClusterView: View {
 
                     if index < groupedEvents.count - 1 {
                         Divider()
-                            .background(themeManager.textSecondaryColor.opacity(0.15))
+                            .background(themeManager.dividerColor)
                             .padding(.leading, 84)  // Align with content (26 dots + 50 time + 8 spacing)
                     }
                 }
@@ -200,7 +201,7 @@ struct TaskClusterView: View {
                     let endOffset = taskEnd.timeIntervalSince(clusterStart) / totalDuration
 
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(Color(hex: task.category.colorHex))
+                        .fill(Color(hex: task.colorHex))
                         .frame(width: 4, height: max(4, CGFloat(endOffset - startOffset) * height))
                         .offset(y: CGFloat(startOffset) * height)
                         .opacity(0.8)
@@ -231,7 +232,7 @@ struct TaskClusterView: View {
                 let active = activeTasks(at: event.time)
                 ForEach(active, id: \.id) { task in
                     Circle()
-                        .fill(Color(hex: task.category.colorHex))
+                        .fill(Color(hex: task.colorHex))
                         .frame(width: 6, height: 6)
                 }
                 // Pad to maintain consistent width for up to 3 tasks
@@ -273,7 +274,7 @@ struct TaskClusterView: View {
         HStack(spacing: 8) {
             // Category color bar
             RoundedRectangle(cornerRadius: 2)
-                .fill(Color(hex: task.category.colorHex))
+                .fill(Color(hex: task.colorHex))
                 .frame(width: 4, height: 32)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -290,7 +291,7 @@ struct TaskClusterView: View {
                     Text("يبدأ")  // "starts"
                         .font(.system(size: 10))
                 }
-                .foregroundColor(Color(hex: task.category.colorHex))
+                .foregroundColor(Color(hex: task.colorHex))
             }
 
             Spacer()
@@ -298,12 +299,12 @@ struct TaskClusterView: View {
             // Duration badge
             Text(task.duration.formattedDuration)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundColor(Color(hex: task.category.colorHex))
+                .foregroundColor(Color(hex: task.colorHex))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(
                     Capsule()
-                        .fill(Color(hex: task.category.colorHex).opacity(0.15))
+                        .fill(Color(hex: task.colorHex).opacity(0.15))
                 )
 
             // Completion toggle
@@ -312,7 +313,7 @@ struct TaskClusterView: View {
             } label: {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 20))
-                    .foregroundColor(task.isCompleted ? themeManager.successColor : Color(hex: task.category.colorHex).opacity(0.5))
+                    .foregroundColor(task.isCompleted ? themeManager.successColor : Color(hex: task.colorHex).opacity(0.5))
             }
             .buttonStyle(.plain)
         }
@@ -371,65 +372,66 @@ struct TaskClusterView: View {
         }
     }
 
-    // MARK: - Prayer Row (Distinct)
+    // MARK: - Prayer Row (Full GlassmorphicPrayerCard)
 
     private func prayerRow(_ prayer: PrayerTime) -> some View {
-        Button {
+        let nawafilPair = prayerNawafilMap[prayer.id]
+
+        return GlassmorphicPrayerCard(
+            prayer: prayer,
+            minHeight: 60,
+            preNawafil: nawafilPair?.pre,
+            postNawafil: nawafilPair?.post,
+            showDivineEffects: false
+        )
+        .environmentObject(themeManager)
+        .onTapGesture {
             onPrayerTap?(prayer)
-        } label: {
-            HStack(spacing: 8) {
-                // Prayer icon
-                Image(systemName: prayer.prayerType.icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(Color(hex: prayer.colorHex))
-                    .frame(width: 24)
-
-                // Prayer name
-                Text(prayer.displayName)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(themeManager.textPrimaryColor)
-
-                Spacer()
-
-                // Status badge
-                prayerStatusBadge(prayer)
-            }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: prayer.colorHex).opacity(0.12))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(hex: prayer.colorHex).opacity(0.25), lineWidth: 1)
-            )
+            HapticManager.shared.trigger(.selection)
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Nawafil Row
 
-    private func nawafilRow(_ nawafil: NawafilPrayer) -> some View {
-        HStack(spacing: 8) {
+    private func nawafilRow(_ nawafil: NawafilPrayer, prayerColor: Color? = nil) -> some View {
+        let accentColor = prayerColor ?? themeManager.primaryColor
+
+        return HStack(spacing: 8) {
             // Nawafil icon
-            Image(systemName: "moon.stars")
-                .font(.system(size: 12))
-                .foregroundColor(themeManager.primaryColor.opacity(0.7))
+            Image(systemName: "moon.stars.fill")
+                .font(.system(size: 10))
+                .foregroundColor(accentColor.opacity(0.8))
                 .frame(width: 24)
 
-            // Name
+            // Name and rakaat
             Text(nawafil.arabicName)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(themeManager.textPrimaryColor.opacity(0.9))
+
+            Text("•")
+                .font(.system(size: 8))
+                .foregroundColor(themeManager.textSecondaryColor)
+
+            Text("\(nawafil.rakaat) ركعات")
+                .font(.system(size: 10, weight: .medium))
                 .foregroundColor(themeManager.textSecondaryColor)
 
             Spacer()
+
+            // Completion indicator
+            Image(systemName: nawafil.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 14))
+                .foregroundColor(nawafil.isCompleted ? themeManager.successColor : themeManager.textSecondaryColor.opacity(0.4))
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(themeManager.primaryColor.opacity(0.08))
+                .fill(accentColor.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(accentColor.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                )
         )
     }
 
@@ -512,6 +514,6 @@ struct TaskClusterView: View {
         }
         .padding()
     }
-    .background(Color.black.opacity(0.9))
+    .background(ThemeManager().overlayColor.opacity(0.95))
     .environmentObject(ThemeManager())
 }

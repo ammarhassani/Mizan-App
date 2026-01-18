@@ -31,6 +31,9 @@ struct CinematicCurrentTimeIndicator: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("الوقت الحالي")
+        .accessibilityValue(Date().formatted(date: .omitted, time: .shortened))
         .onAppear {
             startPulseAnimation()
         }
@@ -208,6 +211,7 @@ struct Triangle: Shape {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     VStack(spacing: MZSpacing.xl) {
         Text("Current Time Indicator")
             .font(MZTypography.titleSmall)
@@ -216,6 +220,7 @@ struct Triangle: Shape {
             .padding(.horizontal)
 
         Divider()
+            .background(themeManager.dividerColor)
 
         Text("Compact Variant")
             .font(MZTypography.titleSmall)
@@ -224,6 +229,6 @@ struct Triangle: Shape {
             .padding(.horizontal)
     }
     .padding()
-    .background(Color.gray.opacity(0.1))
-    .environmentObject(ThemeManager())
+    .background(themeManager.surfaceSecondaryColor.opacity(0.1))
+    .environmentObject(themeManager)
 }

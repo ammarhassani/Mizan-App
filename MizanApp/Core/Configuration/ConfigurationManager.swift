@@ -228,6 +228,7 @@ struct Theme: Codable, Identifiable {
     let useGradientBackground: Bool?
     let specialEffects: ThemeSpecialEffects?
     let autoActivateDuringRamadan: Bool?
+    let glassmorphism: GlassmorphismConfig?
 }
 
 struct ThemeColors: Codable {
@@ -257,6 +258,21 @@ struct ThemeColors: Codable {
     let urgencyHigh: String?
     let urgencyCritical: String?
     let taskColors: [String: String]?
+
+    // New theme-aware color properties
+    let splashText: String?
+    let splashMoon: String?
+    let splashGradient: [String]?
+    let overlay: String?
+    let atmosphere: [String: [String]]?
+    let particles: [String: String]?
+
+    // Semantic state colors
+    let disabled: String?
+    let disabledBackground: String?
+    let border: String?
+    let borderFocused: String?
+    let pressed: String?
 }
 
 struct ThemeFonts: Codable {
@@ -302,6 +318,26 @@ struct ThemeSpecialEffects: Codable {
     let starParticles: Bool?
     let useGlow: Bool?
     let hardShadows: Bool?
+}
+
+// MARK: - Glassmorphism Configuration
+
+struct GlassStyleConfig: Codable {
+    let blurRadius: Double
+    let backgroundOpacity: Double
+    let borderOpacityLeading: Double
+    let borderOpacityTrailing: Double
+    let accentTintOpacity: Double
+    let highlightOpacity: Double
+    let glowRadius: Double?
+    let glowOpacity: Double?
+}
+
+struct GlassmorphismConfig: Codable {
+    let subtle: GlassStyleConfig
+    let standard: GlassStyleConfig
+    let frosted: GlassStyleConfig
+    let prayer: GlassStyleConfig
 }
 
 struct AnimationConfiguration: Codable {

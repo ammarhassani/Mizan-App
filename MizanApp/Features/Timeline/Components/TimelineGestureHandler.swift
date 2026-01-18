@@ -241,6 +241,7 @@ struct TimelineZoomControls: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var scale: CGFloat = 1.0
+        @StateObject private var themeManager = ThemeManager()
 
         var body: some View {
             VStack(spacing: MZSpacing.xl) {
@@ -254,7 +255,7 @@ struct TimelineZoomControls: View {
                 VStack(spacing: 8) {
                     ForEach(0..<5) { i in
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.blue.opacity(0.2))
+                            .fill(themeManager.primaryColor.opacity(0.2))
                             .frame(height: 60)
                             .overlay(Text("Block \(i + 1)"))
                     }
@@ -270,7 +271,7 @@ struct TimelineZoomControls: View {
                 }
             }
             .padding()
-            .environmentObject(ThemeManager())
+            .environmentObject(themeManager)
         }
     }
 

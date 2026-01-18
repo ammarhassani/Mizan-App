@@ -175,7 +175,7 @@ struct OnboardingPrimaryButton: View {
             .background(
                 Capsule()
                     .fill(themeManager.textOnPrimaryColor)
-                    .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                    .shadow(color: themeManager.overlayColor.opacity(0.2), radius: 8, y: 4)
             )
         }
         .buttonStyle(PressableButtonStyle())
@@ -295,9 +295,10 @@ struct MethodSelectionCard: View {
 // MARK: - Preview
 
 #Preview {
+    let themeManager = ThemeManager()
     ZStack {
         LinearGradient(
-            colors: [Color(hex: "#14746F"), Color(hex: "#52B788")],
+            colors: [themeManager.primaryColor, themeManager.primaryColor.opacity(0.7)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -324,5 +325,5 @@ struct MethodSelectionCard: View {
         }
         .padding()
     }
-    .environmentObject(ThemeManager())
+    .environmentObject(themeManager)
 }

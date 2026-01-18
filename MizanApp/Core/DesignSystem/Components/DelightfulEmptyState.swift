@@ -83,6 +83,7 @@ struct DelightfulEmptyState: View {
                     .foregroundStyle(themeManager.textSecondaryColor)
                     .symbolEffect(.bounce.byLayer, value: iconBounce)
             }
+            .accessibilityHidden(true)
 
             // Text content
             VStack(spacing: MZSpacing.xs) {
@@ -101,7 +102,7 @@ struct DelightfulEmptyState: View {
                 Button(action: action) {
                     Text(buttonTitle)
                         .font(MZTypography.titleSmall)
-                        .foregroundColor(.white)
+                        .foregroundColor(themeManager.textOnPrimaryColor)
                         .padding(.horizontal, MZSpacing.lg)
                         .padding(.vertical, MZSpacing.sm)
                         .background(
@@ -115,6 +116,8 @@ struct DelightfulEmptyState: View {
                         )
                 }
                 .buttonStyle(BouncyButtonStyle())
+                .accessibilityLabel(buttonTitle)
+                .accessibilityHint(type == .inbox ? "اضغط لإضافة مهمة جديدة" : "اضغط لعرض المهام المتاحة")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
