@@ -67,19 +67,21 @@ struct NawafilSettingsView: View {
         Section {
             HStack(spacing: 12) {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 32))
+                    .font(MZTypography.headlineLarge)
                     .foregroundColor(themeManager.primaryColor)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("ميزة Pro")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(MZTypography.titleMedium)
+                        .foregroundColor(themeManager.textPrimaryColor)
 
                     Text("اشترك في Pro لتفعيل النوافل وإضافتها للجدول")
-                        .font(.system(size: 14))
+                        .font(MZTypography.bodySmall)
                         .foregroundColor(themeManager.textSecondaryColor)
                 }
             }
             .padding(.vertical, 8)
+            .listRowBackground(themeManager.surfaceColor)
         }
     }
 
@@ -91,7 +93,7 @@ struct NawafilSettingsView: View {
             HStack(spacing: 12) {
                 Image(systemName: "moon.stars.fill")
                     .font(.system(size: 24))
-                    .foregroundColor(isPro ? themeManager.primaryColor : themeManager.disabledColor)
+                    .foregroundColor(isPro ? themeManager.primaryColor : themeManager.textTertiaryColor)
                     .frame(width: 32)
 
                 Toggle(isOn: Binding(
@@ -106,8 +108,8 @@ struct NawafilSettingsView: View {
                     }
                 )) {
                     Text("تفعيل النوافل")
-                        .font(.system(size: 17))
-                        .foregroundColor(isPro ? themeManager.textPrimaryColor : themeManager.disabledColor)
+                        .font(MZTypography.bodyLarge)
+                        .foregroundColor(isPro ? themeManager.textPrimaryColor : themeManager.textTertiaryColor)
                 }
                 .disabled(!isPro)
                 .tint(themeManager.primaryColor)
@@ -115,11 +117,13 @@ struct NawafilSettingsView: View {
                 .accessibilityValue(userSettings.nawafilEnabled ? "مفعّل" : "متوقف")
                 .accessibilityHint(isPro ? "" : "يتطلب اشتراك Pro")
             }
+            .listRowBackground(themeManager.surfaceColor)
         } header: {
             Text("عام")
+                .foregroundColor(themeManager.textSecondaryColor)
         } footer: {
             Text("عند التفعيل، ستظهر النوافل المختارة في الجدول اليومي")
-                .font(.system(size: 13))
+                .font(MZTypography.labelSmall)
                 .foregroundColor(themeManager.textSecondaryColor)
         }
     }
@@ -138,14 +142,16 @@ struct NawafilSettingsView: View {
             )) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("جميع السنن الرواتب")
-                        .font(.system(size: 17, weight: .medium))
+                        .font(MZTypography.bodyLarge)
+                        .foregroundColor(themeManager.textPrimaryColor)
 
                     Text("12 ركعة يوميًا")
-                        .font(.system(size: 13))
+                        .font(MZTypography.labelSmall)
                         .foregroundColor(themeManager.textSecondaryColor)
                 }
             }
             .tint(themeManager.primaryColor)
+            .listRowBackground(themeManager.surfaceColor)
             .accessibilityLabel("جميع السنن الرواتب")
             .accessibilityValue(areAllRawatibEnabled ? "مفعّل" : "متوقف")
             .accessibilityHint("تفعيل أو إيقاف جميع السنن الرواتب معًا")
@@ -155,12 +161,14 @@ struct NawafilSettingsView: View {
                 NawafilToggleRow(nawafil: nawafil)
                     .environmentObject(appEnvironment)
                     .environmentObject(themeManager)
+                    .listRowBackground(themeManager.surfaceColor)
             }
         } header: {
             Text("السنن الرواتب")
+                .foregroundColor(themeManager.textSecondaryColor)
         } footer: {
             Text("السنن الرواتب هي الصلوات المرتبطة بالفرائض الخمس")
-                .font(.system(size: 13))
+                .font(MZTypography.labelSmall)
                 .foregroundColor(themeManager.textSecondaryColor)
         }
     }
@@ -174,12 +182,14 @@ struct NawafilSettingsView: View {
                 NawafilToggleRow(nawafil: nawafil)
                     .environmentObject(appEnvironment)
                     .environmentObject(themeManager)
+                    .listRowBackground(themeManager.surfaceColor)
             }
         } header: {
             Text("نوافل أخرى")
+                .foregroundColor(themeManager.textSecondaryColor)
         } footer: {
             Text("هذه النوافل اختيارية ويمكنك تفعيلها حسب رغبتك")
-                .font(.system(size: 13))
+                .font(MZTypography.labelSmall)
                 .foregroundColor(themeManager.textSecondaryColor)
         }
     }
@@ -305,10 +315,11 @@ struct NawafilToggleRow: View {
             // Info
             VStack(alignment: .leading, spacing: 2) {
                 Text(nawafil.arabicName)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(MZTypography.bodyLarge)
+                    .foregroundColor(themeManager.textPrimaryColor)
 
                 Text(rakaatText)
-                    .font(.system(size: 13))
+                    .font(MZTypography.labelSmall)
                     .foregroundColor(themeManager.textSecondaryColor)
             }
 
@@ -499,7 +510,7 @@ struct NawafilToggleRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("وقت البدء")
-                    .font(.system(size: 14))
+                    .font(MZTypography.labelMedium)
                     .foregroundColor(themeManager.textSecondaryColor)
 
                 Spacer()
@@ -574,9 +585,9 @@ struct NawafilToggleRow: View {
             if let rangeDesc = validTimeRangeDescription {
                 HStack(spacing: 4) {
                     Image(systemName: "clock")
-                        .font(.system(size: 10))
+                        .font(MZTypography.labelSmall)
                     Text(rangeDesc)
-                        .font(.system(size: 11))
+                        .font(MZTypography.labelSmall)
                 }
                 .foregroundColor(Color(hex: nawafil.colorHex).opacity(0.8))
             }
@@ -605,7 +616,7 @@ struct NawafilToggleRow: View {
     private func rakaatPicker(options: [Int]) -> some View {
         HStack {
             Text("عدد الركعات")
-                .font(.system(size: 14))
+                .font(MZTypography.labelMedium)
                 .foregroundColor(themeManager.textSecondaryColor)
 
             Spacer()
@@ -633,7 +644,7 @@ struct NawafilToggleRow: View {
         let step = nawafil.rakaat.mustBeEven == true ? 2 : 1
         return HStack {
             Text("عدد الركعات")
-                .font(.system(size: 14))
+                .font(MZTypography.labelMedium)
                 .foregroundColor(themeManager.textSecondaryColor)
 
             Spacer()
@@ -652,7 +663,7 @@ struct NawafilToggleRow: View {
                 in: min...max,
                 step: step
             )
-            .font(.system(size: 14, weight: .medium))
+            .font(MZTypography.labelMedium)
         }
     }
 
@@ -660,7 +671,7 @@ struct NawafilToggleRow: View {
     private func durationPicker(options: [Int]) -> some View {
         HStack {
             Text("المدة")
-                .font(.system(size: 14))
+                .font(MZTypography.labelMedium)
                 .foregroundColor(themeManager.textSecondaryColor)
 
             Spacer()
@@ -692,27 +703,27 @@ struct NawafilToggleRow: View {
         case "duha":
             HStack {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 12))
+                    .font(MZTypography.labelSmall)
                 Text("من بعد الشروق حتى قبل الظهر")
-                    .font(.system(size: 12))
+                    .font(MZTypography.labelSmall)
             }
             .foregroundColor(themeManager.textSecondaryColor.opacity(0.8))
 
         case "tahajjud":
             HStack {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 12))
+                    .font(MZTypography.labelSmall)
                 Text("من بعد العشاء حتى قبل الفجر")
-                    .font(.system(size: 12))
+                    .font(MZTypography.labelSmall)
             }
             .foregroundColor(themeManager.textSecondaryColor.opacity(0.8))
 
         case "witr":
             HStack {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 12))
+                    .font(MZTypography.labelSmall)
                 Text("آخر صلاة في الليل")
-                    .font(.system(size: 12))
+                    .font(MZTypography.labelSmall)
             }
             .foregroundColor(themeManager.textSecondaryColor.opacity(0.8))
 

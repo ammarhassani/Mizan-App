@@ -31,7 +31,10 @@ final class AppEnvironment: ObservableObject {
 
     // AI Service (lazy initialization)
     private(set) lazy var aiTaskService: AITaskService = {
-        AITaskService(config: ConfigurationManager.shared.aiConfig)
+        let service = AITaskService(config: ConfigurationManager.shared.aiConfig)
+        // Set DeepSeek API key
+        service.setAPIKey("sk-54ca549f8cff4d92b82ca1694037f789", for: "deepseek")
+        return service
     }()
 
     // MARK: - User Settings

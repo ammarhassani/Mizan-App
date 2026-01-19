@@ -2,7 +2,7 @@
 //  AIChatSheet.swift
 //  Mizan
 //
-//  AI-powered chat interface for natural language task creation
+//  AI-powered chat interface for natural language task creation and app management
 //
 
 import SwiftUI
@@ -18,16 +18,26 @@ struct AIChatSheet: View {
 
     @FocusState private var isInputFocused: Bool
 
-    // Callback when task is created
+    // Callbacks
     var onTaskCreated: ((Task) -> Void)?
+    var onTaskModified: (() -> Void)?
+    var onNavigate: ((ManualAction) -> Void)?
 
-    init(onTaskCreated: ((Task) -> Void)? = nil) {
+    init(
+        onTaskCreated: ((Task) -> Void)? = nil,
+        onTaskModified: (() -> Void)? = nil,
+        onNavigate: ((ManualAction) -> Void)? = nil
+    ) {
         self.onTaskCreated = onTaskCreated
-        // ViewModel will be initialized in onAppear
+        self.onTaskModified = onTaskModified
+        self.onNavigate = onNavigate
+
+        // ViewModel will be initialized with dependencies
         _viewModel = StateObject(wrappedValue: AIChatViewModel(
             aiService: AppEnvironment.shared.aiTaskService,
             modelContext: AppEnvironment.shared.modelContainer.mainContext,
-            userSettings: AppEnvironment.shared.userSettings
+            userSettings: AppEnvironment.shared.userSettings,
+            prayerTimeService: AppEnvironment.shared.prayerTimeService
         ))
     }
 
@@ -39,21 +49,45 @@ struct AIChatSheet: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Chat messages
+                    // Chat messages - takes all available space
                     chatMessagesView
 
-                    // Quick suggestions (when input is empty and not processing)
-                    if viewModel.inputText.isEmpty && !viewModel.isProcessing && !viewModel.showTaskReview {
-                        quickSuggestionsView
-                    }
+                    // Bottom section - cards and input anchored to bottom
+                    VStack(spacing: 0) {
+                        // V2: Action result card (when available)
+                        if let result = viewModel.currentActionResult {
+                            actionResultSection(result)
+                        }
 
-                    // Task preview card (when task is extracted)
-                    if viewModel.showTaskReview, let task = viewModel.extractedTask {
-                        taskPreviewCard(task)
-                    }
+                        // V2: Clarification card (when AI needs more info)
+                        if let clarification = viewModel.currentClarification {
+                            clarificationSection(clarification)
+                        }
 
-                    // Input bar
-                    inputBarView
+                        // V2: Task disambiguation card (when multiple tasks match)
+                        if let tasks = viewModel.disambiguationTasks,
+                           let question = viewModel.disambiguationQuestion {
+                            disambiguationSection(question: question, tasks: tasks)
+                        }
+
+                        // All-in-one task creation card (when AI detected task with missing fields)
+                        if viewModel.showTaskCreationCard, let taskData = viewModel.pendingTaskData {
+                            taskCreationSection(taskData)
+                        }
+
+                        // Quick suggestions (when input is empty and not processing)
+                        if shouldShowQuickSuggestions {
+                            quickSuggestionsView
+                        }
+
+                        // Task preview card (when task is extracted - V1 compatible)
+                        if viewModel.showTaskReview, let task = viewModel.extractedTask {
+                            taskPreviewCard(task)
+                        }
+
+                        // Input bar
+                        inputBarView
+                    }
                 }
             }
             .navigationTitle("مساعد المهام")
@@ -68,6 +102,18 @@ struct AIChatSheet: View {
 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
+                        // Toggle agent mode
+                        Button {
+                            viewModel.useAgentMode.toggle()
+                        } label: {
+                            Label(
+                                viewModel.useAgentMode ? "وضع بسيط" : "وضع ذكي",
+                                systemImage: viewModel.useAgentMode ? "brain" : "sparkle"
+                            )
+                        }
+
+                        Divider()
+
                         Button(role: .destructive) {
                             viewModel.clearChat()
                         } label: {
@@ -79,8 +125,31 @@ struct AIChatSheet: View {
                     }
                 }
             }
+            .onAppear {
+                // Set up callbacks
+                viewModel.onTaskCreated = onTaskCreated
+                viewModel.onTaskModified = onTaskModified
+                viewModel.onNavigate = { action in
+                    onNavigate?(action)
+                    dismiss()
+                }
+            }
         }
+        .environment(\.layoutDirection, .rightToLeft)
+        .navigationViewStyle(.stack)
         .interactiveDismissDisabled(viewModel.isProcessing)
+    }
+
+    // MARK: - Computed Properties
+
+    private var shouldShowQuickSuggestions: Bool {
+        viewModel.inputText.isEmpty &&
+        !viewModel.isProcessing &&
+        !viewModel.showTaskReview &&
+        !viewModel.showTaskCreationCard &&
+        viewModel.currentClarification == nil &&
+        viewModel.currentActionResult == nil &&
+        viewModel.disambiguationTasks == nil
     }
 
     // MARK: - Chat Messages
@@ -88,7 +157,7 @@ struct AIChatSheet: View {
     private var chatMessagesView: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 12) {
+                LazyVStack(spacing: MZSpacing.sm) {
                     ForEach(viewModel.messages) { message in
                         ChatMessageBubble(message: message)
                             .id(message.id)
@@ -100,7 +169,7 @@ struct AIChatSheet: View {
                             .id("typing")
                     }
                 }
-                .padding()
+                .padding(MZSpacing.md)
             }
             .onChange(of: viewModel.messages.count) { _, _ in
                 // Scroll to bottom on new message
@@ -124,17 +193,17 @@ struct AIChatSheet: View {
 
     private var quickSuggestionsView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: MZSpacing.sm) {
                 ForEach(viewModel.quickSuggestions, id: \.self) { suggestion in
                     Button {
                         viewModel.useQuickSuggestion(suggestion)
                         isInputFocused = true
                     } label: {
                         Text(suggestion)
-                            .font(.system(size: 14))
+                            .font(MZTypography.labelMedium)
                             .foregroundColor(themeManager.primaryColor)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, MZSpacing.sm)
+                            .padding(.vertical, MZSpacing.xs)
                             .background(
                                 Capsule()
                                     .fill(themeManager.primaryColor.opacity(0.1))
@@ -142,65 +211,148 @@ struct AIChatSheet: View {
                     }
                 }
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.horizontal, MZSpacing.md)
+            .padding(.vertical, MZSpacing.xs)
         }
-        .background(themeManager.surfaceColor)
+    }
+
+    // MARK: - V2 Action Result Section
+
+    private func actionResultSection(_ result: AIActionResult) -> some View {
+        AIActionCard(
+            result: result,
+            onConfirm: {
+                viewModel.confirmPendingAction()
+            },
+            onCancel: {
+                viewModel.cancelPendingAction()
+            },
+            onManualAction: { action in
+                viewModel.handleManualAction(action)
+            }
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: viewModel.currentActionResult != nil)
+    }
+
+    // MARK: - V2 Clarification Section
+
+    private func clarificationSection(_ clarification: ClarificationRequest) -> some View {
+        AIClarificationCard(
+            request: clarification,
+            onOptionSelected: { option in
+                _Concurrency.Task {
+                    await viewModel.handleClarificationOption(option)
+                }
+            },
+            onFreeTextSubmit: { text in
+                _Concurrency.Task {
+                    await viewModel.handleClarificationFreeText(text)
+                }
+            }
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: viewModel.currentClarification != nil)
+    }
+
+    // MARK: - V2 Task Disambiguation Section
+
+    private func disambiguationSection(question: String, tasks: [TaskSummary]) -> some View {
+        AITaskDisambiguationCard(
+            question: question,
+            tasks: tasks,
+            onTaskSelected: { task in
+                _Concurrency.Task {
+                    await viewModel.handleTaskDisambiguation(task)
+                }
+            }
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: viewModel.disambiguationTasks != nil)
+    }
+
+    // MARK: - All-in-One Task Creation Section
+
+    private func taskCreationSection(_ taskData: ExtractedTaskData) -> some View {
+        AITaskCreationCard(
+            taskTitle: taskData.title,
+            category: taskData.category,
+            onComplete: { scheduledDate, duration, recurrence in
+                viewModel.completeTaskCreation(
+                    scheduledDate: scheduledDate,
+                    duration: duration,
+                    recurrence: recurrence
+                )
+            },
+            onCancel: {
+                viewModel.cancelTaskCreation()
+            }
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: viewModel.showTaskCreationCard)
     }
 
     // MARK: - Task Preview Card
 
     private func taskPreviewCard(_ task: ExtractedTaskData) -> some View {
-        VStack(spacing: 12) {
+        VStack(spacing: MZSpacing.sm) {
             // Header
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(themeManager.successColor)
                 Text("معاينة المهمة")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(MZTypography.titleMedium)
                     .foregroundColor(themeManager.textPrimaryColor)
                 Spacer()
             }
 
             // Task details
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: MZSpacing.xs) {
                 HStack {
                     Image(systemName: TaskIconDetector.shared.detectIcon(from: task.title))
                         .foregroundColor(themeManager.primaryColor)
                     Text(task.title)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(MZTypography.bodyLarge)
                         .foregroundColor(themeManager.textPrimaryColor)
                 }
 
-                HStack(spacing: 16) {
+                HStack(spacing: MZSpacing.md) {
                     if let date = task.scheduledDate {
                         Label(date, systemImage: "calendar")
-                            .font(.system(size: 13))
+                            .font(MZTypography.labelSmall)
                             .foregroundColor(themeManager.textSecondaryColor)
                     }
 
                     if let time = task.scheduledTime {
                         Label(time, systemImage: "clock")
-                            .font(.system(size: 13))
+                            .font(MZTypography.labelSmall)
                             .foregroundColor(themeManager.textSecondaryColor)
                     }
 
                     Label("\(task.duration) د", systemImage: "timer")
-                        .font(.system(size: 13))
+                        .font(MZTypography.labelSmall)
                         .foregroundColor(themeManager.textSecondaryColor)
                 }
             }
 
             // Action buttons
-            HStack(spacing: 12) {
+            HStack(spacing: MZSpacing.sm) {
                 Button {
                     viewModel.cancelExtraction()
                 } label: {
                     Text("إلغاء")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(MZTypography.labelMedium)
                         .foregroundColor(themeManager.textSecondaryColor)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, MZSpacing.sm)
                         .background(themeManager.surfaceSecondaryColor)
                         .cornerRadius(themeManager.cornerRadius(.medium))
                 }
@@ -215,32 +367,32 @@ struct AIChatSheet: View {
                         Image(systemName: "plus.circle.fill")
                         Text("إضافة")
                     }
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(MZTypography.labelMedium)
                     .foregroundColor(themeManager.textOnPrimaryColor)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, MZSpacing.sm)
                     .background(themeManager.primaryColor)
                     .cornerRadius(themeManager.cornerRadius(.medium))
                 }
             }
         }
-        .padding()
+        .padding(MZSpacing.md)
         .background(themeManager.surfaceColor)
         .cornerRadius(themeManager.cornerRadius(.large))
         .shadow(color: themeManager.textPrimaryColor.opacity(0.1), radius: 8, y: 4)
-        .padding()
+        .padding(MZSpacing.md)
     }
 
     // MARK: - Input Bar
 
     private var inputBarView: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: MZSpacing.sm) {
             // Text field
             TextField("اكتب مهمتك...", text: $viewModel.inputText)
-                .font(.system(size: 16))
+                .font(MZTypography.bodyLarge)
                 .foregroundColor(themeManager.textPrimaryColor)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, MZSpacing.md)
+                .padding(.vertical, MZSpacing.sm)
                 .background(themeManager.surfaceSecondaryColor)
                 .cornerRadius(24)
                 .focused($isInputFocused)
@@ -264,9 +416,8 @@ struct AIChatSheet: View {
             }
             .disabled(viewModel.inputText.isEmpty || viewModel.isProcessing)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(themeManager.surfaceColor)
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
     }
 
     // MARK: - Actions
@@ -293,31 +444,51 @@ struct ChatMessageBubble: View {
         message.role == .user
     }
 
+    /// Parse markdown to AttributedString
+    private func markdownText(_ text: String) -> AttributedString {
+        do {
+            return try AttributedString(markdown: text)
+        } catch {
+            return AttributedString(text)
+        }
+    }
+
     var body: some View {
         HStack {
             if isUser { Spacer(minLength: 50) }
 
-            VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
-                Text(message.content)
-                    .font(.system(size: 15))
-                    .foregroundColor(isUser ? themeManager.textOnPrimaryColor : themeManager.textPrimaryColor)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        isUser
-                            ? themeManager.primaryColor
-                            : themeManager.surfaceSecondaryColor
-                    )
-                    .cornerRadius(18)
+            VStack(alignment: isUser ? .trailing : .leading, spacing: MZSpacing.xxs) {
+                // Use markdown-aware text for assistant messages
+                if isUser {
+                    Text(message.content)
+                        .font(MZTypography.bodyMedium)
+                        .foregroundColor(themeManager.textOnPrimaryColor)
+                        .padding(.horizontal, MZSpacing.sm)
+                        .padding(.vertical, MZSpacing.xs)
+                        .background(themeManager.primaryColor)
+                        .cornerRadius(18)
+                } else {
+                    // Render markdown for assistant messages
+                    Text(markdownText(message.content))
+                        .font(MZTypography.bodyMedium)
+                        .foregroundColor(themeManager.textPrimaryColor)
+                        .padding(.horizontal, MZSpacing.sm)
+                        .padding(.vertical, MZSpacing.xs)
+                        .background(themeManager.surfaceSecondaryColor)
+                        .cornerRadius(18)
+                        .textSelection(.enabled)
+                }
 
                 // Timestamp
                 Text(message.timestamp.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 11))
+                    .font(MZTypography.labelSmall)
                     .foregroundColor(themeManager.textTertiaryColor)
             }
 
             if !isUser { Spacer(minLength: 50) }
         }
+        // Keep chat bubble alignment standard (user right, AI left) regardless of RTL
+        .environment(\.layoutDirection, .leftToRight)
     }
 }
 
@@ -329,7 +500,7 @@ struct TypingIndicator: View {
 
     var body: some View {
         HStack {
-            HStack(spacing: 4) {
+            HStack(spacing: MZSpacing.xxs) {
                 ForEach(0..<3, id: \.self) { index in
                     Circle()
                         .fill(themeManager.textSecondaryColor)
@@ -337,13 +508,15 @@ struct TypingIndicator: View {
                         .scaleEffect(dotScale[index])
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, MZSpacing.md)
+            .padding(.vertical, MZSpacing.sm)
             .background(themeManager.surfaceSecondaryColor)
             .cornerRadius(18)
 
             Spacer()
         }
+        // Keep typing indicator on left (AI side) regardless of RTL
+        .environment(\.layoutDirection, .leftToRight)
         .onAppear {
             animateDots()
         }

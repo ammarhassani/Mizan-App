@@ -308,6 +308,15 @@ struct MainTabView: View {
                 }
                 .tag(1)
 
+            // Mizan AI Tab
+            MizanAITab()
+                .environmentObject(appEnvironment)
+                .environmentObject(themeManager)
+                .tabItem {
+                    Label("Mizan AI", systemImage: "sparkles")
+                }
+                .tag(2)
+
             // Settings Tab
             SettingsView()
                 .environmentObject(appEnvironment)
@@ -315,9 +324,510 @@ struct MainTabView: View {
                 .tabItem {
                     Label("الإعدادات", systemImage: "gearshape.fill")
                 }
-                .tag(2)
+                .tag(3)
         }
         .accentColor(themeManager.primaryColor)
+    }
+}
+
+// MARK: - Mizan AI Tab
+
+struct MizanAITab: View {
+    @EnvironmentObject var appEnvironment: AppEnvironment
+    @EnvironmentObject var themeManager: ThemeManager
+    @State private var showPaywall = false
+
+    var body: some View {
+        Group {
+            if appEnvironment.userSettings.isPro {
+                // Pro users get full AI chat
+                AIChatView()
+            } else {
+                // Non-Pro users see locked state
+                MizanAILockedView(onUnlock: { showPaywall = true })
+            }
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallSheet()
+                .environmentObject(appEnvironment)
+                .environmentObject(themeManager)
+        }
+    }
+}
+
+// MARK: - Mizan AI Locked View (for non-Pro users)
+
+struct MizanAILockedView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    var onUnlock: () -> Void
+
+    var body: some View {
+        ZStack {
+            themeManager.backgroundColor
+                .ignoresSafeArea()
+
+            VStack(spacing: MZSpacing.xl) {
+                Spacer()
+
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(themeManager.primaryColor.opacity(0.1))
+                        .frame(width: 120, height: 120)
+
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 50))
+                        .foregroundColor(themeManager.primaryColor)
+                }
+
+                // Title & Description
+                VStack(spacing: MZSpacing.sm) {
+                    Text("Mizan AI")
+                        .font(MZTypography.headlineLarge)
+                        .foregroundColor(themeManager.textPrimaryColor)
+
+                    Text("مساعدك الذكي لإدارة المهام")
+                        .font(MZTypography.bodyLarge)
+                        .foregroundColor(themeManager.textSecondaryColor)
+                        .multilineTextAlignment(.center)
+                }
+
+                // Features list
+                VStack(alignment: .leading, spacing: MZSpacing.md) {
+                    featureRow(icon: "text.bubble.fill", text: "أنشئ مهام بالمحادثة الطبيعية")
+                    featureRow(icon: "calendar.badge.clock", text: "جدول مهامك حول أوقات الصلاة")
+                    featureRow(icon: "wand.and.stars", text: "تعديل وحذف المهام بالأوامر الصوتية")
+                    featureRow(icon: "brain", text: "اقتراحات ذكية لتنظيم يومك")
+                }
+                .padding(.horizontal, MZSpacing.xl)
+
+                Spacer()
+
+                // Unlock button
+                Button {
+                    onUnlock()
+                } label: {
+                    HStack(spacing: MZSpacing.sm) {
+                        Image(systemName: "lock.open.fill")
+                        Text("فتح Mizan AI")
+                    }
+                    .font(MZTypography.titleMedium)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, MZSpacing.md)
+                    .background(themeManager.primaryColor)
+                    .cornerRadius(themeManager.cornerRadius(.large))
+                }
+                .padding(.horizontal, MZSpacing.screenPadding)
+
+                // Pro badge
+                HStack(spacing: MZSpacing.xs) {
+                    Image(systemName: "star.fill")
+                        .font(.caption)
+                    Text("ميزة Pro")
+                        .font(MZTypography.labelMedium)
+                }
+                .foregroundColor(themeManager.warningColor)
+                .padding(.bottom, MZSpacing.lg)
+            }
+        }
+    }
+
+    private func featureRow(icon: String, text: String) -> some View {
+        HStack(spacing: MZSpacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundColor(themeManager.primaryColor)
+                .frame(width: 28)
+
+            Text(text)
+                .font(MZTypography.bodyMedium)
+                .foregroundColor(themeManager.textPrimaryColor)
+        }
+    }
+}
+
+// MARK: - AI Chat View (Full Tab Version)
+
+struct AIChatView: View {
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var appEnvironment: AppEnvironment
+    @EnvironmentObject var themeManager: ThemeManager
+
+    @StateObject private var viewModel: AIChatViewModel
+
+    @FocusState private var isInputFocused: Bool
+
+    init() {
+        _viewModel = StateObject(wrappedValue: AIChatViewModel(
+            aiService: AppEnvironment.shared.aiTaskService,
+            modelContext: AppEnvironment.shared.modelContainer.mainContext,
+            userSettings: AppEnvironment.shared.userSettings,
+            prayerTimeService: AppEnvironment.shared.prayerTimeService
+        ))
+    }
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                themeManager.backgroundColor
+                    .ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    // Chat messages - takes all available space
+                    chatMessagesView
+
+                    // Bottom section - cards and input anchored to bottom
+                    VStack(spacing: 0) {
+                        // V2: Action result card
+                        if let result = viewModel.currentActionResult {
+                            actionResultSection(result)
+                        }
+
+                        // V2: Clarification card
+                        if let clarification = viewModel.currentClarification {
+                            clarificationSection(clarification)
+                        }
+
+                        // V2: Task disambiguation card
+                        if let tasks = viewModel.disambiguationTasks,
+                           let question = viewModel.disambiguationQuestion {
+                            disambiguationSection(question: question, tasks: tasks)
+                        }
+
+                        // All-in-one task creation card (when AI detected task with missing fields)
+                        if viewModel.showTaskCreationCard, let taskData = viewModel.pendingTaskData {
+                            taskCreationSection(taskData)
+                        }
+
+                        // Quick suggestions
+                        if shouldShowQuickSuggestions {
+                            quickSuggestionsView
+                        }
+
+                        // Task preview card (V1 compatible)
+                        if viewModel.showTaskReview, let task = viewModel.extractedTask {
+                            taskPreviewCard(task)
+                        }
+
+                        // Input bar
+                        inputBarView
+                    }
+                }
+            }
+            .navigationTitle("Mizan AI")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            viewModel.useAgentMode.toggle()
+                        } label: {
+                            Label(
+                                viewModel.useAgentMode ? "وضع بسيط" : "وضع ذكي",
+                                systemImage: viewModel.useAgentMode ? "brain" : "sparkle"
+                            )
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            viewModel.clearChat()
+                        } label: {
+                            Label("مسح المحادثة", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundColor(themeManager.primaryColor)
+                    }
+                }
+            }
+        }
+        .environment(\.layoutDirection, .rightToLeft)
+    }
+
+    // MARK: - Computed Properties
+
+    private var shouldShowQuickSuggestions: Bool {
+        viewModel.inputText.isEmpty &&
+        !viewModel.isProcessing &&
+        !viewModel.showTaskReview &&
+        !viewModel.showTaskCreationCard &&
+        viewModel.currentClarification == nil &&
+        viewModel.currentActionResult == nil &&
+        viewModel.disambiguationTasks == nil
+    }
+
+    // MARK: - Chat Messages
+
+    private var chatMessagesView: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: MZSpacing.sm) {
+                    ForEach(viewModel.messages) { message in
+                        ChatMessageBubble(message: message)
+                            .id(message.id)
+                    }
+
+                    if viewModel.isProcessing {
+                        TypingIndicator()
+                            .id("typing")
+                    }
+                }
+                .padding(MZSpacing.md)
+            }
+            .onChange(of: viewModel.messages.count) { _, _ in
+                if let lastMessage = viewModel.messages.last {
+                    withAnimation {
+                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                    }
+                }
+            }
+            .onChange(of: viewModel.isProcessing) { _, isProcessing in
+                if isProcessing {
+                    withAnimation {
+                        proxy.scrollTo("typing", anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Quick Suggestions
+
+    private var quickSuggestionsView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: MZSpacing.sm) {
+                ForEach(viewModel.quickSuggestions, id: \.self) { suggestion in
+                    Button {
+                        viewModel.useQuickSuggestion(suggestion)
+                        isInputFocused = true
+                    } label: {
+                        Text(suggestion)
+                            .font(MZTypography.labelMedium)
+                            .foregroundColor(themeManager.primaryColor)
+                            .padding(.horizontal, MZSpacing.sm)
+                            .padding(.vertical, MZSpacing.xs)
+                            .background(
+                                Capsule()
+                                    .fill(themeManager.primaryColor.opacity(0.1))
+                            )
+                    }
+                }
+            }
+            .padding(.horizontal, MZSpacing.md)
+            .padding(.vertical, MZSpacing.xs)
+        }
+    }
+
+    // MARK: - V2 Action Result Section
+
+    private func actionResultSection(_ result: AIActionResult) -> some View {
+        AIActionCard(
+            result: result,
+            onConfirm: {
+                viewModel.confirmPendingAction()
+            },
+            onCancel: {
+                viewModel.cancelPendingAction()
+            },
+            onManualAction: { action in
+                viewModel.handleManualAction(action)
+            }
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: viewModel.currentActionResult != nil)
+    }
+
+    // MARK: - V2 Clarification Section
+
+    private func clarificationSection(_ clarification: ClarificationRequest) -> some View {
+        AIClarificationCard(
+            request: clarification,
+            onOptionSelected: { option in
+                _Concurrency.Task {
+                    await viewModel.handleClarificationOption(option)
+                }
+            },
+            onFreeTextSubmit: { text in
+                _Concurrency.Task {
+                    await viewModel.handleClarificationFreeText(text)
+                }
+            }
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: viewModel.currentClarification != nil)
+    }
+
+    // MARK: - V2 Task Disambiguation Section
+
+    private func disambiguationSection(question: String, tasks: [TaskSummary]) -> some View {
+        AITaskDisambiguationCard(
+            question: question,
+            tasks: tasks,
+            onTaskSelected: { task in
+                _Concurrency.Task {
+                    await viewModel.handleTaskDisambiguation(task)
+                }
+            }
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: viewModel.disambiguationTasks != nil)
+    }
+
+    // MARK: - All-in-One Task Creation Section
+
+    private func taskCreationSection(_ taskData: ExtractedTaskData) -> some View {
+        AITaskCreationCard(
+            taskTitle: taskData.title,
+            category: taskData.category,
+            onComplete: { scheduledDate, duration, recurrence in
+                viewModel.completeTaskCreation(
+                    scheduledDate: scheduledDate,
+                    duration: duration,
+                    recurrence: recurrence
+                )
+            },
+            onCancel: {
+                viewModel.cancelTaskCreation()
+            }
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: viewModel.showTaskCreationCard)
+    }
+
+    // MARK: - Task Preview Card
+
+    private func taskPreviewCard(_ task: ExtractedTaskData) -> some View {
+        VStack(spacing: MZSpacing.sm) {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(themeManager.successColor)
+                Text("معاينة المهمة")
+                    .font(MZTypography.titleMedium)
+                    .foregroundColor(themeManager.textPrimaryColor)
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: MZSpacing.xs) {
+                HStack {
+                    Image(systemName: TaskIconDetector.shared.detectIcon(from: task.title))
+                        .foregroundColor(themeManager.primaryColor)
+                    Text(task.title)
+                        .font(MZTypography.bodyLarge)
+                        .foregroundColor(themeManager.textPrimaryColor)
+                }
+
+                HStack(spacing: MZSpacing.md) {
+                    if let date = task.scheduledDate {
+                        Label(date, systemImage: "calendar")
+                            .font(MZTypography.labelSmall)
+                            .foregroundColor(themeManager.textSecondaryColor)
+                    }
+
+                    if let time = task.scheduledTime {
+                        Label(time, systemImage: "clock")
+                            .font(MZTypography.labelSmall)
+                            .foregroundColor(themeManager.textSecondaryColor)
+                    }
+
+                    Label("\(task.duration) د", systemImage: "timer")
+                        .font(MZTypography.labelSmall)
+                        .foregroundColor(themeManager.textSecondaryColor)
+                }
+            }
+
+            HStack(spacing: MZSpacing.sm) {
+                Button {
+                    viewModel.cancelExtraction()
+                } label: {
+                    Text("إلغاء")
+                        .font(MZTypography.labelMedium)
+                        .foregroundColor(themeManager.textSecondaryColor)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, MZSpacing.sm)
+                        .background(themeManager.surfaceSecondaryColor)
+                        .cornerRadius(themeManager.cornerRadius(.medium))
+                }
+
+                Button {
+                    _ = viewModel.confirmTask()
+                    HapticManager.shared.trigger(.success)
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("إضافة")
+                    }
+                    .font(MZTypography.labelMedium)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, MZSpacing.sm)
+                    .background(themeManager.primaryColor)
+                    .cornerRadius(themeManager.cornerRadius(.medium))
+                }
+            }
+        }
+        .padding(MZSpacing.md)
+        .background(themeManager.surfaceColor)
+        .cornerRadius(themeManager.cornerRadius(.large))
+        .shadow(color: themeManager.textPrimaryColor.opacity(0.1), radius: 8, y: 4)
+        .padding(MZSpacing.md)
+    }
+
+    // MARK: - Input Bar
+
+    private var inputBarView: some View {
+        HStack(spacing: MZSpacing.sm) {
+            TextField("اكتب مهمتك...", text: $viewModel.inputText)
+                .font(MZTypography.bodyLarge)
+                .foregroundColor(themeManager.textPrimaryColor)
+                .padding(.horizontal, MZSpacing.md)
+                .padding(.vertical, MZSpacing.sm)
+                .background(themeManager.surfaceSecondaryColor)
+                .cornerRadius(24)
+                .focused($isInputFocused)
+                .submitLabel(.send)
+                .onSubmit {
+                    sendMessage()
+                }
+                .disabled(viewModel.isProcessing)
+
+            Button {
+                sendMessage()
+            } label: {
+                Image(systemName: viewModel.isProcessing ? "hourglass" : "arrow.up.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundColor(
+                        viewModel.inputText.isEmpty || viewModel.isProcessing
+                            ? themeManager.textTertiaryColor
+                            : themeManager.primaryColor
+                    )
+            }
+            .disabled(viewModel.inputText.isEmpty || viewModel.isProcessing)
+        }
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.sm)
+    }
+
+    // MARK: - Actions
+
+    private func sendMessage() {
+        guard !viewModel.inputText.isEmpty && !viewModel.isProcessing else { return }
+
+        isInputFocused = false
+        HapticManager.shared.trigger(.light)
+
+        _Concurrency.Task {
+            await viewModel.sendMessage()
+        }
     }
 }
 

@@ -42,7 +42,6 @@ struct InboxView: View {
     // MARK: - State
     @State private var selectedFilter: TaskFilter = .inbox
     @State private var showAddTaskSheet = false
-    @State private var showAIChatSheet = false
     @State private var taskToEdit: Task? = nil
     @State private var showScheduleSheet = false
     @State private var taskToSchedule: Task?
@@ -191,9 +190,6 @@ struct InboxView: View {
                         EnhancedFAB(
                             action: {
                                 showAddTaskSheet = true
-                            },
-                            onLongPress: {
-                                showAIChatSheet = true
                             }
                         )
                         .environmentObject(themeManager)
@@ -221,14 +217,6 @@ struct InboxView: View {
                         .environmentObject(appEnvironment)
                         .environmentObject(themeManager)
                 }
-            }
-            .sheet(isPresented: $showAIChatSheet) {
-                AIChatSheet { createdTask in
-                    // Task was created from AI, optionally scroll to it or show feedback
-                    HapticManager.shared.trigger(.success)
-                }
-                .environmentObject(appEnvironment)
-                .environmentObject(themeManager)
             }
             .confirmationDialog(
                 "حذف المهمة المتكررة",

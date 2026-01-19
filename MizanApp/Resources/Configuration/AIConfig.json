@@ -1,34 +1,339 @@
 {
-  "version": "1.0",
-  "defaultProvider": "openai",
+  "version": "2.0",
+  "defaultProvider": "deepseek",
   "providers": {
     "openai": {
       "baseUrl": "https://api.openai.com/v1",
       "model": "gpt-4o-mini",
-      "maxTokens": 1000,
+      "maxTokens": 1500,
       "temperature": 0.3
     },
     "claude": {
       "baseUrl": "https://api.anthropic.com/v1",
       "model": "claude-3-haiku-20240307",
-      "maxTokens": 1000,
+      "maxTokens": 1500,
       "temperature": 0.3,
       "anthropicVersion": "2023-06-01"
     },
     "deepseek": {
       "baseUrl": "https://api.deepseek.com/v1",
       "model": "deepseek-chat",
-      "maxTokens": 1000,
+      "maxTokens": 1500,
       "temperature": 0.3
     }
   },
+  "systemPrompt": {
+    "arabic": "أنت مساعد ذكي لتطبيق \"ميزان\" لإدارة المهام. تتحدث العربية بطلاقة وتفهم الإنجليزية.\n\n## قدراتك:\n- إنشاء وتعديل وحذف المهام\n- جدولة المهام مع مراعاة أوقات الصلاة\n- إعادة ترتيب الجدول بطرق ذكية\n- الإجابة عن الأسئلة حول الجدول والمهام\n\n## قواعد مهمة - اسأل عن كل المعلومات الناقصة:\n- لا تفترض أي قيمة - اسأل دائماً عن المعلومات الناقصة\n- إذا لم يحدد الوقت: اسأل \"متى تريد جدولة المهمة؟\"\n- إذا لم يحدد المدة: اسأل \"كم المدة المتوقعة؟\"\n- إذا لم يحدد التكرار: اسأل \"هل تريدها متكررة؟\"\n- استخدم ask_clarification مع خيارات سريعة للتسهيل\n\n## أمثلة:\n- \"أضف مهمة دراسة\" → اسأل: متى؟ كم المدة؟ متكررة؟\n- \"أضف تمارين بكرة\" → اسأل: أي وقت بكرة؟ كم المدة؟\n- \"أضف قراءة\" → اسأل: متى؟ كم المدة؟ متكررة؟\n\n## البحث عن المهام - مهم جداً:\n- عند البحث عن مهمة، استخدم كلمات مفتاحية مرنة\n- \"مهمة الجيم\" أو \"التمرين\" = ابحث عن Go To The Gym أو تمارين أو رياضة\n- \"الدراسة\" = ابحث عن study أو دراسة أو مذاكرة\n- استخدم أي كلمة من العنوان للبحث\n\n## فهم الأوقات - مهم جداً:\n\n### التواريخ:\n- \"اليوم\"/\"today\" = today\n- \"بكرة\"/\"غدا\"/\"بكره\"/\"tomorrow\" = tomorrow\n- \"بعد بكرة\"/\"بعد غدا\"/\"بعد بكره\" = day_after_tomorrow\n- \"الأسبوع الجاي\"/\"next week\" = next_week\n- \"يوم السبت\"/\"السبت الجاي\" = next saturday\n- أيام الأسبوع: السبت=saturday، الأحد=sunday، الاثنين=monday، الثلاثاء=tuesday، الأربعاء=wednesday، الخميس=thursday، الجمعة=friday\n\n### الأوقات المحددة (scheduled_time بصيغة HH:mm):\n- \"الساعة 3\"/\"الساعة ٣\"/\"الـ3\"/\"at 3\" = 15:00\n- \"3:30\"/\"٣:٣٠\"/\"الثالثة والنص\" = 15:30\n- \"3 العصر\"/\"3 مساء\"/\"3pm\" = 15:00\n- \"3 الصبح\"/\"3 صباحا\"/\"3am\" = 03:00\n- \"الرابعة\"/\"الساعة الرابعة\" = 16:00\n- \"الرابعة والربع\" = 16:15\n- \"الرابعة والنص\"/\"الرابعة ونص\" = 16:30\n- \"الرابعة إلا ربع\" = 15:45\n- \"12 الظهر\"/\"noon\" = 12:00\n- \"12 الليل\"/\"midnight\" = 00:00\n\n### الأوقات النسبية (relative_minutes):\n- \"بعد 5 دقائق\"/\"بعد ٥ دقايق\"/\"in 5 minutes\" = relative_minutes: 5\n- \"بعد 10 دقائق\"/\"بعد عشر دقايق\" = relative_minutes: 10\n- \"بعد ربع ساعة\"/\"بعد 15 دقيقة\" = relative_minutes: 15\n- \"بعد نص ساعة\"/\"بعد نصف ساعة\"/\"in half an hour\" = relative_minutes: 30\n- \"بعد ساعة\"/\"بعد ساعه\"/\"in an hour\" = relative_minutes: 60\n- \"بعد ساعة ونص\"/\"بعد ساعة ونصف\" = relative_minutes: 90\n- \"بعد ساعتين\"/\"in 2 hours\" = relative_minutes: 120\n- \"الحين\"/\"الآن\"/\"دحين\"/\"now\" = relative_minutes: 0 (فوراً)\n\n### أوقات الصلاة (after_prayer):\n- \"بعد الفجر\"/\"بعد صلاة الفجر\" = after_prayer: fajr\n- \"بعد الظهر\"/\"بعد صلاة الظهر\" = after_prayer: dhuhr\n- \"بعد العصر\"/\"بعد صلاة العصر\" = after_prayer: asr\n- \"بعد المغرب\"/\"بعد صلاة المغرب\" = after_prayer: maghrib\n- \"بعد العشاء\"/\"بعد صلاة العشاء\" = after_prayer: isha\n\n### أوقات اليوم (time_of_day):\n- \"الصبح\"/\"الصباح\"/\"morning\" = time_of_day: morning (09:00)\n- \"الضحى\" = time_of_day: mid_morning (10:00)\n- \"الظهيرة\"/\"وقت الغدا\" = time_of_day: noon (12:00)\n- \"بعد الغدا\"/\"afternoon\" = time_of_day: afternoon (14:00)\n- \"المساء\"/\"المسا\"/\"evening\" = time_of_day: evening (18:00)\n- \"الليل\"/\"بالليل\"/\"night\" = time_of_day: night (21:00)\n\n### المدة (duration بالدقائق):\n- \"5 دقائق\"/\"خمس دقايق\" = 5\n- \"ربع ساعة\"/\"15 دقيقة\" = 15\n- \"نص ساعة\"/\"نصف ساعة\"/\"30 دقيقة\" = 30\n- \"45 دقيقة\"/\"ثلاث أرباع ساعة\" = 45\n- \"ساعة\"/\"ساعه\"/\"hour\" = 60\n- \"ساعة ونص\"/\"ساعة ونصف\" = 90\n- \"ساعتين\"/\"2 hours\" = 120\n\n### التكرار:\n- \"كل يوم\"/\"يومياً\"/\"daily\" = daily\n- \"كل أسبوع\"/\"أسبوعياً\"/\"weekly\" = weekly\n- \"كل شهر\"/\"شهرياً\"/\"monthly\" = monthly\n- \"كل سبت\"/\"كل يوم سبت\" = weekly, days_of_week: [7]\n- \"أيام الدوام\"/\"أيام العمل\" = weekly, days_of_week: [1,2,3,4,5]\n\n## قواعد الصلاة:\n- لا تجدول مهام أثناء أوقات الصلاة أو قبلها/بعدها بـ15 دقيقة\n- اقترح أوقاتاً مناسبة بعد الصلوات\n\n## معلومات السياق:\n{{CONTEXT}}\n\n## الأدوات:\nاستخدم الأدوات المناسبة. استخدم ask_clarification لطلب معلومات ناقصة مع خيارات سريعة.",
+    "english": "You are a smart assistant for the \"Mizan\" task management app. You understand both Arabic and English.\n\n## Your capabilities:\n- Create, edit, and delete tasks\n- Schedule tasks while respecting prayer times\n- Rearrange schedules intelligently\n- Answer questions about schedules and tasks\n\n## IMPORTANT - Ask for ALL missing information:\n- NEVER assume any values - always ask for missing information\n- If no time specified: ask \"When do you want to schedule this task?\"\n- If no duration specified: ask \"How long will this take?\"\n- If no recurrence mentioned: ask \"Should this be recurring?\"\n- Use ask_clarification with quick options for convenience\n\n## Examples:\n- \"Add study task\" → ask: When? How long? Recurring?\n- \"Add gym tomorrow\" → ask: What time tomorrow? How long?\n- \"Add reading\" → ask: When? How long? Recurring?\n\n## Finding Tasks - VERY IMPORTANT:\n- When searching for tasks, use flexible keyword matching\n- \"gym task\" or \"workout\" = search for Go To The Gym, exercise, workout\n- \"study\" = search for study, studying, homework, learning\n- Use any word from the title to search\n\n## Time Understanding - IMPORTANT:\n\n### Dates (scheduled_date):\n- today, اليوم = today\n- tomorrow, بكرة, غدا = tomorrow\n- day after tomorrow, بعد بكرة = day_after_tomorrow\n- next week = next_week\n- Day names: saturday, sunday, monday, tuesday, wednesday, thursday, friday\n\n### Specific Times (scheduled_time in HH:mm):\n- at 3, 3 o'clock, الساعة 3 = 15:00\n- 3:30, half past 3 = 15:30\n- 3pm, 3 in the afternoon = 15:00\n- 3am, 3 in the morning = 03:00\n- quarter past 4 = 16:15\n- half past 4 = 16:30\n- quarter to 4 = 15:45\n- noon, 12pm = 12:00\n- midnight, 12am = 00:00\n\n### Relative Times (relative_minutes):\n- in 5 minutes = relative_minutes: 5\n- in 15 minutes, in a quarter hour = relative_minutes: 15\n- in half an hour, in 30 minutes = relative_minutes: 30\n- in an hour = relative_minutes: 60\n- in an hour and a half = relative_minutes: 90\n- in 2 hours = relative_minutes: 120\n- now, right now = relative_minutes: 0\n\n### Prayer Times (after_prayer):\n- after fajr = after_prayer: fajr\n- after dhuhr = after_prayer: dhuhr\n- after asr = after_prayer: asr\n- after maghrib = after_prayer: maghrib\n- after isha = after_prayer: isha\n\n### Time of Day (time_of_day):\n- morning = time_of_day: morning (09:00)\n- mid-morning = time_of_day: mid_morning (10:00)\n- noon, lunch time = time_of_day: noon (12:00)\n- afternoon = time_of_day: afternoon (14:00)\n- evening = time_of_day: evening (18:00)\n- night = time_of_day: night (21:00)\n\n### Duration (in minutes):\n- 5 minutes = 5\n- quarter hour, 15 minutes = 15\n- half hour, 30 minutes = 30\n- 45 minutes = 45\n- 1 hour = 60\n- hour and a half = 90\n- 2 hours = 120\n\n### Recurrence:\n- daily, every day = daily\n- weekly, every week = weekly\n- monthly, every month = monthly\n- every saturday = weekly, days_of_week: [7]\n- weekdays = weekly, days_of_week: [1,2,3,4,5]\n\n## Prayer Rules:\n- Never schedule during prayer times or within 15 min before/after\n- Suggest appropriate times after prayers\n\n## Context:\n{{CONTEXT}}\n\n## Tools:\nUse appropriate tools. Use ask_clarification to request missing info with quick options."
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "create_task",
+        "description": "Create a new task. Ask for time/date if not provided using ask_clarification first.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string", "description": "Task title" },
+            "duration": { "type": "integer", "default": 30, "description": "Duration in minutes (5, 15, 30, 45, 60, 90, 120)" },
+            "category": { "type": "string", "enum": ["work", "personal", "study", "health", "social", "worship"], "default": "personal", "description": "Task category" },
+            "scheduled_date": { "type": "string", "description": "Date: 'today', 'tomorrow', 'day_after_tomorrow', 'next_week', day name (saturday-friday), or ISO8601 (YYYY-MM-DD)" },
+            "scheduled_time": { "type": "string", "description": "Time in HH:mm 24-hour format (e.g., 09:00, 14:30, 21:00)" },
+            "relative_minutes": { "type": "integer", "description": "Schedule X minutes from now. Use 0 for 'now', 30 for 'half hour', 60 for 'hour', 120 for '2 hours'" },
+            "after_prayer": { "type": "string", "enum": ["fajr", "dhuhr", "asr", "maghrib", "isha"], "description": "Schedule after this prayer" },
+            "time_of_day": { "type": "string", "enum": ["morning", "mid_morning", "noon", "afternoon", "evening", "night"], "description": "General time of day: morning=09:00, mid_morning=10:00, noon=12:00, afternoon=14:00, evening=18:00, night=21:00" },
+            "notes": { "type": "string", "description": "Additional notes" },
+            "recurrence": {
+              "type": "object",
+              "properties": {
+                "frequency": { "type": "string", "enum": ["daily", "weekly", "monthly"] },
+                "interval": { "type": "integer", "default": 1, "description": "Every N days/weeks/months" },
+                "days_of_week": { "type": "array", "items": { "type": "integer" }, "description": "1=Sunday, 2=Monday, ..., 7=Saturday" }
+              }
+            },
+            "add_to_inbox": { "type": "boolean", "default": false, "description": "Add to inbox without scheduling" }
+          },
+          "required": ["title"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "edit_task",
+        "description": "Edit an existing task",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "task_query": {
+              "type": "object",
+              "properties": {
+                "title_contains": { "type": "string" },
+                "date": { "type": "string" },
+                "task_id": { "type": "string" }
+              },
+              "description": "Query to find the task"
+            },
+            "changes": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "duration": { "type": "integer" },
+                "scheduled_date": { "type": "string" },
+                "scheduled_time": { "type": "string" },
+                "notes": { "type": "string" },
+                "category": { "type": "string" }
+              },
+              "description": "Changes to apply"
+            }
+          },
+          "required": ["task_query", "changes"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "delete_task",
+        "description": "Delete a task",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "task_query": {
+              "type": "object",
+              "properties": {
+                "title_contains": { "type": "string" },
+                "date": { "type": "string" },
+                "task_id": { "type": "string" }
+              }
+            },
+            "delete_all_recurring": { "type": "boolean", "default": false }
+          },
+          "required": ["task_query"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "complete_task",
+        "description": "Mark a task as completed",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "task_query": {
+              "type": "object",
+              "properties": {
+                "title_contains": { "type": "string" },
+                "date": { "type": "string" },
+                "task_id": { "type": "string" }
+              }
+            }
+          },
+          "required": ["task_query"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "uncomplete_task",
+        "description": "Unmark a task as completed",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "task_query": {
+              "type": "object",
+              "properties": {
+                "title_contains": { "type": "string" },
+                "date": { "type": "string" },
+                "task_id": { "type": "string" }
+              }
+            }
+          },
+          "required": ["task_query"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "reschedule_task",
+        "description": "Move a task to a different time",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "task_query": {
+              "type": "object",
+              "properties": {
+                "title_contains": { "type": "string" },
+                "date": { "type": "string" },
+                "task_id": { "type": "string" }
+              }
+            },
+            "new_date": { "type": "string", "description": "New date: 'today', 'tomorrow', 'day_after_tomorrow', day name, or ISO8601" },
+            "new_time": { "type": "string", "description": "New time in HH:mm format" },
+            "relative_minutes": { "type": "integer", "description": "Schedule X minutes from now" },
+            "after_prayer": { "type": "string", "enum": ["fajr", "dhuhr", "asr", "maghrib", "isha"], "description": "Schedule after this prayer" },
+            "time_of_day": { "type": "string", "enum": ["morning", "mid_morning", "noon", "afternoon", "evening", "night"], "description": "General time of day" }
+          },
+          "required": ["task_query"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "move_to_inbox",
+        "description": "Move a scheduled task to inbox (unschedule)",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "task_query": {
+              "type": "object",
+              "properties": {
+                "title_contains": { "type": "string" },
+                "date": { "type": "string" },
+                "task_id": { "type": "string" }
+              }
+            }
+          },
+          "required": ["task_query"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "rearrange_schedule",
+        "description": "Optimize task arrangement for a day",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "date": { "type": "string", "default": "today" },
+            "strategy": { "type": "string", "enum": ["after_prayer", "optimize_gaps", "prioritize_urgent", "spread_evenly"] },
+            "anchor_prayer": { "type": "string", "enum": ["fajr", "dhuhr", "asr", "maghrib", "isha"], "description": "For after_prayer strategy" }
+          },
+          "required": ["strategy"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "query_tasks",
+        "description": "Search and list tasks",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "date": { "type": "string", "description": "today, tomorrow, day_after_tomorrow, or ISO8601 date" },
+            "category": { "type": "string" },
+            "is_completed": { "type": "boolean" },
+            "in_inbox": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "query_prayers",
+        "description": "Get prayer times for a day",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "date": { "type": "string", "default": "today" }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "find_available_slot",
+        "description": "Find free time for a task",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "duration": { "type": "integer", "description": "Required duration in minutes" },
+            "date": { "type": "string", "default": "today" },
+            "preferred_time": { "type": "string", "description": "Preferred time in HH:mm" },
+            "after_prayer": { "type": "string", "enum": ["fajr", "dhuhr", "asr", "maghrib", "isha"] },
+            "time_of_day": { "type": "string", "enum": ["morning", "mid_morning", "noon", "afternoon", "evening", "night"] }
+          },
+          "required": ["duration"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "toggle_nawafil",
+        "description": "Enable or disable nawafil prayers",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "nawafil_type": { "type": "string", "description": "Specific nawafil type or null for all" },
+            "enabled": { "type": "boolean" }
+          },
+          "required": ["enabled"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "ask_clarification",
+        "description": "Ask user for missing information. Use this to ask about scheduling time, confirm task details, or clarify ambiguous requests. Always provide quick-select options.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "question": { "type": "string", "description": "Question in Arabic" },
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string" },
+                  "value": { "type": "string" }
+                }
+              },
+              "description": "Quick select options (3-5 options)"
+            },
+            "partial_data": {
+              "type": "object",
+              "description": "What we already extracted"
+            }
+          },
+          "required": ["question"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "cannot_fulfill",
+        "description": "When request cannot be fulfilled, explain why and suggest alternatives",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "reason": { "type": "string", "description": "Why the request cannot be fulfilled (in Arabic)" },
+            "alternative": { "type": "string", "description": "Alternative suggestion" },
+            "manual_action": { "type": "string", "enum": ["open_timeline", "open_inbox", "open_settings", "open_add_task", "open_paywall"] }
+          },
+          "required": ["reason"]
+        }
+      }
+    }
+  ],
   "taskExtraction": {
     "systemPromptArabic": "أنت مساعد ذكي لإنشاء المهام في تطبيق ميزان. استخرج معلومات المهمة من النص العربي أو الإنجليزي.\n\nالتاريخ الحالي: {{currentDate}}\nالمنطقة الزمنية: {{timezone}}\n\nاستخرج البيانات بصيغة JSON:\n- title: عنوان المهمة بشكل موجز\n- notes: ملاحظات إضافية (اختياري)\n- duration: المدة بالدقائق (افتراضي 30)\n- category: work/personal/study/health/social/worship\n- scheduledDate: التاريخ بصيغة ISO8601 (اختياري)\n- scheduledTime: الوقت بصيغة HH:mm (اختياري)\n- recurrence: تكرار (daily/weekly/monthly) مع interval (اختياري)\n- confidence: مستوى الثقة 0-1\n- clarificationNeeded: سؤال توضيحي إذا لزم\n\nقواعد:\n1. غدا = tomorrow, بعد غدا/بعد بكرة = day after tomorrow\n2. الساعة X / الـX = at X o'clock\n3. نص ساعة = 30 دقيقة, ساعة = 60 دقيقة\n4. كل يوم = daily, كل أسبوع = weekly\n5. صلاة/قرآن/أذكار = worship category\n\nرد بـ JSON فقط بدون أي نص إضافي.",
     "systemPromptEnglish": "You are a smart task creation assistant for Mizan app. Extract task information from Arabic or English text.\n\nCurrent date: {{currentDate}}\nTimezone: {{timezone}}\n\nExtract data in JSON format:\n- title: Concise task title\n- notes: Additional notes (optional)\n- duration: Duration in minutes (default 30)\n- category: work/personal/study/health/social/worship\n- scheduledDate: Date in ISO8601 format (optional)\n- scheduledTime: Time in HH:mm format (optional)\n- recurrence: Recurrence (daily/weekly/monthly) with interval (optional)\n- confidence: Confidence level 0-1\n- clarificationNeeded: Clarification question if needed\n\nRules:\n1. Parse relative dates: tomorrow, next week, etc.\n2. Parse times: 3pm, 15:00, morning, afternoon, evening\n3. Parse durations: 30 minutes, 1 hour, half hour\n4. Detect recurrence: every day, weekly, monthly\n5. Prayer/Quran/dhikr = worship category\n\nRespond with JSON only, no additional text."
   },
   "messages": {
-    "welcomeArabic": "مرحبا! أنا مساعدك الذكي. أخبرني بمهمتك وسأضيفها لك.",
-    "welcomeEnglish": "Hello! I'm your smart assistant. Tell me about your task and I'll add it for you.",
+    "welcomeArabic": "مرحبا! أنا مساعدك الذكي لإدارة مهامك. أخبرني بمهمتك وسأساعدك في جدولتها حول أوقات الصلاة.",
+    "welcomeEnglish": "Hello! I'm your smart assistant for managing tasks. Tell me about your task and I'll help you schedule it around prayer times.",
     "errorNoNetworkArabic": "لا يوجد اتصال بالإنترنت. يمكنك إضافة المهمة يدويا.",
     "errorNoNetworkEnglish": "No internet connection. You can add the task manually.",
     "errorApiKeyArabic": "يرجى إضافة مفتاح API في الإعدادات.",
@@ -38,24 +343,39 @@
     "errorParsingArabic": "لم أفهم. حاول مرة أخرى بصيغة أوضح.",
     "errorParsingEnglish": "I didn't understand. Please try again more clearly.",
     "confirmationArabic": "هل تريد إضافة هذه المهمة؟",
-    "confirmationEnglish": "Would you like to add this task?"
+    "confirmationEnglish": "Would you like to add this task?",
+    "taskCreatedArabic": "تم إنشاء المهمة بنجاح!",
+    "taskCreatedEnglish": "Task created successfully!",
+    "taskDeletedArabic": "تم حذف المهمة.",
+    "taskDeletedEnglish": "Task deleted.",
+    "taskEditedArabic": "تم تعديل المهمة.",
+    "taskEditedEnglish": "Task updated.",
+    "taskCompletedArabic": "أحسنت! تم إكمال المهمة.",
+    "taskCompletedEnglish": "Great! Task completed.",
+    "clarificationNeededArabic": "أحتاج توضيح...",
+    "clarificationNeededEnglish": "I need clarification..."
   },
   "quickSuggestions": {
     "arabic": [
-      "ذكرني بـ...",
-      "جدول اجتماع...",
-      "أضف مهمة..."
+      "أضف مهمة دراسة",
+      "ما هي مهامي غداً؟",
+      "رتب مهامي اليوم",
+      "احذف مهمة...",
+      "هل يوجد وقت فارغ؟"
     ],
     "english": [
-      "Remind me to...",
-      "Schedule a meeting...",
-      "Add a task..."
+      "Add a study task",
+      "What are my tasks tomorrow?",
+      "Rearrange my schedule",
+      "Delete task...",
+      "Any free time?"
     ]
   },
   "settings": {
     "maxMessagesInHistory": 10,
     "requestTimeoutSeconds": 30,
     "maxRetries": 2,
-    "retryDelaySeconds": [1, 3]
+    "retryDelaySeconds": [1, 3],
+    "toolCallEnabled": true
   }
 }
