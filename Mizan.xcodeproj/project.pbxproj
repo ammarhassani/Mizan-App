@@ -10,14 +10,43 @@
 		ED12974C2F16BC4000C59B64 /* Adhan in Frameworks */ = {isa = PBXBuildFile; productRef = ADHAN00022F16ADHAN0082FBDA /* Adhan */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		EDC6A0482F1E132800E6C9C4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED9756D02F1632560082FBDA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ED9756D72F1632560082FBDA;
+			remoteInfo = MizanApp;
+		};
+		EDC6A0572F1E135800E6C9C4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED9756D02F1632560082FBDA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ED9756D72F1632560082FBDA;
+			remoteInfo = MizanApp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		ED9756D82F1632560082FBDA /* MizanApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MizanApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EDC6A0442F1E132800E6C9C4 /* MizanAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MizanAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EDC6A0512F1E135800E6C9C4 /* MizanAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MizanAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		ED9756DA2F1632560082FBDA /* MizanApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MizanApp;
+			sourceTree = "<group>";
+		};
+		EDC6A0452F1E132800E6C9C4 /* MizanAppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MizanAppTests;
+			sourceTree = "<group>";
+		};
+		EDC6A0522F1E135800E6C9C4 /* MizanAppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MizanAppUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -31,6 +60,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EDC6A0412F1E132800E6C9C4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EDC6A04E2F1E135800E6C9C4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -38,6 +81,8 @@
 			isa = PBXGroup;
 			children = (
 				ED9756DA2F1632560082FBDA /* MizanApp */,
+				EDC6A0452F1E132800E6C9C4 /* MizanAppTests */,
+				EDC6A0522F1E135800E6C9C4 /* MizanAppUITests */,
 				ED9756D92F1632560082FBDA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +91,8 @@
 			isa = PBXGroup;
 			children = (
 				ED9756D82F1632560082FBDA /* MizanApp.app */,
+				EDC6A0442F1E132800E6C9C4 /* MizanAppTests.xctest */,
+				EDC6A0512F1E135800E6C9C4 /* MizanAppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +123,52 @@
 			productReference = ED9756D82F1632560082FBDA /* MizanApp.app */;
 			productType = "com.apple.product-type.application";
 		};
+		EDC6A0432F1E132800E6C9C4 /* MizanAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EDC6A04A2F1E132800E6C9C4 /* Build configuration list for PBXNativeTarget "MizanAppTests" */;
+			buildPhases = (
+				EDC6A0402F1E132800E6C9C4 /* Sources */,
+				EDC6A0412F1E132800E6C9C4 /* Frameworks */,
+				EDC6A0422F1E132800E6C9C4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EDC6A0492F1E132800E6C9C4 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EDC6A0452F1E132800E6C9C4 /* MizanAppTests */,
+			);
+			name = MizanAppTests;
+			packageProductDependencies = (
+			);
+			productName = MizanAppTests;
+			productReference = EDC6A0442F1E132800E6C9C4 /* MizanAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		EDC6A0502F1E135800E6C9C4 /* MizanAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EDC6A0592F1E135800E6C9C4 /* Build configuration list for PBXNativeTarget "MizanAppUITests" */;
+			buildPhases = (
+				EDC6A04D2F1E135800E6C9C4 /* Sources */,
+				EDC6A04E2F1E135800E6C9C4 /* Frameworks */,
+				EDC6A04F2F1E135800E6C9C4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EDC6A0582F1E135800E6C9C4 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EDC6A0522F1E135800E6C9C4 /* MizanAppUITests */,
+			);
+			name = MizanAppUITests;
+			packageProductDependencies = (
+			);
+			productName = MizanAppUITests;
+			productReference = EDC6A0512F1E135800E6C9C4 /* MizanAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,6 +181,14 @@
 				TargetAttributes = {
 					ED9756D72F1632560082FBDA = {
 						CreatedOnToolsVersion = 26.1.1;
+					};
+					EDC6A0432F1E132800E6C9C4 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = ED9756D72F1632560082FBDA;
+					};
+					EDC6A0502F1E135800E6C9C4 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = ED9756D72F1632560082FBDA;
 					};
 				};
 			};
@@ -109,12 +210,28 @@
 			projectRoot = "";
 			targets = (
 				ED9756D72F1632560082FBDA /* MizanApp */,
+				EDC6A0432F1E132800E6C9C4 /* MizanAppTests */,
+				EDC6A0502F1E135800E6C9C4 /* MizanAppUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		ED9756D62F1632560082FBDA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EDC6A0422F1E132800E6C9C4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EDC6A04F2F1E135800E6C9C4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -131,7 +248,34 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EDC6A0402F1E132800E6C9C4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EDC6A04D2F1E135800E6C9C4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		EDC6A0492F1E132800E6C9C4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ED9756D72F1632560082FBDA /* MizanApp */;
+			targetProxy = EDC6A0482F1E132800E6C9C4 /* PBXContainerItemProxy */;
+		};
+		EDC6A0582F1E135800E6C9C4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ED9756D72F1632560082FBDA /* MizanApp */;
+			targetProxy = EDC6A0572F1E135800E6C9C4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		ED9756E32F1632570082FBDA /* Debug */ = {
@@ -283,7 +427,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.mizanapp.app";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mizanapp.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				STRIP_PNG_TEXT = NO;
@@ -324,7 +468,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.mizanapp.app";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mizanapp.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				STRIP_PNG_TEXT = NO;
@@ -334,6 +478,92 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EDC6A04B2F1E132800E6C9C4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3SPV37F368;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mizan.app.MizanAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MizanApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MizanApp";
+			};
+			name = Debug;
+		};
+		EDC6A04C2F1E132800E6C9C4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3SPV37F368;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mizan.app.MizanAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MizanApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MizanApp";
+			};
+			name = Release;
+		};
+		EDC6A05A2F1E135800E6C9C4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3SPV37F368;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mizan.app.MizanAppUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MizanApp;
+			};
+			name = Debug;
+		};
+		EDC6A05B2F1E135800E6C9C4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3SPV37F368;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mizan.app.MizanAppUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MizanApp;
 			};
 			name = Release;
 		};
@@ -354,6 +584,24 @@
 			buildConfigurations = (
 				ED9756E62F1632570082FBDA /* Debug */,
 				ED9756E72F1632570082FBDA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EDC6A04A2F1E132800E6C9C4 /* Build configuration list for PBXNativeTarget "MizanAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EDC6A04B2F1E132800E6C9C4 /* Debug */,
+				EDC6A04C2F1E132800E6C9C4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EDC6A0592F1E135800E6C9C4 /* Build configuration list for PBXNativeTarget "MizanAppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EDC6A05A2F1E135800E6C9C4 /* Debug */,
+				EDC6A05B2F1E135800E6C9C4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -9,6 +9,7 @@ import Foundation
 import UserNotifications
 import AVFoundation
 import Combine
+import os.log
 
 @MainActor
 final class NotificationManager: NSObject, ObservableObject {
@@ -35,6 +36,8 @@ final class NotificationManager: NSObject, ObservableObject {
         case completeTask = "COMPLETE_TASK"
         case snooze = "SNOOZE"
         case dismiss = "DISMISS"
+        case focus = "FOCUS_NOW"
+        case editTask = "EDIT_TASK"
     }
 
     // MARK: - Initialization
@@ -73,7 +76,7 @@ final class NotificationManager: NSObject, ObservableObject {
             await checkAuthorizationStatus()
             return granted
         } catch {
-            print("❌ Notification authorization error: \(error)")
+            MizanLogger.shared.notification.error("Notification authorization error: \(error.localizedDescription)")
             return false
         }
     }
@@ -107,14 +110,19 @@ final class NotificationManager: NSObject, ObservableObject {
             identifier: Category.task.rawValue,
             actions: [
                 UNNotificationAction(
-                    identifier: Action.completeTask.rawValue,
-                    title: "وضع علامة مكتمل",
+                    identifier: Action.focus.rawValue,
+                    title: "Focus Now",
                     options: [.foreground]
                 ),
                 UNNotificationAction(
-                    identifier: Action.snooze.rawValue,
-                    title: "تأجيل 15 دقيقة",
+                    identifier: Action.completeTask.rawValue,
+                    title: "Mark as Complete",
                     options: []
+                ),
+                UNNotificationAction(
+                    identifier: Action.editTask.rawValue,
+                    title: "Edit Task",
+                    options: [.foreground]
                 )
             ],
             intentIdentifiers: [],
@@ -195,11 +203,8 @@ final class NotificationManager: NSObject, ObservableObject {
             triggerDate = prayer.iqamaStartTime
         }
 
-        print("🔔 Scheduling \(timing) for \(prayer.displayName): trigger=\(triggerDate), now=\(Date()), adhan=\(prayer.adhanTime)")
-
         // Don't schedule if in the past
         guard triggerDate > Date() else {
-            print("⏭️ Skipping \(timing) for \(prayer.displayName) - already past")
             return
         }
 
@@ -237,9 +242,9 @@ final class NotificationManager: NSObject, ObservableObject {
 
         do {
             try await UNUserNotificationCenter.current().add(request)
-            print("✅ Scheduled prayer notification: \(prayer.displayName) - \(timing)")
+            MizanLogger.shared.notification.debug("Scheduled prayer notification: \(prayer.displayName) - \(String(describing: timing))")
         } catch {
-            print("❌ Failed to schedule prayer notification: \(error)")
+            MizanLogger.shared.notification.error("Failed to schedule prayer notification: \(error.localizedDescription)")
         }
     }
 
@@ -253,7 +258,6 @@ final class NotificationManager: NSObject, ObservableObject {
             UNUserNotificationCenter.current().removePendingNotificationRequests(
                 withIdentifiers: prayerIdentifiers
             )
-            print("🗑️ Removed \(prayerIdentifiers.count) prayer notifications")
         }
     }
 
@@ -272,8 +276,9 @@ final class NotificationManager: NSObject, ObservableObject {
         await scheduleTaskNotificationAtTime(
             task: task,
             triggerDate: scheduledTime,
-            template: atStartNotif.titleTemplateArabic,
-            bodyTemplate: atStartNotif.bodyTemplateArabic
+            template: atStartNotif.titleTemplateEnglish,
+            bodyTemplate: atStartNotif.bodyTemplateEnglish,
+            minutesBefore: 0
         )
 
         // Before start (Pro only)
@@ -285,8 +290,9 @@ final class NotificationManager: NSObject, ObservableObject {
                     await scheduleTaskNotificationAtTime(
                         task: task,
                         triggerDate: beforeDate,
-                        template: beforeNotif.titleTemplateArabic,
-                        bodyTemplate: beforeNotif.bodyTemplateArabic
+                        template: beforeNotif.titleTemplateEnglish,
+                        bodyTemplate: beforeNotif.bodyTemplateEnglish,
+                        minutesBefore: minutesBefore
                     )
                 }
             }
@@ -297,10 +303,42 @@ final class NotificationManager: NSObject, ObservableObject {
         task: Task,
         triggerDate: Date,
         template: String,
-        bodyTemplate: String
+        bodyTemplate: String,
+        minutesBefore: Int = 0
     ) async {
-        let title = template.replacingOccurrences(of: "{task_title}", with: task.title)
-        let body = bodyTemplate.replacingOccurrences(of: "{duration}", with: "\(task.duration)")
+        // Calculate task times
+        let startTime = task.scheduledStartTime ?? triggerDate
+        let endTime = startTime.addingTimeInterval(TimeInterval(task.duration * 60))
+
+        // Format times (e.g., "8:30 AM")
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "h:mm a"
+        let startTimeStr = timeFormatter.string(from: startTime)
+        let endTimeStr = timeFormatter.string(from: endTime)
+
+        // Format duration (e.g., "8 hr, 20 min" or "45 min")
+        let hours = task.duration / 60
+        let mins = task.duration % 60
+        let durationFormatted: String
+        if hours > 0 && mins > 0 {
+            durationFormatted = "\(hours) hr, \(mins) min"
+        } else if hours > 0 {
+            durationFormatted = "\(hours) hr"
+        } else {
+            durationFormatted = "\(mins) min"
+        }
+
+        // Replace ALL placeholders
+        let title = template
+            .replacingOccurrences(of: "{task_title}", with: task.title)
+
+        let body = bodyTemplate
+            .replacingOccurrences(of: "{task_title}", with: task.title)
+            .replacingOccurrences(of: "{duration}", with: "\(task.duration)")
+            .replacingOccurrences(of: "{minutes}", with: "\(minutesBefore)")
+            .replacingOccurrences(of: "{start_time}", with: startTimeStr)
+            .replacingOccurrences(of: "{end_time}", with: endTimeStr)
+            .replacingOccurrences(of: "{duration_formatted}", with: durationFormatted)
 
         let content = UNMutableNotificationContent()
         content.title = title
@@ -324,9 +362,9 @@ final class NotificationManager: NSObject, ObservableObject {
 
         do {
             try await UNUserNotificationCenter.current().add(request)
-            print("✅ Scheduled task notification: \(task.title)")
+            MizanLogger.shared.notification.debug("Scheduled task notification: \(task.title)")
         } catch {
-            print("❌ Failed to schedule task notification: \(error)")
+            MizanLogger.shared.notification.error("Failed to schedule task notification: \(error.localizedDescription)")
         }
     }
 
@@ -334,7 +372,6 @@ final class NotificationManager: NSObject, ObservableObject {
     func removeTaskNotifications(for task: Task) {
         // Capture only the needed values to avoid Sendable warnings
         let taskIdString = task.id.uuidString
-        let taskTitle = task.title
         UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
             let taskIdentifiers = requests
                 .filter { $0.identifier.contains(taskIdString) }
@@ -343,7 +380,6 @@ final class NotificationManager: NSObject, ObservableObject {
             UNUserNotificationCenter.current().removePendingNotificationRequests(
                 withIdentifiers: taskIdentifiers
             )
-            print("🗑️ Removed notifications for task: \(taskTitle)")
         }
     }
 
@@ -357,7 +393,6 @@ final class NotificationManager: NSObject, ObservableObject {
             UNUserNotificationCenter.current().removePendingNotificationRequests(
                 withIdentifiers: taskIdentifiers
             )
-            print("🗑️ Removed \(taskIdentifiers.count) task notifications")
         }
     }
 
@@ -376,7 +411,6 @@ final class NotificationManager: NSObject, ObservableObject {
 
         // Try the original adhan file
         if Bundle.main.url(forResource: baseName, withExtension: "mp3") != nil {
-            print("⚠️ Using original adhan file for notification (notification version not found): \(baseName)")
             return selectedAdhan
         }
 
@@ -388,12 +422,11 @@ final class NotificationManager: NSObject, ObservableObject {
         ]
         for altName in alternativeNames {
             if Bundle.main.url(forResource: altName, withExtension: "mp3") != nil {
-                print("⚠️ Using alternative adhan file for notification: \(altName)")
                 return "\(altName).mp3"
             }
         }
 
-        print("❌ No adhan sound file found for: \(selectedAdhan) - using default notification sound")
+        MizanLogger.shared.notification.warning("No adhan sound file found for: \(selectedAdhan) - using default notification sound")
         return nil
     }
 
@@ -423,7 +456,7 @@ final class NotificationManager: NSObject, ObservableObject {
         }
 
         guard let url = audioURL else {
-            print("⚠️ Adhan audio file not found for: \(style)")
+            MizanLogger.shared.notification.warning("Adhan audio file not found for: \(style)")
             return
         }
 
@@ -431,9 +464,8 @@ final class NotificationManager: NSObject, ObservableObject {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioPlayer?.prepareToPlay()
             audioPlayer?.play()
-            print("🔊 Playing adhan: \(style)")
         } catch {
-            print("❌ Failed to play adhan: \(error)")
+            MizanLogger.shared.notification.error("Failed to play adhan: \(error.localizedDescription)")
         }
     }
 
@@ -473,7 +505,7 @@ final class NotificationManager: NSObject, ObservableObject {
             delay: 30
         )
 
-        print("🧪 Scheduled 3 test notifications (10s, 20s, 30s)")
+        MizanLogger.shared.notification.info("Scheduled 3 test notifications (10s, 20s, 30s)")
     }
 
     private func scheduleTestNotification(title: String, body: String, sound: String?, delay: Int) async {
@@ -491,9 +523,8 @@ final class NotificationManager: NSObject, ObservableObject {
 
         do {
             try await UNUserNotificationCenter.current().add(request)
-            print("✅ Test notification scheduled for \(delay)s")
         } catch {
-            print("❌ Failed to schedule test: \(error)")
+            MizanLogger.shared.notification.error("Failed to schedule test: \(error.localizedDescription)")
         }
     }
 
@@ -523,7 +554,6 @@ final class NotificationManager: NSObject, ObservableObject {
     func removeAllNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
-        print("🗑️ Removed all notifications")
     }
 
     // MARK: - Debug
@@ -534,12 +564,12 @@ final class NotificationManager: NSObject, ObservableObject {
         return requests.count
     }
 
-    /// Print all pending notifications (debug)
-    func printPendingNotifications() async {
+    /// Log all pending notifications (debug)
+    func logPendingNotifications() async {
         let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
-        print("📋 Pending notifications: \(requests.count)")
+        MizanLogger.shared.notification.debug("Pending notifications: \(requests.count)")
         for request in requests {
-            print("  - \(request.identifier): \(request.content.title)")
+            MizanLogger.shared.notification.debug("  - \(request.identifier): \(request.content.title)")
         }
     }
 }
@@ -549,6 +579,10 @@ final class NotificationManager: NSObject, ObservableObject {
 extension Notification.Name {
     /// Posted when user taps "Mark Complete" on a task notification
     static let taskCompletedFromNotification = Notification.Name("taskCompletedFromNotification")
+    /// Posted when user taps "Focus Now" on a task notification
+    static let taskFocusFromNotification = Notification.Name("taskFocusFromNotification")
+    /// Posted when user taps "Edit Task" on a task notification
+    static let taskEditFromNotification = Notification.Name("taskEditFromNotification")
 }
 
 // MARK: - UNUserNotificationCenterDelegate
@@ -574,6 +608,18 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
         let originalContent = response.notification.request.content
 
         switch response.actionIdentifier {
+        case Action.focus.rawValue:
+            if let taskIdString = userInfo["taskId"] as? String {
+                // Post notification to main thread to open focus mode
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: .taskFocusFromNotification,
+                        object: nil,
+                        userInfo: ["taskId": taskIdString]
+                    )
+                }
+            }
+
         case Action.completeTask.rawValue:
             if let taskIdString = userInfo["taskId"] as? String {
                 // Post notification to main thread for task completion
@@ -584,7 +630,18 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
                         userInfo: ["taskId": taskIdString]
                     )
                 }
-                print("✅ Posted task completion for: \(taskIdString)")
+            }
+
+        case Action.editTask.rawValue:
+            if let taskIdString = userInfo["taskId"] as? String {
+                // Post notification to main thread to open edit screen
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: .taskEditFromNotification,
+                        object: nil,
+                        userInfo: ["taskId": taskIdString]
+                    )
+                }
             }
 
         case Action.snooze.rawValue:
@@ -611,9 +668,7 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
 
             UNUserNotificationCenter.current().add(request) { error in
                 if let error = error {
-                    print("❌ Failed to snooze notification: \(error)")
-                } else {
-                    print("⏰ Snoozed notification for \(snoozeMinutes) minutes")
+                    MizanLogger.shared.notification.error("Failed to snooze notification: \(error.localizedDescription)")
                 }
             }
 

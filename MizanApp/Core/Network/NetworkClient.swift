@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os.log
 
 final class NetworkClient {
     private let session: URLSession
@@ -40,7 +41,7 @@ final class NetworkClient {
 
             } catch let error as APIError {
                 lastError = error
-                print("❌ Request attempt \(attempt + 1)/\(config.retryAttempts) failed: \(error)")
+                MizanLogger.shared.network.warning("Request attempt \(attempt + 1)/\(self.config.retryAttempts) failed: \(error.localizedDescription)")
 
                 // Don't retry on certain errors
                 switch error {
@@ -63,7 +64,7 @@ final class NetworkClient {
 
             } catch {
                 lastError = .networkError(error)
-                print("❌ Unexpected error: \(error)")
+                MizanLogger.shared.network.error("Unexpected error: \(error.localizedDescription)")
             }
         }
 
@@ -76,7 +77,7 @@ final class NetworkClient {
     private func performRequest(_ endpoint: APIEndpoint) async throws -> Data {
         let request = try endpoint.urlRequest()
 
-        print("🌐 Network Request: \(request.url?.absoluteString ?? "unknown")")
+        MizanLogger.shared.network.debug("Request: \(request.url?.absoluteString ?? "unknown")")
 
         let (data, response) = try await session.data(for: request)
 
@@ -84,7 +85,7 @@ final class NetworkClient {
             throw APIError.invalidResponse
         }
 
-        print("✅ Response Status: \(httpResponse.statusCode)")
+        MizanLogger.shared.network.debug("Response status: \(httpResponse.statusCode)")
 
         guard (200...299).contains(httpResponse.statusCode) else {
             throw APIError.httpError(statusCode: httpResponse.statusCode)
@@ -101,12 +102,7 @@ final class NetworkClient {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            print("❌ Decoding error: \(error)")
-            if let json = try? JSONSerialization.jsonObject(with: data),
-               let prettyData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
-               let prettyString = String(data: prettyData, encoding: .utf8) {
-                print("📄 Response JSON:\n\(prettyString)")
-            }
+            MizanLogger.shared.network.error("Decoding error: \(error.localizedDescription)")
             throw APIError.decodingError(error)
         }
     }

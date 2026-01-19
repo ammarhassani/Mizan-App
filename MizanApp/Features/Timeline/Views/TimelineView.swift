@@ -345,6 +345,29 @@ struct TimelineView: View {
                         .environmentObject(themeManager)
                     }
 
+                    // Error Banner - shows when prayer fetch fails
+                    if let error = appEnvironment.prayerTimeService.error {
+                        PrayerErrorBanner(error: error, onRetry: {
+                            // Retry action
+                            _Concurrency.Task {
+                                await retryFetchPrayers()
+                            }
+                        })
+                        .environmentObject(themeManager)
+                    }
+
+                    // Offline Mode Indicator
+                    if appEnvironment.prayerTimeService.isOfflineMode && appEnvironment.prayerTimeService.error == nil {
+                        OfflineModeBanner()
+                            .environmentObject(themeManager)
+                    }
+
+                    // Loading Indicator
+                    if appEnvironment.prayerTimeService.isLoading {
+                        LoadingBanner()
+                            .environmentObject(themeManager)
+                    }
+
                     Spacer()
                 }
 
@@ -755,8 +778,6 @@ struct TimelineView: View {
 
     /// Update task's scheduled time (from drag and drop)
     private func updateTaskTime(_ task: Task, to newTime: Date) {
-        print("📍 [TIMELINE] UPDATE TASK TIME: '\(task.title)' → \(newTime.formatted(date: .omitted, time: .shortened))")
-
         task.scheduledStartTime = newTime
         task.scheduledDate = Calendar.current.startOfDay(for: newTime)
         task.updatedAt = Date()
@@ -775,8 +796,6 @@ struct TimelineView: View {
 
     /// Update task's scheduled time with smart displacement of overlapping tasks
     private func updateTaskTimeWithDisplacement(_ droppedTask: Task, to newTime: Date) {
-        print("📍 [TIMELINE] UPDATE TASK TIME WITH DISPLACEMENT: '\(droppedTask.title)' → \(newTime.formatted(date: .omitted, time: .shortened))")
-
         let droppedStart = newTime
         let droppedEnd = newTime.addingTimeInterval(Double(droppedTask.duration * 60))
 
@@ -789,8 +808,6 @@ struct TimelineView: View {
             // Check if time ranges overlap
             return taskStart < droppedEnd && taskEnd > droppedStart
         }
-
-        print("   → Found \(overlappingTasks.count) overlapping tasks")
 
         // Smart displacement: tasks starting before the drop point push earlier,
         // tasks starting after push later
@@ -806,13 +823,11 @@ struct TimelineView: View {
                 let newEnd = droppedStart.addingTimeInterval(-60)
                 let newStart = newEnd.addingTimeInterval(-Double(task.duration * 60))
                 newTaskTime = snapTimeToGrid(newStart)
-                print("   → Pushing '\(task.title)' EARLIER to \(newTaskTime.formatted(date: .omitted, time: .shortened))")
             } else {
                 // Task starts during/after dropped task - push it later
                 // New start time = dropped task end + 1 minute buffer
                 let newStart = droppedEnd.addingTimeInterval(60)
                 newTaskTime = snapTimeToGrid(newStart)
-                print("   → Pushing '\(task.title)' LATER to \(newTaskTime.formatted(date: .omitted, time: .shortened))")
             }
 
             // Check if new time collides with any prayer
@@ -820,7 +835,6 @@ struct TimelineView: View {
             if checkPrayerCollision(at: finalTime, duration: task.duration) {
                 // Find next available slot after the prayer
                 finalTime = findNextAvailableSlot(after: finalTime, duration: task.duration)
-                print("   → Prayer collision! Moved to \(finalTime.formatted(date: .omitted, time: .shortened))")
             }
 
             // Update the displaced task
@@ -900,7 +914,6 @@ struct TimelineView: View {
                 task.scheduledDate = Calendar.current.startOfDay(for: finalTime)
                 task.updatedAt = Date()
 
-                print("   → CASCADE: Pushing '\(task.title)' to \(finalTime.formatted(date: .omitted, time: .shortened))")
             }
         }
 
@@ -967,7 +980,6 @@ struct TimelineView: View {
 
     /// Delete a non-recurring task directly
     private func deleteNonRecurringTask(_ task: Task) {
-        print("🗑️ [TIMELINE] DELETE NON-RECURRING TASK: '\(task.title)'")
         modelContext.delete(task)
         try? modelContext.save()
         HapticManager.shared.trigger(.warning)
@@ -975,14 +987,11 @@ struct TimelineView: View {
 
     /// Delete only this instance of a recurring task
     private func deleteThisInstanceOnly(_ task: Task) {
-        print("🗑️ [TIMELINE] DELETE THIS INSTANCE ONLY: '\(task.title)'")
-
         // If this is a child instance, mark the date as dismissed on parent
         if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
             let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
             if let parentTask = try? modelContext.fetch(descriptor).first {
                 parentTask.dismissRecurringInstance(for: scheduledDate)
-                print("   → Dismissed date \(scheduledDate) on parent")
             }
         }
         // If this is a parent task, just dismiss the date (don't delete the parent)
@@ -1004,8 +1013,6 @@ struct TimelineView: View {
 
     /// Delete all instances of a recurring task (parent + all children)
     private func deleteAllInstances(_ task: Task) {
-        print("🗑️ [TIMELINE] DELETE ALL INSTANCES: '\(task.title)'")
-
         // Find the parent task ID
         let parentId: UUID
         if let pid = task.parentTaskId {
@@ -1024,14 +1031,12 @@ struct TimelineView: View {
         let parentDescriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
         if let parentTask = try? modelContext.fetch(parentDescriptor).first {
             modelContext.delete(parentTask)
-            print("   → Deleted parent task")
         }
 
         // Delete all child instances
         for child in childTasks {
             modelContext.delete(child)
         }
-        print("   → Deleted \(childTasks.count) child instances")
 
         // Also delete the current task if it wasn't already deleted
         if task.parentTaskId == nil && task.id != parentId {
@@ -1137,12 +1142,34 @@ struct TimelineView: View {
                     // After fetching prayers, generate nawafil
                     generateNawafilIfNeeded(for: date)
                 } catch {
-                    print("❌ Failed to fetch prayers for \(date): \(error)")
+                    // Prayer fetch failed - will retry on next view appearance
                 }
             }
         } else {
             // Prayers exist, just generate nawafil if needed
             generateNawafilIfNeeded(for: date)
+        }
+    }
+
+    /// Retry fetching prayers after an error
+    private func retryFetchPrayers() async {
+        guard let lat = appEnvironment.userSettings.lastKnownLatitude,
+              let lon = appEnvironment.userSettings.lastKnownLongitude else {
+            return
+        }
+
+        do {
+            _ = try await appEnvironment.prayerTimeService.fetchPrayerTimes(
+                for: selectedDate,
+                latitude: lat,
+                longitude: lon,
+                method: appEnvironment.userSettings.calculationMethod
+            )
+            // After fetching prayers, generate nawafil
+            generateNawafilIfNeeded(for: selectedDate)
+            HapticManager.shared.trigger(.success)
+        } catch {
+            HapticManager.shared.trigger(.error)
         }
     }
 
@@ -1978,6 +2005,131 @@ struct PrayerGateGradient: View {
         .cornerRadius(16)
         .padding(.horizontal, -8) // Extend slightly beyond the block
         .padding(.vertical, -4)
+    }
+}
+
+// MARK: - Prayer Error Banner
+
+/// Shows when prayer times fail to load
+struct PrayerErrorBanner: View {
+    let error: APIError
+    let onRetry: () -> Void
+
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        HStack(spacing: MZSpacing.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 16))
+                .foregroundColor(themeManager.errorColor)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("فشل تحميل أوقات الصلاة")
+                    .font(MZTypography.labelMedium)
+                    .foregroundColor(themeManager.textPrimaryColor)
+
+                Text(errorMessage)
+                    .font(MZTypography.labelSmall)
+                    .foregroundColor(themeManager.textSecondaryColor)
+            }
+
+            Spacer()
+
+            Button {
+                onRetry()
+            } label: {
+                Text("إعادة المحاولة")
+                    .font(MZTypography.labelMedium)
+                    .foregroundColor(themeManager.textOnPrimaryColor)
+                    .padding(.horizontal, MZSpacing.md)
+                    .padding(.vertical, MZSpacing.xs)
+                    .background(
+                        Capsule()
+                            .fill(themeManager.primaryColor)
+                    )
+            }
+        }
+        .padding(MZSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
+                .fill(themeManager.errorColor.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
+                        .stroke(themeManager.errorColor.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, MZSpacing.md)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    private var errorMessage: String {
+        switch error {
+        case .networkError:
+            return "تحقق من اتصالك بالإنترنت"
+        case .httpError(let code):
+            return "خطأ في الخادم (\(code))"
+        case .decodingError:
+            return "خطأ في البيانات"
+        case .invalidResponse:
+            return "لم يتم استلام بيانات صالحة"
+        case .timeout:
+            return "انتهت مهلة الاتصال"
+        case .invalidURL:
+            return "عنوان غير صالح"
+        case .maxRetriesExceeded:
+            return "فشلت المحاولات المتعددة"
+        }
+    }
+}
+
+// MARK: - Offline Mode Banner
+
+/// Shows when using cached prayer data
+struct OfflineModeBanner: View {
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        HStack(spacing: MZSpacing.xs) {
+            Image(systemName: "wifi.slash")
+                .font(.system(size: 12))
+
+            Text("وضع عدم الاتصال - يتم عرض البيانات المحفوظة")
+                .font(MZTypography.labelSmall)
+        }
+        .foregroundColor(themeManager.warningColor)
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.xs)
+        .background(
+            Capsule()
+                .fill(themeManager.warningColor.opacity(0.15))
+        )
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+}
+
+// MARK: - Loading Banner
+
+/// Shows when fetching prayer times
+struct LoadingBanner: View {
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        HStack(spacing: MZSpacing.xs) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: themeManager.primaryColor))
+                .scaleEffect(0.8)
+
+            Text("جاري تحميل أوقات الصلاة...")
+                .font(MZTypography.labelSmall)
+                .foregroundColor(themeManager.textSecondaryColor)
+        }
+        .padding(.horizontal, MZSpacing.md)
+        .padding(.vertical, MZSpacing.xs)
+        .background(
+            Capsule()
+                .fill(themeManager.surfaceColor)
+        )
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 }
 

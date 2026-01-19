@@ -666,10 +666,14 @@ struct NawafilToggleRow: View {
             Spacer()
 
             Picker("", selection: Binding(
-                get: { nawafil.durationMinutes ?? options.first ?? 60 },
-                set: { _ in
-                    // Duration changes would require different storage
-                    // For now, this is read-only display
+                get: {
+                    userSettings.getEffectiveDurationForNawafil(nawafil.type, config: nawafil)
+                },
+                set: { newDuration in
+                    userSettings.setDurationForNawafil(nawafil.type, duration: newDuration)
+                    // Trigger nawafil refresh to update timeline
+                    appEnvironment.refreshNawafil()
+                    HapticManager.shared.trigger(.selection)
                 }
             )) {
                 ForEach(options, id: \.self) { mins in
@@ -678,7 +682,6 @@ struct NawafilToggleRow: View {
             }
             .pickerStyle(.menu)
             .tint(Color(hex: nawafil.colorHex))
-            .disabled(true) // Duration changes not yet supported
         }
     }
 

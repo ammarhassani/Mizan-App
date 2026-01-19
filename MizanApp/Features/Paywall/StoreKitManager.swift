@@ -9,6 +9,7 @@ import Foundation
 import StoreKit
 import SwiftUI
 import Combine
+import os.log
 
 // Use typealias to avoid conflict with app's Task model
 typealias AsyncTask = _Concurrency.Task
@@ -64,9 +65,9 @@ final class StoreKitManager: ObservableObject {
             products = try await Product.products(for: productIds)
                 .sorted { $0.price < $1.price }
 
-            print("✅ Loaded \(products.count) products")
+            MizanLogger.shared.storekit.info("Loaded \(self.products.count) products")
         } catch {
-            print("❌ Failed to load products: \(error)")
+            MizanLogger.shared.storekit.error("Failed to load products: \(error.localizedDescription)")
             errorMessage = "تعذر تحميل الأسعار"
         }
 
@@ -87,17 +88,16 @@ final class StoreKitManager: ObservableObject {
                 let transaction = try checkVerified(verification)
                 await transaction.finish()
                 await updatePurchasedProducts()
-                print("✅ Purchase successful: \(product.id)")
+                MizanLogger.shared.storekit.info("Purchase successful: \(product.id)")
                 isLoading = false
                 return true
 
             case .userCancelled:
-                print("⚠️ User cancelled purchase")
                 isLoading = false
                 return false
 
             case .pending:
-                print("⏳ Purchase pending")
+                MizanLogger.shared.storekit.info("Purchase pending")
                 isLoading = false
                 return false
 
@@ -106,7 +106,7 @@ final class StoreKitManager: ObservableObject {
                 return false
             }
         } catch {
-            print("❌ Purchase failed: \(error)")
+            MizanLogger.shared.storekit.error("Purchase failed: \(error.localizedDescription)")
             errorMessage = "فشل الشراء - حاول مرة أخرى"
             isLoading = false
             throw error
@@ -122,9 +122,9 @@ final class StoreKitManager: ObservableObject {
         do {
             try await AppStore.sync()
             await updatePurchasedProducts()
-            print("✅ Purchases restored")
+            MizanLogger.shared.storekit.info("Purchases restored")
         } catch {
-            print("❌ Restore failed: \(error)")
+            MizanLogger.shared.storekit.error("Restore failed: \(error.localizedDescription)")
             errorMessage = "تعذر استعادة المشتريات"
         }
 
@@ -143,7 +143,7 @@ final class StoreKitManager: ObservableObject {
         }
 
         purchasedProductIds = purchased
-        print("📦 Active entitlements: \(purchased)")
+        MizanLogger.shared.storekit.debug("Active entitlements: \(purchased)")
     }
 
     // MARK: - Listen for Transactions

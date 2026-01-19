@@ -36,6 +36,7 @@ struct TaskCreationStep2View: View {
     @State private var showNotesSheet = false
     @State private var showRecurrenceSheet = false
     @State private var showIconPicker = false
+    @State private var showDatePicker = false
 
     // MARK: - Duration Presets
     private let durationPresets = [1, 15, 30, 45, 60, 90]
@@ -105,6 +106,9 @@ struct TaskCreationStep2View: View {
         .sheet(isPresented: $showIconPicker) {
             IconPickerSheet(selectedIcon: $icon)
                 .environmentObject(themeManager)
+        }
+        .sheet(isPresented: $showDatePicker) {
+            datePickerSheet
         }
     }
 
@@ -212,7 +216,8 @@ struct TaskCreationStep2View: View {
 
                 Menu {
                     Button {
-                        // Change day - focus date picker
+                        showDatePicker = true
+                        HapticManager.shared.trigger(.selection)
                     } label: {
                         Label("Change Day", systemImage: "calendar")
                     }
@@ -494,6 +499,38 @@ struct TaskCreationStep2View: View {
         .presentationDetents([.medium])
     }
 
+    // MARK: - Date Picker Sheet
+
+    private var datePickerSheet: some View {
+        NavigationStack {
+            VStack {
+                DatePicker(
+                    "Select Date",
+                    selection: $scheduledDate,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.graphical)
+                .tint(themeManager.primaryColor)
+                .padding()
+
+                Spacer()
+            }
+            .background(themeManager.backgroundColor.ignoresSafeArea())
+            .navigationTitle("Change Day")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showDatePicker = false
+                        HapticManager.shared.trigger(.success)
+                    }
+                    .foregroundColor(themeManager.primaryColor)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
     // MARK: - Recurrence Sheet
 
     private var recurrenceSheet: some View {
@@ -519,7 +556,20 @@ struct TaskCreationStep2View: View {
 
                     // Weekly day selector
                     if recurrenceFrequency == .weekly {
-                        weekdaySelector
+                        VStack(spacing: MZSpacing.sm) {
+                            weekdaySelector
+
+                            // Validation warning
+                            if recurrenceDays.isEmpty {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "exclamationmark.circle")
+                                        .font(.system(size: 12))
+                                    Text("اختر يومًا واحدًا على الأقل")
+                                        .font(MZTypography.labelSmall)
+                                }
+                                .foregroundColor(themeManager.warningColor)
+                            }
+                        }
                     }
                 }
 

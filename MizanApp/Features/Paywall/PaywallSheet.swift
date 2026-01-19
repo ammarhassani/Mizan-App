@@ -99,6 +99,7 @@ struct PaywallSheet: View {
                             .foregroundColor(themeManager.textSecondaryColor)
                     }
                     .accessibilityLabel("إغلاق نافذة الاشتراك")
+                    .accessibilityIdentifier("paywall_close_button")
                 }
             }
             .alert("خطأ", isPresented: $showError) {
@@ -244,6 +245,7 @@ struct PaywallSheet: View {
         }
         .disabled(selectedProduct == nil || isPurchasing)
         .padding(.top, 8)
+        .accessibilityIdentifier("paywall_purchase_button")
     }
 
     // MARK: - Restore Button
@@ -264,6 +266,7 @@ struct PaywallSheet: View {
                 .font(.system(size: 15))
                 .foregroundColor(themeManager.primaryColor)
         }
+        .accessibilityIdentifier("paywall_restore_button")
     }
 
     // MARK: - Terms

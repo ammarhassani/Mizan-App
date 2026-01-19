@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os.log
 
 final class CacheManager {
     private let fileManager = FileManager.default
@@ -34,7 +35,7 @@ final class CacheManager {
         encoder.dateEncodingStrategy = .iso8601
 
         guard let encoded = try? encoder.encode(data) else {
-            print("❌ Failed to encode data for cache key: \(key)")
+            MizanLogger.shared.storage.error("Failed to encode data for cache key: \(key)")
             return
         }
 
@@ -42,9 +43,9 @@ final class CacheManager {
 
         do {
             try encoded.write(to: fileURL)
-            print("💾 Cached data for key: \(key)")
+            MizanLogger.shared.storage.debug("Cached data for key: \(key)")
         } catch {
-            print("❌ Failed to save cache: \(error)")
+            MizanLogger.shared.storage.error("Failed to save cache: \(error.localizedDescription)")
         }
     }
 
@@ -53,8 +54,7 @@ final class CacheManager {
         let fileURL = cacheDirectory.appendingPathComponent("\(key).json")
 
         guard fileManager.fileExists(atPath: fileURL.path) else {
-            print("📭 No cache found for key: \(key)")
-            return nil
+            return nil // Cache miss is normal, no need to log
         }
 
         // Check if cache is expired
@@ -64,7 +64,7 @@ final class CacheManager {
             let daysSinceCreation = Calendar.current.dateComponents([.day], from: creationDate, to: Date()).day ?? 0
 
             if daysSinceCreation > config.cacheDays {
-                print("⏰ Cache expired for key: \(key)")
+                MizanLogger.shared.storage.debug("Cache expired for key: \(key)")
                 try? fileManager.removeItem(at: fileURL)
                 return nil
             }
@@ -72,7 +72,7 @@ final class CacheManager {
 
         // Load and decode
         guard let data = try? Data(contentsOf: fileURL) else {
-            print("❌ Failed to read cache file: \(key)")
+            MizanLogger.shared.storage.error("Failed to read cache file: \(key)")
             return nil
         }
 
@@ -80,11 +80,10 @@ final class CacheManager {
         decoder.dateDecodingStrategy = .iso8601
 
         guard let decoded = try? decoder.decode(T.self, from: data) else {
-            print("❌ Failed to decode cache: \(key)")
+            MizanLogger.shared.storage.error("Failed to decode cache: \(key)")
             return nil
         }
 
-        print("✅ Loaded cached data for key: \(key)")
         return decoded
     }
 
@@ -98,7 +97,6 @@ final class CacheManager {
     func removeCache(forKey key: String) {
         let fileURL = cacheDirectory.appendingPathComponent("\(key).json")
         try? fileManager.removeItem(at: fileURL)
-        print("🗑️ Removed cache for key: \(key)")
     }
 
     /// Clear all cached data
@@ -111,7 +109,7 @@ final class CacheManager {
             try? fileManager.removeItem(at: fileURL)
         }
 
-        print("🗑️ Cleared all cache")
+        MizanLogger.shared.storage.info("Cleared all cache")
     }
 
     // MARK: - Cache Keys
@@ -161,7 +159,7 @@ final class CacheManager {
         }
 
         if removedCount > 0 {
-            print("🗑️ Cleaned \(removedCount) expired cache files")
+            MizanLogger.shared.storage.debug("Cleaned \(removedCount) expired cache files")
         }
     }
 

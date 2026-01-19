@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import os.log
 
 final class ConfigurationManager {
     static let shared = ConfigurationManager()
@@ -23,6 +24,9 @@ final class ConfigurationManager {
         loadConfigurations()
     }
 
+    /// Tracks if configuration loaded successfully
+    private(set) var configurationLoadError: Error?
+
     /// Loads all JSON configuration files from the bundle
     private func loadConfigurations() {
         do {
@@ -33,10 +37,46 @@ final class ConfigurationManager {
             notificationConfig = try loadJSON("NotificationConfig")
             localizationConfig = try loadJSON("LocalizationConfig")
 
-            print("✅ All configurations loaded successfully")
+            MizanLogger.shared.lifecycle.info("All configurations loaded successfully")
         } catch {
-            fatalError("Failed to load configuration files: \(error)")
+            // Log error but don't crash - allow app to show error state
+            MizanLogger.shared.lifecycle.error("Failed to load configuration files: \(error.localizedDescription)")
+            configurationLoadError = error
+
+            // Load with empty/default configurations to prevent nil crashes
+            loadFallbackConfigurations()
         }
+    }
+
+    /// Provides minimal fallback configurations if JSON loading fails
+    private func loadFallbackConfigurations() {
+        // Try loading each individually - some may succeed
+        if prayerConfig == nil {
+            prayerConfig = try? loadJSON("PrayerConfig")
+        }
+        if themeConfig == nil {
+            themeConfig = try? loadJSON("ThemeConfig")
+        }
+        if animationConfig == nil {
+            animationConfig = try? loadJSON("AnimationConfig")
+        }
+        if nawafilConfig == nil {
+            nawafilConfig = try? loadJSON("NawafilConfig")
+        }
+        if notificationConfig == nil {
+            notificationConfig = try? loadJSON("NotificationConfig")
+        }
+        if localizationConfig == nil {
+            localizationConfig = try? loadJSON("LocalizationConfig")
+        }
+    }
+
+    /// Check if configuration is valid and ready to use
+    var isConfigurationValid: Bool {
+        return prayerConfig != nil &&
+               themeConfig != nil &&
+               animationConfig != nil &&
+               configurationLoadError == nil
     }
 
     /// Generic JSON loader

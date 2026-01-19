@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import Combine
 import CoreLocation
+import os.log
 
 @MainActor
 final class AppEnvironment: ObservableObject {
@@ -43,6 +44,10 @@ final class AppEnvironment: ObservableObject {
     // MARK: - Observers
     private var notificationObservers: [NSObjectProtocol] = []
 
+    // MARK: - Data Storage State
+    /// True if using fallback in-memory storage (data won't persist)
+    @Published private(set) var isUsingInMemoryStorage = false
+
     // MARK: - Initialization
     private init() {
         // Initialize SwiftData container
@@ -54,21 +59,43 @@ final class AppEnvironment: ObservableObject {
             UserCategory.self
         ])
 
-        let configuration = ModelConfiguration(
+        let diskConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true
         )
 
+        // Try disk storage first, fallback to in-memory if it fails
+        var container: ModelContainer
+        var usingInMemory = false
+
         do {
-            modelContainer = try ModelContainer(for: schema, configurations: [configuration])
-            modelContext = modelContainer.mainContext
-
-            print("✅ SwiftData initialized")
-
+            container = try ModelContainer(for: schema, configurations: [diskConfiguration])
+            MizanLogger.shared.storage.info("SwiftData initialized with disk storage")
         } catch {
-            fatalError("Failed to initialize ModelContainer: \(error)")
+            MizanLogger.shared.storage.warning("Disk storage failed: \(error.localizedDescription). Falling back to in-memory storage.")
+
+            // Try in-memory as fallback
+            let memoryConfiguration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: true,
+                allowsSave: true
+            )
+
+            do {
+                container = try ModelContainer(for: schema, configurations: [memoryConfiguration])
+                usingInMemory = true
+                MizanLogger.shared.storage.info("SwiftData initialized with in-memory storage (data won't persist)")
+            } catch {
+                // This should rarely happen - log and crash with clear message
+                MizanLogger.shared.storage.error("Critical: Both disk and in-memory storage failed: \(error.localizedDescription)")
+                fatalError("Unable to initialize data storage. Please reinstall the app. Error: \(error)")
+            }
         }
+
+        modelContainer = container
+        modelContext = modelContainer.mainContext
+        isUsingInMemoryStorage = usingInMemory
 
         // Initialize services
         self.networkClient = NetworkClient()
@@ -96,9 +123,9 @@ final class AppEnvironment: ObservableObject {
                 try? modelContext.save()
                 loadedSettings = newSettings
             }
-            print("✅ User settings loaded")
+            MizanLogger.shared.storage.info("User settings loaded")
         } catch {
-            print("❌ Failed to load user settings: \(error)")
+            MizanLogger.shared.storage.error("Failed to load user settings: \(error.localizedDescription)")
             loadedSettings = UserSettings()
             modelContext.insert(loadedSettings)
         }
@@ -118,7 +145,7 @@ final class AppEnvironment: ObservableObject {
         // Set up notification observers
         setupNotificationObservers()
 
-        print("✅ AppEnvironment initialized")
+        MizanLogger.shared.lifecycle.info("AppEnvironment initialized")
     }
 
     // MARK: - Notification Observers
@@ -157,11 +184,11 @@ final class AppEnvironment: ObservableObject {
                 // Remove any pending notifications for this task
                 notificationManager.removeTaskNotifications(for: task)
 
-                print("✅ Task completed from notification: \(task.title)")
+                MizanLogger.shared.task.info("Task completed from notification: \(task.title)")
                 HapticManager.shared.trigger(.success)
             }
         } catch {
-            print("❌ Failed to complete task from notification: \(error)")
+            MizanLogger.shared.task.error("Failed to complete task from notification: \(error.localizedDescription)")
         }
     }
 
@@ -169,7 +196,7 @@ final class AppEnvironment: ObservableObject {
 
     /// Initialize app on launch
     func initialize() async {
-        print("🚀 Initializing Mizan...")
+        MizanLogger.shared.lifecycle.info("Initializing Mizan...")
 
         // 1. Load configurations
         ConfigurationManager.shared.reloadConfigurations()
@@ -192,10 +219,10 @@ final class AppEnvironment: ObservableObject {
                     ) {
                         let method = CalculationMethod.default(for: countryCode)
                         userSettings.updateCalculationMethod(method)
-                        print("✅ Detected country: \(countryCode), using method: \(method.nameEnglish)")
+                        MizanLogger.shared.lifecycle.info("Detected country: \(countryCode), using method: \(method.nameEnglish)")
                     }
                 } else {
-                    print("✅ Using saved calculation method: \(userSettings.calculationMethod.nameEnglish)")
+                    MizanLogger.shared.lifecycle.debug("Using saved calculation method: \(self.userSettings.calculationMethod.nameEnglish)")
                 }
 
                 // Fetch today's prayer times
@@ -222,7 +249,7 @@ final class AppEnvironment: ObservableObject {
                 }
 
             } catch {
-                print("⚠️ Location initialization failed: \(error)")
+                MizanLogger.shared.location.warning("Location initialization failed: \(error.localizedDescription)")
                 initializationError = error
             }
         }
@@ -264,9 +291,9 @@ final class AppEnvironment: ObservableObject {
                         for: tomorrowPrayers,
                         userSettings: userSettings
                     )
-                    print("✅ Scheduled tomorrow's prayer notifications")
+                    MizanLogger.shared.notification.info("Scheduled tomorrow's prayer notifications")
                 } catch {
-                    print("⚠️ Failed to schedule tomorrow's notifications: \(error)")
+                    MizanLogger.shared.notification.warning("Failed to schedule tomorrow's notifications: \(error.localizedDescription)")
                 }
             }
 
@@ -286,7 +313,7 @@ final class AppEnvironment: ObservableObject {
         }
 
         isInitialized = true
-        print("✅ Mizan initialized successfully")
+        MizanLogger.shared.lifecycle.info("Mizan initialized successfully")
     }
 
     /// Refresh prayer times (called when location changes significantly)
@@ -312,9 +339,9 @@ final class AppEnvironment: ObservableObject {
                 )
             }
 
-            print("✅ Prayer times refreshed")
+            MizanLogger.shared.prayer.info("Prayer times refreshed")
         } catch {
-            print("❌ Failed to refresh prayer times: \(error)")
+            MizanLogger.shared.prayer.error("Failed to refresh prayer times: \(error.localizedDescription)")
         }
     }
 
@@ -336,7 +363,7 @@ final class AppEnvironment: ObservableObject {
             return
         }
 
-        print("📅 New day detected - rescheduling notifications...")
+        MizanLogger.shared.notification.info("New day detected - rescheduling notifications...")
 
         // Remove old prayer notifications
         notificationManager.removeAllPrayerNotifications()
@@ -369,9 +396,9 @@ final class AppEnvironment: ObservableObject {
             }
 
             lastNotificationScheduleDate = today
-            print("✅ Notifications rescheduled for new day")
+            MizanLogger.shared.notification.info("Notifications rescheduled for new day")
         } catch {
-            print("❌ Failed to reschedule notifications: \(error)")
+            MizanLogger.shared.notification.error("Failed to reschedule notifications: \(error.localizedDescription)")
         }
     }
 
@@ -394,13 +421,13 @@ final class AppEnvironment: ObservableObject {
     /// Handle Pro subscription activation
     func activateProSubscription(type: String, expiryDate: Date? = nil) {
         userSettings.enableProFeatures(subscriptionType: type, expiryDate: expiryDate)
-        print("✨ Pro features activated: \(type)")
+        MizanLogger.shared.storekit.info("Pro features activated: \(type)")
     }
 
     /// Handle Pro subscription deactivation
     func deactivateProSubscription() {
         userSettings.disableProFeatures()
-        print("⚠️ Pro features deactivated")
+        MizanLogger.shared.storekit.warning("Pro features deactivated")
     }
 
     // MARK: - Nawafil Generation
@@ -409,13 +436,11 @@ final class AppEnvironment: ObservableObject {
     func generateNawafilForDate(_ date: Date, prayerTimes: [PrayerTime]) {
         // Only generate if Pro and nawafil are enabled
         guard userSettings.isPro && userSettings.nawafilEnabled else {
-            print("⏭️ Nawafil skipped (Pro: \(userSettings.isPro), Enabled: \(userSettings.nawafilEnabled))")
             return
         }
 
         // Skip if no enabled nawafil
         guard !userSettings.enabledNawafil.isEmpty else {
-            print("⏭️ No nawafil types enabled")
             return
         }
 
@@ -448,9 +473,9 @@ final class AppEnvironment: ObservableObject {
 
         do {
             try modelContext.save()
-            print("✅ Generated \(newNawafil.count) nawafil for \(date.formatted(date: .abbreviated, time: .omitted))")
+            MizanLogger.shared.nawafil.info("Generated \(newNawafil.count) nawafil for \(date.formatted(date: .abbreviated, time: .omitted))")
         } catch {
-            print("❌ Failed to save nawafil: \(error)")
+            MizanLogger.shared.nawafil.error("Failed to save nawafil: \(error.localizedDescription)")
         }
     }
 
@@ -473,12 +498,10 @@ final class AppEnvironment: ObservableObject {
             }
             // Save deletion immediately
             try? modelContext.save()
-            print("🗑️ Deleted \(toDelete.count) nawafil for today")
         }
 
         // Only regenerate if nawafil is enabled AND there are enabled types
         guard userSettings.nawafilEnabled && !userSettings.enabledNawafil.isEmpty else {
-            print("⏭️ Nawafil disabled or no types enabled - skipping generation")
             nawafilRefreshTrigger += 1
             return
         }
@@ -489,7 +512,7 @@ final class AppEnvironment: ObservableObject {
         )
 
         guard let allPrayers = try? modelContext.fetch(prayerDescriptor) else {
-            print("❌ Could not fetch prayers for nawafil generation")
+            MizanLogger.shared.nawafil.error("Could not fetch prayers for nawafil generation")
             nawafilRefreshTrigger += 1
             return
         }
@@ -497,7 +520,7 @@ final class AppEnvironment: ObservableObject {
         let todayPrayers = allPrayers.filter { $0.date >= startOfDay && $0.date < endOfDay }
 
         guard !todayPrayers.isEmpty else {
-            print("⚠️ No prayers found for today - nawafil generation skipped")
+            MizanLogger.shared.nawafil.warning("No prayers found for today - nawafil generation skipped")
             nawafilRefreshTrigger += 1
             return
         }
@@ -517,9 +540,9 @@ final class AppEnvironment: ObservableObject {
 
         do {
             try modelContext.save()
-            print("✅ Generated \(newNawafil.count) nawafil for today")
+            MizanLogger.shared.nawafil.info("Generated \(newNawafil.count) nawafil for today")
         } catch {
-            print("❌ Failed to save nawafil: \(error)")
+            MizanLogger.shared.nawafil.error("Failed to save nawafil: \(error.localizedDescription)")
         }
 
         // Trigger view refresh
@@ -530,9 +553,8 @@ final class AppEnvironment: ObservableObject {
     func save() {
         do {
             try modelContext.save()
-            print("💾 Context saved")
         } catch {
-            print("❌ Failed to save context: \(error)")
+            MizanLogger.shared.storage.error("Failed to save context: \(error.localizedDescription)")
         }
     }
 
@@ -553,13 +575,13 @@ final class AppEnvironment: ObservableObject {
                 }
 
                 try modelContext.save()
-                print("✅ Created \(defaultCategories.count) default UserCategories")
+                MizanLogger.shared.storage.info("Created \(defaultCategories.count) default UserCategories")
 
                 // Migrate existing tasks to use UserCategory based on their TaskCategory enum
                 migrateTasksToUserCategories(defaultCategories)
             }
         } catch {
-            print("❌ Failed to migrate to UserCategories: \(error)")
+            MizanLogger.shared.storage.error("Failed to migrate to UserCategories: \(error.localizedDescription)")
         }
     }
 
@@ -582,10 +604,10 @@ final class AppEnvironment: ObservableObject {
 
             if migratedCount > 0 {
                 try modelContext.save()
-                print("✅ Migrated \(migratedCount) tasks to UserCategories")
+                MizanLogger.shared.storage.info("Migrated \(migratedCount) tasks to UserCategories")
             }
         } catch {
-            print("❌ Failed to migrate tasks to UserCategories: \(error)")
+            MizanLogger.shared.storage.error("Failed to migrate tasks to UserCategories: \(error.localizedDescription)")
         }
     }
 
@@ -597,12 +619,10 @@ final class AppEnvironment: ObservableObject {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
 
-        print("🔄 [GENERATE] generateRecurringTaskInstances for date: \(date.formatted(date: .abbreviated, time: .omitted))")
-
         // Fetch all recurring parent tasks (tasks with recurrenceRule that are not child instances)
         let descriptor = FetchDescriptor<Task>()
         guard let allTasks = try? modelContext.fetch(descriptor) else {
-            print("❌ Could not fetch tasks for recurring generation")
+            MizanLogger.shared.task.error("Could not fetch tasks for recurring generation")
             return
         }
 
@@ -611,43 +631,32 @@ final class AppEnvironment: ObservableObject {
             task.recurrenceRule != nil && task.scheduledStartTime != nil && task.parentTaskId == nil
         }
 
-        print("   Found \(parentRecurringTasks.count) parent recurring tasks")
-
         // Find existing instances for this date
         let existingInstancesForDate = allTasks.filter { task in
             guard let scheduledDate = task.scheduledDate else { return false }
             return calendar.isDate(scheduledDate, inSameDayAs: date)
         }
 
-        print("   Found \(existingInstancesForDate.count) existing instances for this date")
-
         var generatedCount = 0
 
         for parentTask in parentRecurringTasks {
-            print("   📋 Checking parent: '\(parentTask.title)' (id: \(parentTask.id))")
-            print("      - dismissedInstanceDates: \(parentTask.dismissedInstanceDates ?? [])")
-
             guard let recurrenceRule = parentTask.recurrenceRule,
                   let originalScheduledDate = parentTask.scheduledDate else {
-                print("      ⏭️ Skip: no recurrenceRule or scheduledDate")
                 continue
             }
 
             // Skip if this is for a date before the original task was created
             if startOfDay < calendar.startOfDay(for: originalScheduledDate) {
-                print("      ⏭️ Skip: target date is before original date")
                 continue
             }
 
             // Skip if the target date is the same as the original task's date
             if calendar.isDate(originalScheduledDate, inSameDayAs: date) {
-                print("      ⏭️ Skip: target date is same as original date")
                 continue
             }
 
             // Check if recurrence should have ended
             if recurrenceRule.shouldEndBefore(date: date) {
-                print("      ⏭️ Skip: recurrence ended")
                 continue
             }
 
@@ -657,36 +666,29 @@ final class AppEnvironment: ObservableObject {
             }
 
             if instanceExists {
-                print("      ⏭️ Skip: instance already exists for this date")
                 continue
             }
 
             // Check if this date was dismissed by the user
             if parentTask.isInstanceDismissed(for: date) {
-                print("      ⏭️ Skip: date was DISMISSED by user")
                 continue
             }
 
             // Check if this date matches the recurrence pattern
             if shouldGenerateInstance(for: date, parentTask: parentTask, rule: recurrenceRule) {
-                print("      ✅ GENERATING new instance for this date")
                 let newInstance = parentTask.createRecurringInstance(for: date)
                 modelContext.insert(newInstance)
                 generatedCount += 1
-            } else {
-                print("      ⏭️ Skip: date doesn't match recurrence pattern")
             }
         }
 
         if generatedCount > 0 {
             do {
                 try modelContext.save()
-                print("✅ Generated \(generatedCount) recurring task instance(s) for \(date.formatted(date: .abbreviated, time: .omitted))")
+                MizanLogger.shared.task.info("Generated \(generatedCount) recurring task instance(s) for \(date.formatted(date: .abbreviated, time: .omitted))")
             } catch {
-                print("❌ Failed to save recurring task instances: \(error)")
+                MizanLogger.shared.task.error("Failed to save recurring task instances: \(error.localizedDescription)")
             }
-        } else {
-            print("   No instances generated")
         }
     }
 
@@ -733,7 +735,7 @@ final class AppEnvironment: ObservableObject {
         userSettings.completeOnboarding()
         save()
         onboardingCompleted = true
-        print("✅ Onboarding completed")
+        MizanLogger.shared.lifecycle.info("Onboarding completed")
     }
 
     /// Fetch prayer times and complete setup after onboarding
@@ -741,7 +743,7 @@ final class AppEnvironment: ObservableObject {
         // Get location from LocationManager (not userSettings - it hasn't been updated yet)
         guard locationManager.isAuthorized,
               let location = locationManager.currentLocation else {
-            print("⚠️ Cannot fetch prayers - location not available")
+            MizanLogger.shared.location.warning("Cannot fetch prayers - location not available")
             return
         }
 
@@ -756,7 +758,7 @@ final class AppEnvironment: ObservableObject {
         if let countryCode = await locationManager.getCountryCode(latitude: lat, longitude: lon) {
             let method = CalculationMethod.default(for: countryCode)
             userSettings.updateCalculationMethod(method)
-            print("✅ Detected country: \(countryCode), using method: \(method.nameEnglish)")
+            MizanLogger.shared.lifecycle.info("Detected country: \(countryCode), using method: \(method.nameEnglish)")
         }
 
         do {
@@ -766,7 +768,7 @@ final class AppEnvironment: ObservableObject {
                 longitude: lon,
                 method: userSettings.calculationMethod
             )
-            print("✅ Prayer times fetched after onboarding")
+            MizanLogger.shared.prayer.info("Prayer times fetched after onboarding")
 
             // Schedule notifications if enabled
             if notificationManager.isEnabled && userSettings.notificationsEnabled {
@@ -789,7 +791,7 @@ final class AppEnvironment: ObservableObject {
                 )
             }
         } catch {
-            print("❌ Failed to fetch prayer times after onboarding: \(error)")
+            MizanLogger.shared.prayer.error("Failed to fetch prayer times after onboarding: \(error.localizedDescription)")
         }
     }
 }

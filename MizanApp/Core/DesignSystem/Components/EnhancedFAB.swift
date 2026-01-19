@@ -52,7 +52,7 @@ struct EnhancedFAB: View {
 
 #Preview {
     EnhancedFAB {
-        print("FAB tapped")
+        // FAB action
     }
     .environmentObject(ThemeManager())
 }

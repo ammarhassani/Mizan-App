@@ -62,6 +62,7 @@ final class UserSettings {
     private var enabledNawafilJSON: String = "[]"
     private var nawafilRakaatPreferencesJSON: String = "{}"
     private var nawafilTimePreferencesJSON: String = "{}"
+    private var nawafilDurationPreferencesJSON: String = "{}"
 
     var calendarSyncEnabled: Bool
 
@@ -97,6 +98,17 @@ final class UserSettings {
         }
         set {
             nawafilTimePreferencesJSON = (try? String(data: JSONEncoder().encode(newValue), encoding: .utf8)) ?? "{}"
+        }
+    }
+
+    /// Nawafil type -> user's chosen duration in minutes
+    @Transient
+    var nawafilDurationPreferences: [String: Int] {
+        get {
+            (try? JSONDecoder().decode([String: Int].self, from: Data(nawafilDurationPreferencesJSON.utf8))) ?? [:]
+        }
+        set {
+            nawafilDurationPreferencesJSON = (try? String(data: JSONEncoder().encode(newValue), encoding: .utf8)) ?? "{}"
         }
     }
 
@@ -287,6 +299,27 @@ final class UserSettings {
         let mins = minutes % 60
         let date = Calendar.current.date(bySettingHour: hours, minute: mins, second: 0, of: Date())!
         return date.formatted(date: .omitted, time: .shortened)
+    }
+
+    /// Get the user's preferred duration for a nawafil type
+    func getDurationForNawafil(_ type: String) -> Int? {
+        return nawafilDurationPreferences[type]
+    }
+
+    /// Set the user's preferred duration for a nawafil type
+    func setDurationForNawafil(_ type: String, duration: Int) {
+        nawafilDurationPreferences[type] = duration
+        lastUpdated = Date()
+    }
+
+    /// Get duration with fallback to config default
+    func getEffectiveDurationForNawafil(_ type: String, config: NawafilType) -> Int {
+        // User preference takes priority
+        if let userPref = nawafilDurationPreferences[type] {
+            return userPref
+        }
+        // Fallback to config default
+        return config.durationMinutes ?? config.durationOptions?.first ?? 60
     }
 
     func completeOnboarding() {

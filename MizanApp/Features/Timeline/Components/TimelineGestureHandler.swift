@@ -265,8 +265,8 @@ struct TimelineZoomControls: View {
                             .overlay(Text("Block \(i + 1)"))
                     }
                 }
-                .timelineGestures(scale: $scale) { location in
-                    print("Long press at: \(location)")
+                .timelineGestures(scale: $scale) { _ in
+                    // Long press action
                 }
 
                 TimelineZoomControls(scale: $scale)

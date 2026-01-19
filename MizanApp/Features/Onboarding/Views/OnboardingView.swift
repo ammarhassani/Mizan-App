@@ -96,10 +96,12 @@ struct OnboardingView: View {
                 OnboardingPrimaryButton(title: "ابدأ", icon: "arrow.left") {
                     advanceToStep(1)
                 }
+                .accessibilityIdentifier("onboarding_start_button")
             }
             .padding(.horizontal, MZSpacing.xl)
             .padding(.bottom, MZSpacing.xxxl)
         }
+        .accessibilityIdentifier("onboarding_welcome_step")
     }
 
     // MARK: - Chapter 2: Location
@@ -137,19 +139,23 @@ struct OnboardingView: View {
                     ) {
                         requestLocation()
                     }
+                    .accessibilityIdentifier("onboarding_enable_location_button")
                 } else {
                     OnboardingPrimaryButton(title: "التالي", icon: "arrow.left") {
                         advanceToStep(2)
                     }
+                    .accessibilityIdentifier("onboarding_location_next_button")
                 }
 
                 OnboardingSkipButton(title: "تخطي (إدخال يدوي لاحقًا)") {
                     advanceToStep(2)
                 }
+                .accessibilityIdentifier("onboarding_skip_location_button")
             }
             .padding(.horizontal, MZSpacing.xl)
             .padding(.bottom, MZSpacing.xxxl)
         }
+        .accessibilityIdentifier("onboarding_location_step")
     }
 
     // MARK: - Chapter 3: Calculation Method
@@ -189,10 +195,12 @@ struct OnboardingView: View {
                     applyCalculationMethod()
                     advanceToStep(3)
                 }
+                .accessibilityIdentifier("onboarding_method_next_button")
             }
             .padding(.horizontal, MZSpacing.xl)
             .padding(.bottom, MZSpacing.xxxl)
         }
+        .accessibilityIdentifier("onboarding_method_step")
     }
 
     // MARK: - Chapter 4: Notifications
@@ -253,21 +261,25 @@ struct OnboardingView: View {
                     ) {
                         requestNotifications()
                     }
+                    .accessibilityIdentifier("onboarding_enable_notifications_button")
                 } else {
                     OnboardingPrimaryButton(title: "ابدأ الرحلة", icon: "checkmark") {
                         completeOnboarding()
                     }
+                    .accessibilityIdentifier("onboarding_complete_button")
                 }
 
                 if !notificationSuccess {
                     OnboardingSkipButton(title: "تخطي (يمكن التفعيل لاحقًا)") {
                         completeOnboarding()
                     }
+                    .accessibilityIdentifier("onboarding_skip_notifications_button")
                 }
             }
             .padding(.horizontal, MZSpacing.xl)
             .padding(.bottom, MZSpacing.xxxl)
         }
+        .accessibilityIdentifier("onboarding_notifications_step")
     }
 
     // MARK: - Helpers

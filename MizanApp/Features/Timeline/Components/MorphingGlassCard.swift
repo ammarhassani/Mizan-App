@@ -422,7 +422,7 @@ struct InteractiveMorphingCard<Content: View>: View {
             // Interactive Card
             InteractiveMorphingCard(
                 style: .elevated,
-                onTap: { print("Tapped!") }
+                onTap: { }
             ) {
                 HStack {
                     Image(systemName: "checkmark.circle")

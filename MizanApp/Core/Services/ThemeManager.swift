@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import UIKit
+import os.log
 
 @MainActor
 final class ThemeManager: ObservableObject {
@@ -59,14 +60,14 @@ final class ThemeManager: ObservableObject {
     /// Switch to a different theme
     func switchTheme(to themeId: String, userSettings: UserSettings? = nil) {
         guard let theme = config.themes.first(where: { $0.id == themeId }) else {
-            print("❌ Theme not found: \(themeId)")
+            MizanLogger.shared.theme.error("Theme not found: \(themeId)")
             return
         }
 
         // Check Pro requirement
         if theme.isPro {
             guard let settings = userSettings, settings.isProActive() else {
-                print("⚠️ Theme '\(themeId)' requires Pro subscription")
+                MizanLogger.shared.theme.warning("Theme '\(themeId)' requires Pro subscription")
                 return
             }
         }
@@ -84,18 +85,15 @@ final class ThemeManager: ObservableObject {
         userSettings?.updateTheme(themeId)
 
         // Update app icon if auto-switch is enabled
-        print("🔄 Icon switch check: autoSwitch=\(autoSwitchAppIcon), manualOverride='\(manualAppIconOverride)'")
         if autoSwitchAppIcon && manualAppIconOverride.isEmpty {
             updateAppIcon(forTheme: themeId)
-        } else {
-            print("⏭️ Icon switch skipped: autoSwitch=\(autoSwitchAppIcon), manualOverride='\(manualAppIconOverride)'")
         }
 
         // Trigger haptic feedback
         let _ = HapticManager.shared
         // Skip haptic for now to avoid conflict
 
-        print("✨ Switched to theme: \(theme.name)")
+        MizanLogger.shared.theme.info("Switched to theme: \(theme.name)")
     }
 
     /// Get all available themes
@@ -144,7 +142,7 @@ final class ThemeManager: ObservableObject {
 
         if isRamadan {
             if let ramadanTheme = config.themes.first(where: { $0.autoActivateDuringRamadan == true }) {
-                print("🌙 Ramadan detected - auto-activating Ramadan theme")
+                MizanLogger.shared.theme.info("Ramadan detected - auto-activating Ramadan theme")
                 switchTheme(to: ramadanTheme.id)
             }
         }
@@ -169,31 +167,24 @@ final class ThemeManager: ObservableObject {
     /// Update app icon to match a specific theme (debounced)
     func updateAppIcon(forTheme themeId: String? = nil) {
         let targetTheme = themeId ?? currentTheme.id
-        print("🎨 updateAppIcon called for theme: \(targetTheme)")
 
         // Check if theme exists in map
         guard themeIconMap.keys.contains(targetTheme) else {
-            print("❌ Theme '\(targetTheme)' not found in themeIconMap. Available: \(themeIconMap.keys.joined(separator: ", "))")
+            MizanLogger.shared.theme.error("Theme '\(targetTheme)' not found in themeIconMap")
             return
         }
 
         let iconName = themeIconMap[targetTheme] ?? nil
-        print("🎯 Target icon: \(iconName ?? "Primary (nil)")")
 
         // Check if we need to change the icon
         let currentIcon = UIApplication.shared.alternateIconName
-        print("📱 Current icon: \(currentIcon ?? "Primary (nil)")")
-
         guard currentIcon != iconName else {
-            print("ℹ️ Icon already set correctly, skipping")
-            return
+            return // Already set correctly
         }
 
         // Cancel any pending icon change
         Self.iconChangeWorkItem?.cancel()
         Self.iconChangeWorkItem = nil
-
-        print("⏱️ Scheduling icon change in 0.5s...")
 
         // Debounce icon changes to prevent rapid API calls
         let workItem = DispatchWorkItem { [weak self] in
@@ -220,298 +211,26 @@ final class ThemeManager: ObservableObject {
 
     /// Actually perform the icon change
     private func performIconChange(to iconName: String?) {
-        print("🔧 performIconChange to: \(iconName ?? "Primary (nil)")")
-
-        // Skip icon switching on iOS 19+ due to beta bug where API succeeds but SpringBoard shows grid
+        // Skip icon switching on iOS 19+ due to beta bug
         if #available(iOS 19, *) {
-            print("⚠️ Skipping icon change on iOS 19+ due to known beta issue")
+            MizanLogger.shared.theme.debug("Skipping icon change on iOS 19+ due to known beta issue")
             return
         }
-
-        // EXTENSIVE LOGGING - Bundle and Icon Diagnostics
-        print("📂 ===== ICON DIAGNOSTICS START =====")
-
-        // Log bundle path
-        let bundlePath = Bundle.main.bundlePath
-        print("📂 Bundle path: \(bundlePath)")
-
-        // Check for Assets.car (compiled asset catalog)
-        let assetsCar = (bundlePath as NSString).appendingPathComponent("Assets.car")
-        let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: assetsCar) {
-            if let attrs = try? fileManager.attributesOfItem(atPath: assetsCar),
-               let size = attrs[.size] as? Int64 {
-                print("📦 Assets.car exists! Size: \(size) bytes")
-            } else {
-                print("📦 Assets.car exists!")
-            }
-        } else {
-            print("❌ Assets.car NOT FOUND - this is a PROBLEM!")
-        }
-
-        // List ALL files in bundle root
-        print("📂 All files in bundle root:")
-        if let files = try? fileManager.contentsOfDirectory(atPath: bundlePath) {
-            for file in files.sorted() {
-                let filePath = (bundlePath as NSString).appendingPathComponent(file)
-                var isDir: ObjCBool = false
-                fileManager.fileExists(atPath: filePath, isDirectory: &isDir)
-                if isDir.boolValue {
-                    print("   📁 \(file)/")
-                } else {
-                    if let attrs = try? fileManager.attributesOfItem(atPath: filePath),
-                       let size = attrs[.size] as? Int64 {
-                        print("   📄 \(file) (\(size) bytes)")
-                    } else {
-                        print("   📄 \(file)")
-                    }
-                }
-            }
-        }
-
-        // Try to load icon from Asset Catalog using UIImage(named:)
-        if let iconName = iconName {
-            print("🎨 ===== ASSET CATALOG LOAD TEST =====")
-
-            // Try loading with different name variations
-            let namesToTry = [iconName, "\(iconName)-icon", "icon"]
-            for name in namesToTry {
-                if let image = UIImage(named: name) {
-                    print("   ✅ UIImage(named: \"\(name)\") loaded! Size: \(image.size)")
-                } else {
-                    print("   ❌ UIImage(named: \"\(name)\") returned nil")
-                }
-            }
-
-            // Try loading the icon as an app icon specifically
-            // App icons in asset catalogs have specific naming
-            let appIconNames = [
-                iconName,
-                "\(iconName)60x60",
-                "\(iconName)60x60@2x",
-                "\(iconName)60x60@3x"
-            ]
-            print("🔍 Testing app icon specific names:")
-            for name in appIconNames {
-                if let image = UIImage(named: name) {
-                    print("   ✅ \(name) -> loaded (\(image.size))")
-                } else {
-                    print("   ❌ \(name) -> nil")
-                }
-            }
-
-            // NEW: Check PNG file details
-            print("🔬 ===== PNG FILE ANALYSIS =====")
-            let pngNames = ["\(iconName)60x60@2x.png", "\(iconName)60x60@3x.png"]
-            for pngName in pngNames {
-                if let path = Bundle.main.path(forResource: pngName.replacingOccurrences(of: ".png", with: ""), ofType: "png") {
-                    print("   📄 \(pngName):")
-                    print("      Path: \(path)")
-
-                    // Load and analyze
-                    if let image = UIImage(contentsOfFile: path) {
-                        print("      ✅ Loaded via contentsOfFile")
-                        print("      Size: \(image.size.width)x\(image.size.height)")
-                        print("      Scale: \(image.scale)")
-                        print("      RenderingMode: \(image.renderingMode.rawValue)")
-
-                        if let cgImage = image.cgImage {
-                            print("      CGImage width: \(cgImage.width)")
-                            print("      CGImage height: \(cgImage.height)")
-                            print("      BitsPerComponent: \(cgImage.bitsPerComponent)")
-                            print("      BitsPerPixel: \(cgImage.bitsPerPixel)")
-                            print("      BytesPerRow: \(cgImage.bytesPerRow)")
-                            print("      AlphaInfo: \(cgImage.alphaInfo.rawValue) (\(Self.alphaInfoName(cgImage.alphaInfo)))")
-                            print("      ColorSpace: \(cgImage.colorSpace?.name ?? "nil" as CFString)")
-                            print("      BitmapInfo: \(cgImage.bitmapInfo.rawValue)")
-                        }
-                    } else {
-                        print("      ❌ Failed to load via contentsOfFile")
-                    }
-
-                    // Check file attributes
-                    if let attrs = try? fileManager.attributesOfItem(atPath: path) {
-                        print("      FileSize: \(attrs[.size] ?? "unknown")")
-                    }
-
-                    // Read PNG header bytes
-                    if let data = fileManager.contents(atPath: path) {
-                        print("      📊 PNG Header Analysis:")
-                        let bytes = [UInt8](data.prefix(33))
-                        let hexHeader = bytes.prefix(8).map { String(format: "%02X", $0) }.joined(separator: " ")
-                        print("         First 8 bytes: \(hexHeader)")
-
-                        // Check PNG signature
-                        let pngSig: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
-                        if Array(bytes.prefix(8)) == pngSig {
-                            print("         ✅ Valid PNG signature")
-                        } else {
-                            print("         ❌ INVALID PNG signature!")
-                        }
-
-                        // Parse IHDR chunk (starts at byte 8)
-                        if bytes.count >= 29 {
-                            let ihdrLength = UInt32(bytes[8]) << 24 | UInt32(bytes[9]) << 16 | UInt32(bytes[10]) << 8 | UInt32(bytes[11])
-                            let ihdrType = String(bytes: bytes[12..<16], encoding: .ascii) ?? "????"
-                            print("         IHDR chunk: length=\(ihdrLength), type=\(ihdrType)")
-
-                            if ihdrType == "IHDR" && ihdrLength == 13 {
-                                let width = UInt32(bytes[16]) << 24 | UInt32(bytes[17]) << 16 | UInt32(bytes[18]) << 8 | UInt32(bytes[19])
-                                let height = UInt32(bytes[20]) << 24 | UInt32(bytes[21]) << 16 | UInt32(bytes[22]) << 8 | UInt32(bytes[23])
-                                let bitDepth = bytes[24]
-                                let colorType = bytes[25]
-                                let compression = bytes[26]
-                                let filter = bytes[27]
-                                let interlace = bytes[28]
-
-                                print("         Width: \(width), Height: \(height)")
-                                print("         Bit Depth: \(bitDepth)")
-                                print("         Color Type: \(colorType) (\(Self.pngColorTypeName(colorType)))")
-                                print("         Compression: \(compression), Filter: \(filter), Interlace: \(interlace)")
-
-                                // Check for correct icon format
-                                if colorType == 2 && bitDepth == 8 {
-                                    print("         ✅ Correct format: 8-bit RGB (no alpha)")
-                                } else if colorType == 6 {
-                                    print("         ❌ PROBLEM: Color type 6 = RGBA (has alpha channel)")
-                                } else {
-                                    print("         ⚠️ Unusual color type for app icon")
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    print("   ❌ \(pngName) not found in bundle")
-                }
-            }
-
-            // Check SpringBoard cache info
-            print("🔍 ===== SPRINGBOARD/SYSTEM INFO =====")
-            print("   ProcessInfo.processInfo.processIdentifier: \(ProcessInfo.processInfo.processIdentifier)")
-            print("   Bundle.main.bundleIdentifier: \(Bundle.main.bundleIdentifier ?? "nil")")
-
-            // Try alternate loading methods
-            print("🔍 ===== ALTERNATE LOAD METHODS =====")
-            if let path = Bundle.main.path(forResource: "\(iconName)60x60@3x", ofType: "png"),
-               let data = fileManager.contents(atPath: path),
-               let provider = CGDataProvider(data: data as CFData),
-               let cgImage = CGImage(pngDataProviderSource: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent) {
-                print("   ✅ CGImage direct load succeeded")
-                print("      Width: \(cgImage.width), Height: \(cgImage.height)")
-                print("      AlphaInfo: \(cgImage.alphaInfo.rawValue)")
-                print("      BitsPerPixel: \(cgImage.bitsPerPixel)")
-            } else {
-                print("   ❌ CGImage direct load failed")
-            }
-
-            // NEW: Check what iOS expects
-            print("🔍 ===== iOS ICON RESOLUTION TEST =====")
-            let screen = UIScreen.main
-            print("   Screen scale: \(screen.scale)")
-            print("   Screen bounds: \(screen.bounds)")
-
-            // Check alternate icon config specifically
-            if let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any],
-               let alternateIcons = icons["CFBundleAlternateIcons"] as? [String: Any],
-               let iconConfig = alternateIcons[iconName] as? [String: Any] {
-                print("   Icon '\(iconName)' config:")
-                for (key, value) in iconConfig {
-                    print("      \(key): \(value)")
-                }
-
-                // Check if CFBundleIconFiles points to existing files
-                if let iconFiles = iconConfig["CFBundleIconFiles"] as? [String] {
-                    print("   Checking CFBundleIconFiles resolution:")
-                    for baseFile in iconFiles {
-                        // iOS looks for these patterns
-                        let patterns = [
-                            "\(baseFile)@2x",
-                            "\(baseFile)@3x",
-                            "\(baseFile)@2x~iphone",
-                            "\(baseFile)@3x~iphone"
-                        ]
-                        for pattern in patterns {
-                            if let path = Bundle.main.path(forResource: pattern, ofType: "png") {
-                                print("      ✅ \(pattern).png found")
-                            } else {
-                                print("      ❌ \(pattern).png NOT found")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Dump FULL CFBundleIcons structure
-        print("📋 ===== FULL CFBundleIcons DUMP =====")
-        if let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any] {
-            dumpDictionary(icons, indent: "   ")
-        } else {
-            print("   ❌ CFBundleIcons not found in Info.plist!")
-        }
-
-        print("📋 ===== FULL CFBundleIcons~ipad DUMP =====")
-        if let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons~ipad") as? [String: Any] {
-            dumpDictionary(icons, indent: "   ")
-        } else {
-            print("   (No iPad-specific icons)")
-        }
-
-        // Check if primary icon is working
-        print("🔍 ===== PRIMARY ICON CHECK =====")
-        if let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any],
-           let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any] {
-            print("   Primary icon config: \(primaryIcon)")
-            if let iconName = primaryIcon["CFBundleIconName"] as? String {
-                print("   Primary CFBundleIconName: \(iconName)")
-            }
-            if let iconFiles = primaryIcon["CFBundleIconFiles"] as? [String] {
-                print("   Primary CFBundleIconFiles: \(iconFiles)")
-                for file in iconFiles {
-                    if let path = Bundle.main.path(forResource: file, ofType: nil) {
-                        print("      ✅ Found: \(file) at \(path)")
-                    } else if let path = Bundle.main.path(forResource: file, ofType: "png") {
-                        print("      ✅ Found: \(file).png at \(path)")
-                    } else {
-                        print("      ❌ Not found: \(file)")
-                    }
-                }
-            }
-        }
-
-        // Test supportsAlternateIcons
-        print("🔍 ===== SYSTEM CHECKS =====")
-        print("   supportsAlternateIcons: \(UIApplication.shared.supportsAlternateIcons)")
-        print("   Current alternateIconName: \(UIApplication.shared.alternateIconName ?? "nil (primary)")")
-
-        print("📂 ===== ICON DIAGNOSTICS END =====")
 
         // Prevent concurrent changes
-        guard !Self.isChangingIcon else {
-            print("⏳ Already changing icon, skipping")
-            return
-        }
+        guard !Self.isChangingIcon else { return }
 
         // Check if already set to this icon
-        guard UIApplication.shared.alternateIconName != iconName else {
-            print("ℹ️ Icon already correct in performIconChange")
-            return
-        }
+        guard UIApplication.shared.alternateIconName != iconName else { return }
 
         Self.isChangingIcon = true
 
         // Use the supportsAlternateIcons check
         guard UIApplication.shared.supportsAlternateIcons else {
-            print("❌ Alternate icons NOT supported on this device/simulator")
+            MizanLogger.shared.theme.warning("Alternate icons not supported on this device")
             Self.isChangingIcon = false
             return
         }
-
-        // Log iOS version
-        print("📱 iOS Version: \(UIDevice.current.systemVersion)")
-        print("📱 Device: \(UIDevice.current.model)")
-
-        print("📲 Calling setAlternateIconName(\(iconName ?? "nil"))...")
 
         UIApplication.shared.setAlternateIconName(iconName) { error in
             DispatchQueue.main.async {
@@ -519,45 +238,13 @@ final class ThemeManager: ObservableObject {
             }
 
             if let error = error as NSError? {
-                print("📋 Error details: domain=\(error.domain), code=\(error.code)")
-                print("📋 Full error: \(error)")
-                print("📋 UserInfo: \(error.userInfo)")
-
-                // Decode common error codes
-                switch (error.domain, error.code) {
-                case ("NSCocoaErrorDomain", 3072):
-                    print("⚠️ Error 3072: Operation cancelled (usually benign)")
-                case ("NSCocoaErrorDomain", 4):
-                    print("⚠️ Error 4: File not found")
-                case ("_LSLaunchErrorDomain", _):
-                    print("❌ LaunchServices error - icon file may be invalid")
-                default:
-                    print("❌ Unknown error type")
-                }
-
                 // Ignore certain iOS quirks - the icon may have actually changed
                 if error.domain == "NSCocoaErrorDomain" && (error.code == 3072 || error.code == 4) {
-                    print("⚠️ Icon change completed with warning: \(error.localizedDescription)")
-                    return
+                    return // Benign errors
                 }
-                print("❌ Icon change FAILED: \(error.localizedDescription)")
+                MizanLogger.shared.theme.error("Icon change failed: \(error.localizedDescription)")
             } else {
-                print("✅ Icon changed successfully to: \(iconName ?? "Primary")")
-                // Verify the change
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    let currentIcon = UIApplication.shared.alternateIconName
-                    print("🔍 Verification: Current icon is now: \(currentIcon ?? "Primary (nil)")")
-                    if currentIcon == iconName {
-                        print("✅ Icon change VERIFIED")
-
-                        // Additional verification - try to check SpringBoard
-                        print("🔍 Post-change diagnostics:")
-                        print("   alternateIconName: \(UIApplication.shared.alternateIconName ?? "nil")")
-                        print("   supportsAlternateIcons: \(UIApplication.shared.supportsAlternateIcons)")
-                    } else {
-                        print("⚠️ Icon mismatch! Expected: \(iconName ?? "nil"), Got: \(currentIcon ?? "nil")")
-                    }
-                }
+                MizanLogger.shared.theme.info("Icon changed to: \(iconName ?? "Primary")")
             }
         }
     }
@@ -578,47 +265,6 @@ final class ThemeManager: ObservableObject {
     /// Check if a specific icon is currently active
     func isIconActive(_ iconName: String?) -> Bool {
         UIApplication.shared.alternateIconName == iconName
-    }
-
-    /// Helper to get alpha info name
-    private static func alphaInfoName(_ alphaInfo: CGImageAlphaInfo) -> String {
-        switch alphaInfo {
-        case .none: return "none"
-        case .premultipliedLast: return "premultipliedLast"
-        case .premultipliedFirst: return "premultipliedFirst"
-        case .last: return "last"
-        case .first: return "first"
-        case .noneSkipLast: return "noneSkipLast"
-        case .noneSkipFirst: return "noneSkipFirst"
-        case .alphaOnly: return "alphaOnly"
-        @unknown default: return "unknown"
-        }
-    }
-
-    /// Helper to get PNG color type name
-    private static func pngColorTypeName(_ colorType: UInt8) -> String {
-        switch colorType {
-        case 0: return "Grayscale"
-        case 2: return "RGB"
-        case 3: return "Indexed"
-        case 4: return "Grayscale+Alpha"
-        case 6: return "RGBA"
-        default: return "Unknown"
-        }
-    }
-
-    /// Helper to dump dictionary for debugging
-    private func dumpDictionary(_ dict: [String: Any], indent: String = "") {
-        for (key, value) in dict.sorted(by: { $0.key < $1.key }) {
-            if let nested = value as? [String: Any] {
-                print("\(indent)\(key):")
-                dumpDictionary(nested, indent: indent + "   ")
-            } else if let array = value as? [Any] {
-                print("\(indent)\(key): \(array)")
-            } else {
-                print("\(indent)\(key): \(value)")
-            }
-        }
     }
 }
 

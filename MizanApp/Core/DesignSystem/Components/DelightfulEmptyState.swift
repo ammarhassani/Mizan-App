@@ -133,7 +133,7 @@ struct DelightfulEmptyState: View {
 
 #Preview {
     DelightfulEmptyState(type: .inbox) {
-        print("Add task tapped")
+        // Add task action
     }
     .environmentObject(ThemeManager())
 }

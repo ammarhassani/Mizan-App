@@ -549,6 +549,10 @@ struct PremiumTaskCard: View {
                     if task.isCompleted {
                         completedBadge
                     }
+
+                    if task.isRecurring {
+                        recurringBadge
+                    }
                 }
             }
 
@@ -625,6 +629,22 @@ struct PremiumTaskCard: View {
         .background(
             Capsule()
                 .fill(themeManager.successColor.opacity(0.15))
+        )
+    }
+
+    private var recurringBadge: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "repeat")
+                .font(.system(size: 8))
+            Text("متكرر")
+                .font(.system(size: 9, weight: .semibold))
+        }
+        .foregroundColor(themeManager.primaryColor)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(
+            Capsule()
+                .fill(themeManager.primaryColor.opacity(0.15))
         )
     }
 

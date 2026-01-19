@@ -8,6 +8,7 @@
 
 import Foundation
 import Adhan
+import os.log
 
 final class LocalPrayerCalculator {
 
@@ -36,7 +37,7 @@ final class LocalPrayerCalculator {
             date: dateComponents,
             calculationParameters: params
         ) else {
-            print("❌ Failed to calculate prayer times for \(date)")
+            MizanLogger.shared.prayer.error("Failed to calculate prayer times for \(date)")
             return nil
         }
 

@@ -22,6 +22,9 @@ struct TaskCreationStep1View: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.modelContext) private var modelContext
 
+    // MARK: - Constants
+    private let maxTitleLength = 100
+
     // MARK: - State
     @State private var showIconPicker = false
     @FocusState private var isTitleFocused: Bool
@@ -52,8 +55,16 @@ struct TaskCreationStep1View: View {
 
     // MARK: - Computed
 
+    private var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var canContinue: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !trimmedTitle.isEmpty && trimmedTitle.count <= maxTitleLength
+    }
+
+    private var isTitleTooLong: Bool {
+        trimmedTitle.count > maxTitleLength
     }
 
     private var timeRangePreview: String {
@@ -115,19 +126,37 @@ struct TaskCreationStep1View: View {
                         .font(MZTypography.labelSmall)
                         .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.8))
 
-                    ZStack(alignment: .leading) {
-                        // Custom placeholder for theme compliance
-                        if title.isEmpty {
-                            Text("Task name")
+                    VStack(alignment: .leading, spacing: 4) {
+                        ZStack(alignment: .leading) {
+                            // Custom placeholder for theme compliance
+                            if title.isEmpty {
+                                Text("Task name")
+                                    .font(MZTypography.titleMedium)
+                                    .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.5))
+                            }
+
+                            TextField("", text: $title)
                                 .font(MZTypography.titleMedium)
-                                .foregroundColor(themeManager.textOnPrimaryColor.opacity(0.5))
+                                .foregroundColor(themeManager.textOnPrimaryColor)
+                                .focused($isTitleFocused)
+                                .textFieldStyle(.plain)
+                                .onChange(of: title) { _, newValue in
+                                    // Limit input to max length
+                                    if newValue.count > maxTitleLength {
+                                        title = String(newValue.prefix(maxTitleLength))
+                                    }
+                                }
                         }
 
-                        TextField("", text: $title)
-                            .font(MZTypography.titleMedium)
-                            .foregroundColor(themeManager.textOnPrimaryColor)
-                            .focused($isTitleFocused)
-                            .textFieldStyle(.plain)
+                        // Character count
+                        if !title.isEmpty {
+                            HStack {
+                                Spacer()
+                                Text("\(trimmedTitle.count)/\(maxTitleLength)")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(isTitleTooLong ? themeManager.errorColor : themeManager.textOnPrimaryColor.opacity(0.5))
+                            }
+                        }
                     }
                 }
             }

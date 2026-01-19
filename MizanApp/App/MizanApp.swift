@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import os.log
 
 @main
 struct MizanApp: App {
@@ -52,7 +53,7 @@ struct MizanApp: App {
 
     // MARK: - Initialization
     private func initializeApp() async {
-        print("🚀 Mizan app launching...")
+        MizanLogger.shared.lifecycle.info("Mizan app launching...")
 
         // Short splash screen duration - just enough for animation reveal
         async let splashDelay: () = _Concurrency.Task.sleep(nanoseconds: 600_000_000) // 0.6 second
@@ -68,7 +69,7 @@ struct MizanApp: App {
             isInitializing = false
         }
 
-        print("✅ Mizan app ready")
+        MizanLogger.shared.lifecycle.info("Mizan app ready")
     }
 }
 

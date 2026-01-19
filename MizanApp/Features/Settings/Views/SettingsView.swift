@@ -24,6 +24,7 @@ struct SettingsView: View {
                             showPaywall = true
                         }
                         .environmentObject(themeManager)
+                        .accessibilityIdentifier("settings_pro_upgrade_card")
                     } else {
                         // Pro badge for subscribers
                         SettingsCard {
@@ -51,6 +52,7 @@ struct SettingsView: View {
                             .padding(MZSpacing.md)
                         }
                         .environmentObject(themeManager)
+                        .accessibilityIdentifier("settings_pro_badge")
                     }
 
                     // Prayer & Notifications Section
@@ -117,6 +119,7 @@ struct SettingsView: View {
                                     .environmentObject(themeManager)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("settings_theme_link")
 
                             SettingsDivider().environmentObject(themeManager)
 
@@ -154,6 +157,7 @@ struct SettingsView: View {
                                 .labelsHidden()
                                 .accessibilityLabel("التاريخ الهجري")
                                 .accessibilityValue(appEnvironment.userSettings.showHijriDate ? "مفعّل" : "متوقف")
+                                .accessibilityIdentifier("settings_hijri_toggle")
                             }
                             .padding(MZSpacing.md)
                         }

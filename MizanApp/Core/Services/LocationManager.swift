@@ -8,6 +8,7 @@
 import Foundation
 import CoreLocation
 import Combine
+import os.log
 
 @MainActor
 final class LocationManager: NSObject, ObservableObject {
@@ -68,18 +69,18 @@ final class LocationManager: NSObject, ObservableObject {
     /// Start monitoring significant location changes
     func startMonitoringLocation() {
         guard isAuthorized else {
-            print("⚠️ Location permission not granted")
+            MizanLogger.shared.location.warning("Location permission not granted")
             return
         }
 
         locationManager.startMonitoringSignificantLocationChanges()
-        print("📍 Started monitoring significant location changes")
+        MizanLogger.shared.location.debug("Started monitoring significant location changes")
     }
 
     /// Stop monitoring location
     func stopMonitoringLocation() {
         locationManager.stopMonitoringSignificantLocationChanges()
-        print("📍 Stopped monitoring location")
+        MizanLogger.shared.location.debug("Stopped monitoring location")
     }
 
     /// Get location from coordinates
@@ -93,7 +94,7 @@ final class LocationManager: NSObject, ObservableObject {
                 return formatPlacemark(placemark)
             }
         } catch {
-            print("❌ Geocoding failed: \(error)")
+            MizanLogger.shared.location.error("Geocoding failed: \(error.localizedDescription)")
         }
 
         return nil
@@ -113,7 +114,7 @@ final class LocationManager: NSObject, ObservableObject {
             let placemarks = try await geocoder.reverseGeocodeLocation(location)
             return placemarks.first?.isoCountryCode
         } catch {
-            print("❌ Failed to get country code: \(error)")
+            MizanLogger.shared.location.error("Failed to get country code: \(error.localizedDescription)")
             return nil
         }
     }
@@ -153,7 +154,7 @@ extension LocationManager: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         _Concurrency.Task { @MainActor in
             authorizationStatus = manager.authorizationStatus
-            print("📍 Location authorization changed: \(authorizationStatus.description)")
+            MizanLogger.shared.location.info("Location authorization changed: \(self.authorizationStatus.description)")
 
             switch authorizationStatus {
             case .authorizedWhenInUse, .authorizedAlways:
@@ -175,7 +176,7 @@ extension LocationManager: CLLocationManagerDelegate {
             currentLocation = location
             isUpdatingLocation = false
 
-            print("📍 Location updated: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+            MizanLogger.shared.location.debug("Location updated: \(location.coordinate.latitude), \(location.coordinate.longitude)")
 
             // Resume continuation if waiting
             locationUpdateContinuation?.resume(returning: location)
@@ -204,7 +205,7 @@ extension LocationManager: CLLocationManagerDelegate {
             }
 
             self.error = locationError
-            print("❌ Location error: \(locationError)")
+            MizanLogger.shared.location.error("Location error: \(locationError.localizedDescription)")
 
             // Resume continuation with error
             locationUpdateContinuation?.resume(throwing: locationError)

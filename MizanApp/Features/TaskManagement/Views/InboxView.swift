@@ -49,6 +49,9 @@ struct InboxView: View {
     // MARK: - Recurring Task Confirmation
     @State private var showRecurringDeleteConfirmation = false
     @State private var taskToDelete: Task? = nil
+    @State private var showRecurringEditConfirmation = false
+    @State private var taskPendingEdit: Task? = nil
+    @State private var editThisInstanceOnly = false
 
     // MARK: - Filtered Tasks
 
@@ -188,6 +191,7 @@ struct InboxView: View {
                             showAddTaskSheet = true
                         }
                         .environmentObject(themeManager)
+                        .accessibilityIdentifier("inbox_add_task_fab")
                         .padding(.trailing, MZSpacing.screenPadding)
                         .padding(.bottom, MZSpacing.screenPadding)
                     }
@@ -232,6 +236,31 @@ struct InboxView: View {
                 }
             } message: {
                 Text("هل تريد حذف هذه المرة فقط أم جميع تكرارات المهمة؟")
+            }
+            .confirmationDialog(
+                "تعديل المهمة المتكررة",
+                isPresented: $showRecurringEditConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("تعديل هذه المرة فقط") {
+                    if let task = taskPendingEdit {
+                        editThisInstanceOnly = true
+                        taskToEdit = task
+                    }
+                    taskPendingEdit = nil
+                }
+                Button("تعديل جميع التكرارات") {
+                    if let task = taskPendingEdit {
+                        editThisInstanceOnly = false
+                        taskToEdit = task
+                    }
+                    taskPendingEdit = nil
+                }
+                Button("إلغاء", role: .cancel) {
+                    taskPendingEdit = nil
+                }
+            } message: {
+                Text("هل تريد تعديل هذه المرة فقط أم جميع تكرارات المهمة؟")
             }
         }
     }
@@ -293,6 +322,7 @@ struct InboxView: View {
                         )
                 }
                 .buttonStyle(PressableButtonStyle())
+                .accessibilityIdentifier("inbox_empty_state_add_button")
             }
 
             Spacer()
@@ -404,7 +434,7 @@ struct InboxView: View {
                     completeTask(task)
                 },
                 onTap: {
-                    taskToEdit = task
+                    editTask(task)
                 }
             )
             .environmentObject(themeManager)
@@ -441,7 +471,7 @@ struct InboxView: View {
     @ViewBuilder
     private func taskContextMenu(for task: Task) -> some View {
         Button {
-            taskToEdit = task
+            editTask(task)
         } label: {
             Label("تعديل", systemImage: "pencil")
         }
@@ -497,6 +527,21 @@ struct InboxView: View {
         HapticManager.shared.trigger(.success)
     }
 
+    /// Edit a task - shows confirmation for recurring tasks
+    private func editTask(_ task: Task) {
+        // Check if this is a recurring task (has parent or has recurrence rule)
+        let isRecurringTask = task.parentTaskId != nil || task.recurrenceRule != nil
+
+        if isRecurringTask {
+            // Show confirmation dialog for recurring tasks
+            taskPendingEdit = task
+            showRecurringEditConfirmation = true
+        } else {
+            // Regular task - edit directly
+            taskToEdit = task
+        }
+    }
+
     private func deleteTask(_ task: Task) {
         // Check if this is a recurring task (has parent or has recurrence rule)
         let isRecurringTask = task.parentTaskId != nil || task.recurrenceRule != nil
@@ -513,7 +558,6 @@ struct InboxView: View {
 
     /// Delete a non-recurring task directly
     private func deleteNonRecurringTask(_ task: Task) {
-        print("🗑️ [INBOX] DELETE NON-RECURRING TASK: '\(task.title)'")
         modelContext.delete(task)
         try? modelContext.save()
         HapticManager.shared.trigger(.warning)
@@ -521,14 +565,11 @@ struct InboxView: View {
 
     /// Delete only this instance of a recurring task
     private func deleteThisInstanceOnly(_ task: Task) {
-        print("🗑️ [INBOX] DELETE THIS INSTANCE ONLY: '\(task.title)'")
-
         // If this is a child instance, mark the date as dismissed on parent
         if let parentId = task.parentTaskId, let scheduledDate = task.scheduledDate {
             let descriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
             if let parentTask = try? modelContext.fetch(descriptor).first {
                 parentTask.dismissRecurringInstance(for: scheduledDate)
-                print("   → Dismissed date \(scheduledDate) on parent")
             }
         }
         // If this is a parent task, just dismiss the date (don't delete the parent)
@@ -550,8 +591,6 @@ struct InboxView: View {
 
     /// Delete all instances of a recurring task (parent + all children)
     private func deleteAllInstances(_ task: Task) {
-        print("🗑️ [INBOX] DELETE ALL INSTANCES: '\(task.title)'")
-
         // Find the parent task ID
         let parentId: UUID
         if let pid = task.parentTaskId {
@@ -570,14 +609,12 @@ struct InboxView: View {
         let parentDescriptor = FetchDescriptor<Task>(predicate: #Predicate { $0.id == parentId })
         if let parentTask = try? modelContext.fetch(parentDescriptor).first {
             modelContext.delete(parentTask)
-            print("   → Deleted parent task")
         }
 
         // Delete all child instances
         for child in childTasks {
             modelContext.delete(child)
         }
-        print("   → Deleted \(childTasks.count) child instances")
 
         // Also delete the current task if it wasn't already deleted
         if task.parentTaskId == nil && task.id != parentId {
@@ -639,6 +676,7 @@ struct FilterChip: View {
             )
         }
         .buttonStyle(PressableButtonStyle())
+        .accessibilityIdentifier("inbox_filter_chip_\(filter.rawValue)")
     }
 }
 
@@ -673,6 +711,7 @@ struct TaskRowWithCheckbox: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("task_checkbox_\(task.id.uuidString)")
 
             // Task content (tappable for editing)
             Button(action: onTap) {
@@ -719,10 +758,15 @@ struct TaskRowWithCheckbox: View {
                             // Due date indicator
                             if let dueDate = task.dueDate {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "flag.fill")
+                                    Image(systemName: task.isOverdue ? "exclamationmark.circle.fill" : "flag.fill")
                                         .font(.system(size: 11))
                                     Text(formatDueDate(dueDate))
                                         .font(.system(size: 13))
+                                    // Add overdue text label for accessibility
+                                    if task.isOverdue {
+                                        Text("متأخرة")
+                                            .font(.system(size: 11, weight: .semibold))
+                                    }
                                 }
                                 .foregroundColor(task.isOverdue ? themeManager.errorColor : (task.isDueSoon ? themeManager.warningColor : themeManager.textSecondaryColor))
                             }

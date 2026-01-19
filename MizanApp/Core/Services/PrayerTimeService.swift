@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import Combine
+import os.log
 
 @MainActor
 final class PrayerTimeService: ObservableObject {
@@ -42,7 +43,6 @@ final class PrayerTimeService: ObservableObject {
     ) async throws -> [PrayerTime] {
         // 1. Try to load from SwiftData cache first
         if let cached = try? fetchCachedPrayers(for: date, latitude: latitude, longitude: longitude, method: method) {
-            print("✅ Loaded prayer times from SwiftData cache")
             return cached
         }
 
@@ -69,12 +69,6 @@ final class PrayerTimeService: ObservableObject {
         lastUpdateTime = Date()
         isLoading = false
 
-        // Debug: Log the actual times to verify they're different per day
-        let dateStr = date.formatted(date: .abbreviated, time: .omitted)
-        let fajrTime = prayers.first { $0.prayerType == .fajr }?.adhanTime.formatted(date: .omitted, time: .shortened) ?? "N/A"
-        let maghribTime = prayers.first { $0.prayerType == .maghrib }?.adhanTime.formatted(date: .omitted, time: .shortened) ?? "N/A"
-        print("✅ Calculated prayers for \(dateStr): Fajr=\(fajrTime), Maghrib=\(maghribTime)")
-
         return prayers
     }
 
@@ -85,8 +79,6 @@ final class PrayerTimeService: ObservableObject {
         longitude: Double,
         method: CalculationMethod
     ) async {
-        print("📥 Starting prefetch for \(days) days...")
-
         for dayOffset in 0..<days {
             guard let date = Calendar.current.date(byAdding: .day, value: dayOffset, to: Date()) else {
                 continue
@@ -101,11 +93,9 @@ final class PrayerTimeService: ObservableObject {
             do {
                 _ = try await fetchPrayerTimes(for: date, latitude: latitude, longitude: longitude, method: method)
             } catch {
-                print("⚠️ Failed to prefetch day \(dayOffset + 1): \(error)")
+                // Silently continue - prefetch is best-effort
             }
         }
-
-        print("✅ Prefetch completed for \(days) days")
     }
 
     /// Get today's prayer times
@@ -352,8 +342,6 @@ final class PrayerTimeService: ObservableObject {
             }
             try? modelContext.save()
         }
-
-        print("🗑️ Cleared all prayer time cache")
     }
 
     /// Get cache statistics
