@@ -7,6 +7,7 @@
 
 import Foundation
 import Network
+import os.log
 
 // MARK: - AI Task Service Protocol
 
