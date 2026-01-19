@@ -19,6 +19,7 @@ final class ConfigurationManager {
     private(set) var nawafilConfig: NawafilConfiguration!
     private(set) var notificationConfig: NotificationConfiguration!
     private(set) var localizationConfig: LocalizationConfiguration!
+    private(set) var aiConfig: AIConfiguration!
 
     private init() {
         loadConfigurations()
@@ -36,6 +37,7 @@ final class ConfigurationManager {
             nawafilConfig = try loadJSON("NawafilConfig")
             notificationConfig = try loadJSON("NotificationConfig")
             localizationConfig = try loadJSON("LocalizationConfig")
+            aiConfig = try loadJSON("AIConfig")
 
             MizanLogger.shared.lifecycle.info("All configurations loaded successfully")
         } catch {
@@ -68,6 +70,9 @@ final class ConfigurationManager {
         }
         if localizationConfig == nil {
             localizationConfig = try? loadJSON("LocalizationConfig")
+        }
+        if aiConfig == nil {
+            aiConfig = try? loadJSON("AIConfig")
         }
     }
 

@@ -94,14 +94,8 @@ struct CinematicDateNavigator: View {
         .padding(.horizontal, MZSpacing.md)
         .padding(.vertical, MZSpacing.sm)
         .background {
-            if #available(iOS 26.0, *) {
-                Capsule()
-                    .fill(.regularMaterial)
-                    .glassEffect(.regular.interactive(), in: Capsule())
-            } else {
-                Capsule()
-                    .fill(.ultraThinMaterial)
-            }
+            Capsule()
+                .fill(.ultraThinMaterial)
         }
         .layoutPriority(-1) // Allow this to shrink when space is tight
     }

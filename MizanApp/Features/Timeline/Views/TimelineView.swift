@@ -937,7 +937,6 @@ struct TimelineView: View {
 
     /// Check if a time collides with any prayer
     private func checkPrayerCollision(at time: Date, duration: Int) -> Bool {
-        let endTime = time.addingTimeInterval(Double(duration * 60))
         for prayer in todayPrayers {
             if prayer.overlaps(with: time, duration: duration) {
                 return true
@@ -1933,15 +1932,9 @@ struct GapSegmentView: View {
                     Capsule()
                         .fill(themeManager.backgroundColor)
 
-                    // Glass effect on top
-                    if #available(iOS 26.0, *) {
-                        Capsule()
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular, in: Capsule())
-                    } else {
-                        Capsule()
-                            .fill(themeManager.surfaceSecondaryColor.opacity(0.7))
-                    }
+                    // Glass effect on top (ultraThinMaterial available iOS 15+)
+                    Capsule()
+                        .fill(.ultraThinMaterial)
                 }
             }
             .zIndex(10) // Bring label to front

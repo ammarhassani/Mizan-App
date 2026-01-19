@@ -29,6 +29,11 @@ final class AppEnvironment: ObservableObject {
     let hapticManager: HapticManager
     let notificationManager: NotificationManager
 
+    // AI Service (lazy initialization)
+    private(set) lazy var aiTaskService: AITaskService = {
+        AITaskService(config: ConfigurationManager.shared.aiConfig)
+    }()
+
     // MARK: - User Settings
     @Published var userSettings: UserSettings
 

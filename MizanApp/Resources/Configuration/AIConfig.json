@@ -1,0 +1,61 @@
+{
+  "version": "1.0",
+  "defaultProvider": "openai",
+  "providers": {
+    "openai": {
+      "baseUrl": "https://api.openai.com/v1",
+      "model": "gpt-4o-mini",
+      "maxTokens": 1000,
+      "temperature": 0.3
+    },
+    "claude": {
+      "baseUrl": "https://api.anthropic.com/v1",
+      "model": "claude-3-haiku-20240307",
+      "maxTokens": 1000,
+      "temperature": 0.3,
+      "anthropicVersion": "2023-06-01"
+    },
+    "deepseek": {
+      "baseUrl": "https://api.deepseek.com/v1",
+      "model": "deepseek-chat",
+      "maxTokens": 1000,
+      "temperature": 0.3
+    }
+  },
+  "taskExtraction": {
+    "systemPromptArabic": "أنت مساعد ذكي لإنشاء المهام في تطبيق ميزان. استخرج معلومات المهمة من النص العربي أو الإنجليزي.\n\nالتاريخ الحالي: {{currentDate}}\nالمنطقة الزمنية: {{timezone}}\n\nاستخرج البيانات بصيغة JSON:\n- title: عنوان المهمة بشكل موجز\n- notes: ملاحظات إضافية (اختياري)\n- duration: المدة بالدقائق (افتراضي 30)\n- category: work/personal/study/health/social/worship\n- scheduledDate: التاريخ بصيغة ISO8601 (اختياري)\n- scheduledTime: الوقت بصيغة HH:mm (اختياري)\n- recurrence: تكرار (daily/weekly/monthly) مع interval (اختياري)\n- confidence: مستوى الثقة 0-1\n- clarificationNeeded: سؤال توضيحي إذا لزم\n\nقواعد:\n1. غدا = tomorrow, بعد غدا/بعد بكرة = day after tomorrow\n2. الساعة X / الـX = at X o'clock\n3. نص ساعة = 30 دقيقة, ساعة = 60 دقيقة\n4. كل يوم = daily, كل أسبوع = weekly\n5. صلاة/قرآن/أذكار = worship category\n\nرد بـ JSON فقط بدون أي نص إضافي.",
+    "systemPromptEnglish": "You are a smart task creation assistant for Mizan app. Extract task information from Arabic or English text.\n\nCurrent date: {{currentDate}}\nTimezone: {{timezone}}\n\nExtract data in JSON format:\n- title: Concise task title\n- notes: Additional notes (optional)\n- duration: Duration in minutes (default 30)\n- category: work/personal/study/health/social/worship\n- scheduledDate: Date in ISO8601 format (optional)\n- scheduledTime: Time in HH:mm format (optional)\n- recurrence: Recurrence (daily/weekly/monthly) with interval (optional)\n- confidence: Confidence level 0-1\n- clarificationNeeded: Clarification question if needed\n\nRules:\n1. Parse relative dates: tomorrow, next week, etc.\n2. Parse times: 3pm, 15:00, morning, afternoon, evening\n3. Parse durations: 30 minutes, 1 hour, half hour\n4. Detect recurrence: every day, weekly, monthly\n5. Prayer/Quran/dhikr = worship category\n\nRespond with JSON only, no additional text."
+  },
+  "messages": {
+    "welcomeArabic": "مرحبا! أنا مساعدك الذكي. أخبرني بمهمتك وسأضيفها لك.",
+    "welcomeEnglish": "Hello! I'm your smart assistant. Tell me about your task and I'll add it for you.",
+    "errorNoNetworkArabic": "لا يوجد اتصال بالإنترنت. يمكنك إضافة المهمة يدويا.",
+    "errorNoNetworkEnglish": "No internet connection. You can add the task manually.",
+    "errorApiKeyArabic": "يرجى إضافة مفتاح API في الإعدادات.",
+    "errorApiKeyEnglish": "Please add an API key in settings.",
+    "errorRateLimitArabic": "تم تجاوز الحد المسموح. حاول مرة أخرى بعد {{seconds}} ثواني.",
+    "errorRateLimitEnglish": "Rate limit exceeded. Try again in {{seconds}} seconds.",
+    "errorParsingArabic": "لم أفهم. حاول مرة أخرى بصيغة أوضح.",
+    "errorParsingEnglish": "I didn't understand. Please try again more clearly.",
+    "confirmationArabic": "هل تريد إضافة هذه المهمة؟",
+    "confirmationEnglish": "Would you like to add this task?"
+  },
+  "quickSuggestions": {
+    "arabic": [
+      "ذكرني بـ...",
+      "جدول اجتماع...",
+      "أضف مهمة..."
+    ],
+    "english": [
+      "Remind me to...",
+      "Schedule a meeting...",
+      "Add a task..."
+    ]
+  },
+  "settings": {
+    "maxMessagesInHistory": 10,
+    "requestTimeoutSeconds": 30,
+    "maxRetries": 2,
+    "retryDelaySeconds": [1, 3]
+  }
+}

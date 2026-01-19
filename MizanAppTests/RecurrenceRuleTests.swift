@@ -153,7 +153,7 @@ struct RecurrenceRuleTests {
 
     // MARK: - Codable Tests
 
-    @Test func recurrenceRuleEncodesAndDecodes() throws {
+    @MainActor @Test func recurrenceRuleEncodesAndDecodes() throws {
         let rule = RecurrenceRule(
             frequency: .weekly,
             interval: 2,

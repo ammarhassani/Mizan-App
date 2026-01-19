@@ -11,6 +11,11 @@ struct AboutView: View {
     @EnvironmentObject var appEnvironment: AppEnvironment
     @EnvironmentObject var themeManager: ThemeManager
 
+    @State private var showComingSoonToast = false
+
+    // Set to nil until App Store submission is complete
+    private let appStoreID: String? = nil
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
@@ -49,6 +54,39 @@ struct AboutView: View {
         .background(themeManager.backgroundColor.ignoresSafeArea())
         .navigationTitle("عن التطبيق")
         .navigationBarTitleDisplayMode(.inline)
+        .overlay(alignment: .bottom) {
+            if showComingSoonToast {
+                comingSoonToast
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                showComingSoonToast = false
+                            }
+                        }
+                    }
+            }
+        }
+        .animation(.spring(response: 0.3), value: showComingSoonToast)
+    }
+
+    // MARK: - Coming Soon Toast
+
+    @ViewBuilder
+    private var comingSoonToast: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "clock.fill")
+                .foregroundColor(themeManager.warningColor)
+            Text("قريبًا بعد إطلاق التطبيق")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(themeManager.textPrimaryColor)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(themeManager.surfaceColor)
+        .cornerRadius(12)
+        .shadow(color: themeManager.textPrimaryColor.opacity(0.1), radius: 8, y: 4)
+        .padding(.bottom, 24)
     }
 
     // MARK: - App Header
@@ -273,14 +311,27 @@ struct AboutView: View {
     // MARK: - Actions
 
     private func openAppStore() {
-        // Replace with actual App Store URL
-        if let url = URL(string: "https://apps.apple.com/app/idXXXXXXXXX") {
-            UIApplication.shared.open(url)
+        guard let appStoreID = appStoreID,
+              let url = URL(string: "https://apps.apple.com/app/id\(appStoreID)") else {
+            HapticManager.shared.trigger(.warning)
+            withAnimation {
+                showComingSoonToast = true
+            }
+            return
         }
+        UIApplication.shared.open(url)
     }
 
     private func shareApp() {
-        let text = "جرّب تطبيق ميزان - نظّم يومك حول صلاتك\nhttps://apps.apple.com/app/idXXXXXXXXX"
+        let appLink: String
+        if let appStoreID = appStoreID {
+            appLink = "https://apps.apple.com/app/id\(appStoreID)"
+        } else {
+            // Fallback to website until App Store link is available
+            appLink = "https://mizanapp.com"
+        }
+
+        let text = "جرّب تطبيق ميزان - نظّم يومك حول صلاتك\n\(appLink)"
         let activityVC = UIActivityViewController(activityItems: [text], applicationActivities: nil)
 
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,

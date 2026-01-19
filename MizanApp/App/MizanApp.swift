@@ -18,6 +18,19 @@ struct MizanApp: App {
     @State private var isInitializing = true
     @Environment(\.scenePhase) private var scenePhase
 
+    // MARK: - UI Testing Support
+    private static var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("--uitesting")
+    }
+
+    private static var shouldSkipOnboarding: Bool {
+        ProcessInfo.processInfo.arguments.contains("--skip-onboarding")
+    }
+
+    private static var shouldResetOnboarding: Bool {
+        ProcessInfo.processInfo.arguments.contains("--reset-onboarding")
+    }
+
     // MARK: - Scene
     var body: some Scene {
         WindowGroup {
@@ -55,8 +68,27 @@ struct MizanApp: App {
     private func initializeApp() async {
         MizanLogger.shared.lifecycle.info("Mizan app launching...")
 
+        // Handle UI testing flags
+        if Self.isUITesting {
+            MizanLogger.shared.lifecycle.info("Running in UI testing mode")
+
+            if Self.shouldResetOnboarding {
+                // Reset onboarding for testing
+                appEnvironment.userSettings.hasCompletedOnboarding = false
+                appEnvironment.save()
+                MizanLogger.shared.lifecycle.info("Onboarding reset for testing")
+            } else if Self.shouldSkipOnboarding {
+                // Skip onboarding for testing
+                appEnvironment.userSettings.hasCompletedOnboarding = true
+                appEnvironment.save()
+                MizanLogger.shared.lifecycle.info("Onboarding skipped for testing")
+            }
+        }
+
         // Short splash screen duration - just enough for animation reveal
-        async let splashDelay: () = _Concurrency.Task.sleep(nanoseconds: 600_000_000) // 0.6 second
+        // Skip splash delay in UI testing mode for faster tests
+        let splashDuration: UInt64 = Self.isUITesting ? 100_000_000 : 600_000_000
+        async let splashDelay: () = _Concurrency.Task.sleep(nanoseconds: splashDuration)
 
         // Initialize app environment
         async let initialization: () = appEnvironment.initialize()
@@ -65,7 +97,7 @@ struct MizanApp: App {
         _ = try? await (splashDelay, initialization)
 
         // Fade out splash screen
-        withAnimation(.easeOut(duration: 0.4)) {
+        withAnimation(.easeOut(duration: Self.isUITesting ? 0.1 : 0.4)) {
             isInitializing = false
         }
 
