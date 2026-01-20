@@ -18,9 +18,13 @@ struct DraggableTaskView: View {
     @EnvironmentObject var themeManager: ThemeManager
 
     @State private var dragOffset: CGSize = .zero
-    @State private var isDragging = false
+    @State private var isLongPressActive = false  // Long press recognized, ready to drag
+    @State private var isDragging = false         // Actually dragging (movement detected)
     @State private var hasCollision = false
     @State private var showBounceAnimation = false
+
+    /// Minimum drag distance before entering visual drag mode
+    private let minimumDragDistance: CGFloat = 10
 
     // MARK: - Computed Properties
 
@@ -165,29 +169,40 @@ struct DraggableTaskView: View {
     private func handleDragChanged(value: SequenceGesture<LongPressGesture, DragGesture>.Value) {
         switch value {
         case .first(true):
-            // Long press detected - prepare for drag
-            if !isDragging {
-                isDragging = true
+            // Long press detected - just mark as ready, don't show drag visuals yet
+            if !isLongPressActive {
+                isLongPressActive = true
                 HapticManager.shared.trigger(.medium)
             }
 
         case .second(true, let drag):
-            // Dragging
-            dragOffset = drag?.translation ?? .zero
+            // Dragging - only enter visual drag mode after minimum movement
+            let translation = drag?.translation ?? .zero
+            let dragAmount = abs(translation.height)
 
-            // Check collision at current position
-            let newCollisionState = proposedHasCollision
-            if newCollisionState != hasCollision {
-                hasCollision = newCollisionState
-                HapticManager.shared.trigger(hasCollision ? .warning : .selection)
+            // Only enter visual drag mode after sufficient movement
+            if !isDragging && dragAmount >= minimumDragDistance {
+                isDragging = true
             }
 
-            // Haptic on grid snap
-            let snappedTime = proposedTime
-            if let lastSnap = lastSnapTime, snappedTime != lastSnap {
-                HapticManager.shared.trigger(.selection)
+            // Update drag offset only when in drag mode
+            if isDragging {
+                dragOffset = translation
+
+                // Check collision at current position
+                let newCollisionState = proposedHasCollision
+                if newCollisionState != hasCollision {
+                    hasCollision = newCollisionState
+                    HapticManager.shared.trigger(hasCollision ? .warning : .selection)
+                }
+
+                // Haptic on grid snap
+                let snappedTime = proposedTime
+                if let lastSnap = lastSnapTime, snappedTime != lastSnap {
+                    HapticManager.shared.trigger(.selection)
+                }
+                lastSnapTime = snappedTime
             }
-            lastSnapTime = snappedTime
 
         default:
             break
@@ -197,33 +212,39 @@ struct DraggableTaskView: View {
     @State private var lastSnapTime: Date?
 
     private func handleDragEnded(value: SequenceGesture<LongPressGesture, DragGesture>.Value) {
-        isDragging = false
         lastSnapTime = nil
 
-        // Check if dropping on collision
-        if hasCollision {
-            // Bounce back to original position
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                dragOffset = .zero
-                hasCollision = false
-                showBounceAnimation = true
-            }
-            HapticManager.shared.trigger(.error)
+        // Only process drop if user was actually dragging
+        if isDragging {
+            // Check if dropping on collision
+            if hasCollision {
+                // Bounce back to original position
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                    dragOffset = .zero
+                    hasCollision = false
+                    showBounceAnimation = true
+                }
+                HapticManager.shared.trigger(.error)
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                showBounceAnimation = false
-            }
-        } else {
-            // Valid drop - update task
-            let snappedTime = proposedTime
-            task.scheduleAt(time: snappedTime)
-            try? modelContext.save()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showBounceAnimation = false
+                }
+            } else {
+                // Valid drop - update task
+                let snappedTime = proposedTime
+                task.scheduleAt(time: snappedTime)
+                try? modelContext.save()
 
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                dragOffset = .zero
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    dragOffset = .zero
+                }
+                HapticManager.shared.trigger(.success)
             }
-            HapticManager.shared.trigger(.success)
         }
+
+        // Reset all drag states
+        isDragging = false
+        isLongPressActive = false
     }
 
     // MARK: - Helper Methods

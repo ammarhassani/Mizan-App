@@ -30,6 +30,7 @@ enum AIIntent: Codable {
     case queryPrayers(date: String?)
     case querySchedule(date: String?)
     case queryAvailableTime(date: String?)
+    case analyzeSchedule(date: String?, focusArea: String?, suggestHabits: Bool, habitCategories: [String]?)
 
     // MARK: - Settings
     case toggleNawafil(type: String?, enabled: Bool)
@@ -350,4 +351,47 @@ enum AIActionError: LocalizedError {
     var arabicDescription: String {
         errorDescription ?? "حدث خطأ غير معروف"
     }
+}
+
+// MARK: - Schedule Analysis
+
+/// Result of schedule analysis with habit suggestions
+struct ScheduleAnalysis: Codable {
+    var date: String
+    var freeSlots: [FreeTimeSlot]
+    var suggestions: [HabitSuggestion]
+    var summary: ScheduleSummary
+}
+
+/// A free time slot in the schedule
+struct FreeTimeSlot: Codable, Identifiable {
+    var id: String { "\(startTime)-\(endTime)" }
+    var startTime: String       // HH:mm
+    var endTime: String         // HH:mm
+    var durationMinutes: Int
+    var timeOfDay: String       // morning, afternoon, evening, night
+    var afterPrayer: String?    // If this slot is right after a prayer
+}
+
+/// A habit suggestion for a time slot
+struct HabitSuggestion: Codable, Identifiable {
+    var id: String { "\(slotStartTime)-\(title)" }
+    var title: String           // Arabic title
+    var titleEnglish: String?   // English fallback
+    var category: String        // worship, health, study, personal, social
+    var duration: Int           // Suggested duration in minutes
+    var icon: String            // SF Symbol
+    var slotStartTime: String   // Which slot this fits
+    var reason: String          // Why this is suggested (Arabic)
+    var isRecurringRecommended: Bool
+}
+
+/// Summary of the schedule analysis
+struct ScheduleSummary: Codable {
+    var totalFreeMinutes: Int
+    var totalScheduledMinutes: Int
+    var prayerCount: Int
+    var taskCount: Int
+    var busiestPeriod: String?  // morning, afternoon, evening
+    var freestPeriod: String?   // morning, afternoon, evening
 }

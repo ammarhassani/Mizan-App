@@ -300,6 +300,23 @@ final class AppEnvironment: ObservableObject {
                         userSettings: userSettings
                     )
                     MizanLogger.shared.notification.info("Scheduled tomorrow's prayer notifications")
+
+                    // Schedule day-after-tomorrow's Fajr as safety net
+                    if let dayAfterTomorrow = Calendar.current.date(byAdding: .day, value: 2, to: Date()) {
+                        let dayAfterTomorrowPrayers = try await prayerTimeService.fetchPrayerTimes(
+                            for: dayAfterTomorrow,
+                            latitude: lat,
+                            longitude: lon,
+                            method: userSettings.calculationMethod
+                        )
+                        if let fajr = dayAfterTomorrowPrayers.first(where: { $0.prayerType == .fajr }) {
+                            await notificationManager.schedulePrayerNotifications(
+                                for: [fajr],
+                                userSettings: userSettings
+                            )
+                            MizanLogger.shared.notification.info("Scheduled day-after-tomorrow's Fajr notification")
+                        }
+                    }
                 } catch {
                     MizanLogger.shared.notification.warning("Failed to schedule tomorrow's notifications: \(error.localizedDescription)")
                 }
@@ -316,8 +333,25 @@ final class AppEnvironment: ObservableObject {
                 )
             }
 
+            // Schedule nawafil notifications (Pro feature)
+            if userSettings.isPro && userSettings.nawafilEnabled {
+                let nawafilDescriptor = FetchDescriptor<NawafilPrayer>()
+                if let allNawafil = try? modelContext.fetch(nawafilDescriptor) {
+                    let startOfDay = Calendar.current.startOfDay(for: Date())
+                    let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+                    let todayNawafil = allNawafil.filter { $0.date >= startOfDay && $0.date < endOfDay }
+                    await notificationManager.scheduleNawafilNotifications(
+                        for: todayNawafil,
+                        userSettings: userSettings
+                    )
+                    MizanLogger.shared.notification.info("Scheduled \(todayNawafil.count) nawafil notifications")
+                }
+            }
+
             // Track when we last scheduled notifications
             lastNotificationScheduleDate = Calendar.current.startOfDay(for: Date())
+        } else if userSettings.lastKnownLatitude == nil || userSettings.lastKnownLongitude == nil {
+            MizanLogger.shared.notification.warning("Cannot schedule notifications: location not set")
         }
 
         isInitialized = true
@@ -364,6 +398,7 @@ final class AppEnvironment: ObservableObject {
 
         guard let lat = userSettings.lastKnownLatitude,
               let lon = userSettings.lastKnownLongitude else {
+            MizanLogger.shared.notification.warning("Cannot reschedule notifications: location not set")
             return
         }
 
@@ -373,8 +408,9 @@ final class AppEnvironment: ObservableObject {
 
         MizanLogger.shared.notification.info("New day detected - rescheduling notifications...")
 
-        // Remove old prayer notifications
+        // Remove old prayer and nawafil notifications
         notificationManager.removeAllPrayerNotifications()
+        notificationManager.removeAllNawafilNotifications()
 
         // Fetch and schedule today's prayers
         do {
@@ -401,6 +437,40 @@ final class AppEnvironment: ObservableObject {
                     for: tomorrowPrayers,
                     userSettings: userSettings
                 )
+
+                // Schedule day-after-tomorrow's Fajr as safety net
+                if let dayAfterTomorrow = Calendar.current.date(byAdding: .day, value: 2, to: Date()) {
+                    let dayAfterTomorrowPrayers = try await prayerTimeService.fetchPrayerTimes(
+                        for: dayAfterTomorrow,
+                        latitude: lat,
+                        longitude: lon,
+                        method: userSettings.calculationMethod
+                    )
+                    if let fajr = dayAfterTomorrowPrayers.first(where: { $0.prayerType == .fajr }) {
+                        await notificationManager.schedulePrayerNotifications(
+                            for: [fajr],
+                            userSettings: userSettings
+                        )
+                    }
+                }
+            }
+
+            // Reschedule nawafil notifications (Pro feature)
+            if userSettings.isPro && userSettings.nawafilEnabled {
+                // Regenerate nawafil for today with fresh prayer times
+                generateNawafilForDate(Date(), prayerTimes: todayPrayers)
+
+                // Fetch and schedule nawafil notifications
+                let nawafilDescriptor = FetchDescriptor<NawafilPrayer>()
+                if let allNawafil = try? modelContext.fetch(nawafilDescriptor) {
+                    let startOfDay = Calendar.current.startOfDay(for: Date())
+                    let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+                    let todayNawafil = allNawafil.filter { $0.date >= startOfDay && $0.date < endOfDay }
+                    await notificationManager.scheduleNawafilNotifications(
+                        for: todayNawafil,
+                        userSettings: userSettings
+                    )
+                }
             }
 
             lastNotificationScheduleDate = today
@@ -549,6 +619,18 @@ final class AppEnvironment: ObservableObject {
         do {
             try modelContext.save()
             MizanLogger.shared.nawafil.info("Generated \(newNawafil.count) nawafil for today")
+
+            // Schedule notifications for the new nawafil
+            _Concurrency.Task {
+                // Remove old nawafil notifications first
+                notificationManager.removeAllNawafilNotifications()
+                // Schedule new ones
+                await notificationManager.scheduleNawafilNotifications(
+                    for: newNawafil,
+                    userSettings: userSettings
+                )
+                MizanLogger.shared.notification.info("Rescheduled \(newNawafil.count) nawafil notifications")
+            }
         } catch {
             MizanLogger.shared.nawafil.error("Failed to save nawafil: \(error.localizedDescription)")
         }

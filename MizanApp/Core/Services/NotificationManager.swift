@@ -396,6 +396,69 @@ final class NotificationManager: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - Nawafil Notifications
+
+    /// Schedule notification for a nawafil prayer
+    func scheduleNawafilNotification(for nawafil: NawafilPrayer, userSettings: UserSettings) async {
+        // Check global notification settings
+        guard isEnabled, userSettings.notificationsEnabled, userSettings.isPro else { return }
+
+        // Check if this specific nawafil type is enabled by the user
+        guard userSettings.isNawafilEnabled(type: nawafil.nawafilType) else { return }
+
+        // Don't schedule past nawafil
+        guard nawafil.suggestedTime > Date() else { return }
+
+        let nawafilConfig = config.nawafilNotifications.reminder
+
+        let content = UNMutableNotificationContent()
+        content.title = nawafilConfig.titleTemplateArabic
+            .replacingOccurrences(of: "{nawafil_name}", with: nawafil.arabicName)
+        content.body = nawafilConfig.bodyTemplateArabic
+        content.sound = .default
+        content.categoryIdentifier = "NAWAFIL_REMINDER"
+        content.userInfo = [
+            "nawafilId": nawafil.id.uuidString,
+            "nawafilType": nawafil.nawafilType
+        ]
+
+        let triggerComponents = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: nawafil.suggestedTime
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerComponents, repeats: false)
+
+        let identifier = "nawafil_\(nawafil.id.uuidString)"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            MizanLogger.shared.notification.debug("Scheduled nawafil notification: \(nawafil.arabicName)")
+        } catch {
+            MizanLogger.shared.notification.error("Failed to schedule nawafil notification: \(error.localizedDescription)")
+        }
+    }
+
+    /// Schedule notifications for all nawafil
+    func scheduleNawafilNotifications(for nawafilList: [NawafilPrayer], userSettings: UserSettings) async {
+        for nawafil in nawafilList {
+            await scheduleNawafilNotification(for: nawafil, userSettings: userSettings)
+        }
+    }
+
+    /// Remove all nawafil notifications
+    func removeAllNawafilNotifications() {
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            let nawafilIdentifiers = requests
+                .filter { $0.identifier.starts(with: "nawafil_") }
+                .map { $0.identifier }
+
+            UNUserNotificationCenter.current().removePendingNotificationRequests(
+                withIdentifiers: nawafilIdentifiers
+            )
+        }
+    }
+
     // MARK: - Adhan Playback
 
     /// Resolve the notification sound file for adhan - tries notification version first, then original

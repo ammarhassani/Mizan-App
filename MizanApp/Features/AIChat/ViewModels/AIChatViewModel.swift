@@ -211,7 +211,7 @@ final class AIChatViewModel: ObservableObject {
             let result = await executor.executeWithErrorHandling(intent)
             handleActionResult(result)
 
-        case .queryTasks, .queryPrayers, .querySchedule, .queryAvailableTime:
+        case .queryTasks, .queryPrayers, .querySchedule, .queryAvailableTime, .analyzeSchedule:
             // Execute read-only queries immediately
             let result = await executor.executeWithErrorHandling(intent)
             handleActionResult(result)
@@ -326,6 +326,45 @@ final class AIChatViewModel: ObservableObject {
                 addAssistantMessage("⏰ \(slots.count) أوقات متاحة:")
             }
             HapticManager.shared.trigger(.light)
+
+        case .scheduleAnalysis(let analysis):
+            // Build a rich analysis message
+            var message = "📊 **تحليل جدولك:**\n\n"
+
+            // Summary
+            let hours = analysis.summary.totalFreeMinutes / 60
+            let mins = analysis.summary.totalFreeMinutes % 60
+            message += "⏱ **الوقت الفارغ:** \(hours) ساعة"
+            if mins > 0 { message += " و\(mins) دقيقة" }
+            message += "\n"
+            message += "📋 **المهام:** \(analysis.summary.taskCount) مهام\n"
+            message += "🕌 **الصلوات:** \(analysis.summary.prayerCount) صلوات\n\n"
+
+            // Free slots
+            if !analysis.freeSlots.isEmpty {
+                message += "**الأوقات الفارغة:**\n"
+                for slot in analysis.freeSlots.prefix(5) {
+                    let period = periodArabic(slot.timeOfDay)
+                    message += "• \(slot.startTime) - \(slot.endTime) (\(slot.durationMinutes) د) - \(period)"
+                    if let prayer = slot.afterPrayer {
+                        message += " بعد \(prayer)"
+                    }
+                    message += "\n"
+                }
+                message += "\n"
+            }
+
+            // Habit suggestions
+            if !analysis.suggestions.isEmpty {
+                message += "**💡 عادات مقترحة:**\n"
+                for suggestion in analysis.suggestions.prefix(5) {
+                    message += "• **\(suggestion.title)** (\(suggestion.duration) د)\n"
+                    message += "  \(suggestion.reason)\n"
+                }
+            }
+
+            addAssistantMessage(message)
+            HapticManager.shared.trigger(.success)
 
         case .nawafilToggled(let type, let enabled):
             let status = enabled ? "تفعيل" : "تعطيل"
@@ -774,6 +813,17 @@ final class AIChatViewModel: ObservableObject {
             return recurrence.interval == 1 ? "شهريا" : "كل \(recurrence.interval) أشهر"
         default:
             return recurrence.frequency
+        }
+    }
+
+    /// Convert time of day to Arabic
+    private func periodArabic(_ period: String) -> String {
+        switch period {
+        case "morning": return "الصباح"
+        case "afternoon": return "بعد الظهر"
+        case "evening": return "المساء"
+        case "night": return "الليل"
+        default: return period
         }
     }
 }

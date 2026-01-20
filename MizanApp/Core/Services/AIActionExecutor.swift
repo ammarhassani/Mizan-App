@@ -73,6 +73,14 @@ final class AIActionExecutor {
         case .queryAvailableTime(let date):
             return try await executeQueryAvailableTime(date: date)
 
+        case .analyzeSchedule(let date, let focusArea, let suggestHabits, let habitCategories):
+            return try await executeAnalyzeSchedule(
+                date: date,
+                focusArea: focusArea,
+                suggestHabits: suggestHabits,
+                habitCategories: habitCategories
+            )
+
         case .findAvailableSlot(let duration, let date, let preferredTime, let afterPrayer):
             return try await executeFindAvailableSlot(
                 duration: duration,
@@ -610,6 +618,224 @@ final class AIActionExecutor {
             alternative: "جرب يوم آخر أو مدة أقصر",
             manualAction: .openTimeline
         )
+    }
+
+    // MARK: - Schedule Analysis
+
+    private func executeAnalyzeSchedule(
+        date: String?,
+        focusArea: String?,
+        suggestHabits: Bool,
+        habitCategories: [String]?
+    ) async throws -> AIActionResult {
+        let targetDate = date != nil ? parseDate(date!) : Date()
+        let context = try await contextBuilder.buildContext(for: targetDate)
+
+        // Convert available slots to FreeTimeSlot format
+        var freeSlots: [FreeTimeSlot] = []
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+
+        for slot in context.availableSlots {
+            let startTimeStr = timeFormatter.string(from: slot.startTime)
+            let endTimeStr = timeFormatter.string(from: slot.endTime)
+            let timeOfDay = getTimeOfDay(from: slot.startTime)
+
+            // Find if this is after a prayer
+            var afterPrayer: String? = nil
+            for prayer in context.prayers {
+                let prayerEnd = prayer.adhanTime.addingTimeInterval(Double(prayer.duration + 10) * 60)
+                if abs(slot.startTime.timeIntervalSince(prayerEnd)) < 300 { // Within 5 min
+                    afterPrayer = prayer.nameArabic
+                    break
+                }
+            }
+
+            // Apply focus area filter if specified
+            if let focus = focusArea, focus != "all" {
+                if focus != timeOfDay && focus != "after_prayers" {
+                    continue
+                }
+                if focus == "after_prayers" && afterPrayer == nil {
+                    continue
+                }
+            }
+
+            freeSlots.append(FreeTimeSlot(
+                startTime: startTimeStr,
+                endTime: endTimeStr,
+                durationMinutes: slot.durationMinutes,
+                timeOfDay: timeOfDay,
+                afterPrayer: afterPrayer
+            ))
+        }
+
+        // Generate habit suggestions if requested
+        var suggestions: [HabitSuggestion] = []
+        if suggestHabits {
+            suggestions = generateHabitSuggestions(
+                forSlots: freeSlots,
+                categories: habitCategories,
+                prayers: context.prayers
+            )
+        }
+
+        // Build summary
+        let totalFreeMinutes = freeSlots.reduce(0) { $0 + $1.durationMinutes }
+        let totalScheduledMinutes = context.tasks.today.reduce(0) { $0 + $1.duration }
+
+        // Calculate busiest/freest periods
+        let morningFree = freeSlots.filter { $0.timeOfDay == "morning" }.reduce(0) { $0 + $1.durationMinutes }
+        let afternoonFree = freeSlots.filter { $0.timeOfDay == "afternoon" }.reduce(0) { $0 + $1.durationMinutes }
+        let eveningFree = freeSlots.filter { $0.timeOfDay == "evening" }.reduce(0) { $0 + $1.durationMinutes }
+
+        let freestPeriod: String?
+        let busiestPeriod: String?
+
+        let maxFree = max(morningFree, max(afternoonFree, eveningFree))
+        let minFree = min(morningFree, min(afternoonFree, eveningFree))
+
+        if maxFree == morningFree { freestPeriod = "morning" }
+        else if maxFree == afternoonFree { freestPeriod = "afternoon" }
+        else { freestPeriod = "evening" }
+
+        if minFree == morningFree { busiestPeriod = "morning" }
+        else if minFree == afternoonFree { busiestPeriod = "afternoon" }
+        else { busiestPeriod = "evening" }
+
+        let summary = ScheduleSummary(
+            totalFreeMinutes: totalFreeMinutes,
+            totalScheduledMinutes: totalScheduledMinutes,
+            prayerCount: context.prayers.count,
+            taskCount: context.tasks.today.count,
+            busiestPeriod: busiestPeriod,
+            freestPeriod: freestPeriod
+        )
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        let analysis = ScheduleAnalysis(
+            date: dateFormatter.string(from: targetDate),
+            freeSlots: freeSlots,
+            suggestions: suggestions,
+            summary: summary
+        )
+
+        return .scheduleAnalysis(analysis: analysis)
+    }
+
+    /// Determine time of day from a date
+    private func getTimeOfDay(from date: Date) -> String {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: date)
+
+        switch hour {
+        case 5..<12: return "morning"
+        case 12..<17: return "afternoon"
+        case 17..<21: return "evening"
+        default: return "night"
+        }
+    }
+
+    /// Generate smart habit suggestions based on available slots
+    private func generateHabitSuggestions(
+        forSlots slots: [FreeTimeSlot],
+        categories: [String]?,
+        prayers: [PrayerContext]
+    ) -> [HabitSuggestion] {
+        var suggestions: [HabitSuggestion] = []
+        let allowedCategories = Set(categories ?? ["worship", "health", "study", "personal", "social"])
+
+        // Habit templates by time of day and duration
+        let habitTemplates: [String: [(title: String, titleEn: String, category: String, duration: Int, icon: String, reason: String, recurring: Bool)]] = [
+            "morning": [
+                ("صلاة الضحى", "Duha Prayer", "worship", 15, "sun.max.fill", "أفضل وقت لصلاة الضحى", true),
+                ("قراءة القرآن", "Quran Reading", "worship", 30, "book.fill", "وقت البركة الصباحية", true),
+                ("تمارين رياضية", "Morning Exercise", "health", 45, "figure.run", "الرياضة الصباحية تزيد النشاط", true),
+                ("مراجعة الأهداف", "Review Goals", "personal", 15, "target", "ابدأ يومك بوضوح", true),
+                ("تعلم شيء جديد", "Learn Something New", "study", 30, "lightbulb.fill", "العقل أنشط في الصباح", true)
+            ],
+            "afternoon": [
+                ("قيلولة قصيرة", "Power Nap", "health", 20, "bed.double.fill", "القيلولة سنة وتجدد النشاط", false),
+                ("قراءة كتاب", "Book Reading", "study", 30, "book.closed.fill", "استثمر وقت ما بعد الغداء", false),
+                ("مشي خفيف", "Light Walk", "health", 20, "figure.walk", "المشي بعد الأكل مفيد للهضم", false),
+                ("أذكار المساء", "Evening Adhkar", "worship", 15, "sparkles", "لا تنس أذكار المساء", true)
+            ],
+            "evening": [
+                ("قراءة القرآن", "Quran Reading", "worship", 30, "book.fill", "ختم يومك بالقرآن", true),
+                ("وقت عائلي", "Family Time", "social", 60, "person.3.fill", "قضاء وقت مع الأهل", false),
+                ("مراجعة اليوم", "Day Review", "personal", 15, "checklist", "راجع إنجازاتك اليومية", true),
+                ("تحضير للغد", "Prepare for Tomorrow", "personal", 15, "calendar.badge.clock", "خطط ليومك القادم", true),
+                ("استرخاء", "Relaxation", "health", 30, "leaf.fill", "وقت للراحة والاسترخاء", false)
+            ],
+            "night": [
+                ("صلاة الوتر", "Witr Prayer", "worship", 15, "moon.stars.fill", "لا تنم قبل الوتر", true),
+                ("قراءة قبل النوم", "Bedtime Reading", "study", 20, "book.closed.fill", "القراءة تساعد على النوم", false),
+                ("أذكار النوم", "Sleep Adhkar", "worship", 10, "moon.fill", "أذكار قبل النوم", true)
+            ]
+        ]
+
+        // Special habits for after specific prayers
+        let afterPrayerHabits: [String: (title: String, titleEn: String, category: String, duration: Int, icon: String, reason: String, recurring: Bool)] = [
+            "الفجر": ("أذكار الصباح", "Morning Adhkar", "worship", 15, "sunrise.fill", "أفضل وقت لأذكار الصباح", true),
+            "الظهر": ("راحة قصيرة", "Short Rest", "health", 15, "bed.double.fill", "استراحة منتصف اليوم", false),
+            "العصر": ("قراءة", "Reading", "study", 30, "book.fill", "وقت هادئ للقراءة", false),
+            "المغرب": ("أذكار المساء", "Evening Adhkar", "worship", 15, "sunset.fill", "وقت أذكار المساء", true),
+            "العشاء": ("صلاة الوتر", "Witr Prayer", "worship", 15, "moon.stars.fill", "ختم صلاة الليل", true)
+        ]
+
+        for slot in slots {
+            // Get time-of-day appropriate habits
+            let timeHabits = habitTemplates[slot.timeOfDay] ?? habitTemplates["afternoon"]!
+
+            // Check for after-prayer specific habits first
+            if let prayerName = slot.afterPrayer,
+               let prayerHabit = afterPrayerHabits[prayerName],
+               allowedCategories.contains(prayerHabit.category),
+               prayerHabit.duration <= slot.durationMinutes {
+
+                suggestions.append(HabitSuggestion(
+                    title: prayerHabit.title,
+                    titleEnglish: prayerHabit.titleEn,
+                    category: prayerHabit.category,
+                    duration: prayerHabit.duration,
+                    icon: prayerHabit.icon,
+                    slotStartTime: slot.startTime,
+                    reason: prayerHabit.reason,
+                    isRecurringRecommended: prayerHabit.recurring
+                ))
+            }
+
+            // Add time-of-day habits that fit the slot
+            for habit in timeHabits {
+                guard allowedCategories.contains(habit.category),
+                      habit.duration <= slot.durationMinutes else { continue }
+
+                // Avoid duplicates
+                if suggestions.contains(where: { $0.title == habit.title && $0.slotStartTime == slot.startTime }) {
+                    continue
+                }
+
+                suggestions.append(HabitSuggestion(
+                    title: habit.title,
+                    titleEnglish: habit.titleEn,
+                    category: habit.category,
+                    duration: habit.duration,
+                    icon: habit.icon,
+                    slotStartTime: slot.startTime,
+                    reason: habit.reason,
+                    isRecurringRecommended: habit.recurring
+                ))
+
+                // Limit suggestions per slot
+                let slotSuggestions = suggestions.filter { $0.slotStartTime == slot.startTime }
+                if slotSuggestions.count >= 3 { break }
+            }
+        }
+
+        // Limit total suggestions
+        return Array(suggestions.prefix(10))
     }
 
     // MARK: - Settings Operations

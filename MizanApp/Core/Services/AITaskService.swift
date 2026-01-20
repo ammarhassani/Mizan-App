@@ -637,6 +637,13 @@ final class AITaskService: AITaskServiceProtocol {
             let manualSteps = args["manual_steps"] as? [String]
             return .cannotFulfill(reason: reason, alternative: alternative, manualSteps: manualSteps)
 
+        case "analyze_schedule":
+            let date = args["date"] as? String
+            let focusArea = args["focus_area"] as? String
+            let suggestHabits = args["suggest_habits"] as? Bool ?? true
+            let habitCategories = args["habit_categories"] as? [String]
+            return .analyzeSchedule(date: date, focusArea: focusArea, suggestHabits: suggestHabits, habitCategories: habitCategories)
+
         default:
             MizanLogger.shared.lifecycle.error("Unknown tool call: \(result.functionName)")
             return .cannotFulfill(reason: "طلب غير معروف", alternative: nil, manualSteps: nil)

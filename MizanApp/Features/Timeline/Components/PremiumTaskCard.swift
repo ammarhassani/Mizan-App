@@ -37,7 +37,8 @@ struct PremiumTaskCard: View {
     @State private var appearOpacity: Double = 0
 
     // MARK: - Drag State
-    @State private var isDragging: Bool = false
+    @State private var isLongPressActive: Bool = false  // Long press recognized, ready to drag
+    @State private var isDragging: Bool = false         // Actually dragging (movement detected)
     @State private var dragOffset: CGFloat = 0
     @State private var hasCollision: Bool = false
     @State private var cardGlobalY: CGFloat = 0
@@ -256,31 +257,44 @@ struct PremiumTaskCard: View {
 
     // MARK: - Drag Gesture
 
+    /// Minimum drag distance before entering visual drag mode
+    private let minimumDragDistance: CGFloat = 10
+
     private var dragGesture: some Gesture {
         LongPressGesture(minimumDuration: 0.3)
             .sequenced(before: DragGesture(coordinateSpace: .global))
             .onChanged { value in
                 switch value {
                 case .first(true):
-                    // Long press recognized, prepare for drag
-                    if isDragEnabled && !isDragging {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            isDragging = true
-                        }
+                    // Long press recognized - just mark as ready, don't show drag visuals yet
+                    if isDragEnabled && !isLongPressActive {
+                        isLongPressActive = true
                         HapticManager.shared.trigger(.medium)
                     }
                 case .second(true, let drag):
-                    // Dragging
+                    // Dragging - only enter visual drag mode after minimum movement
                     if isDragEnabled, let drag = drag {
-                        dragOffset = drag.translation.height
-                        hasCollision = proposedHasCollision
-                        if hasCollision {
-                            HapticManager.shared.trigger(.warning)
+                        let dragAmount = abs(drag.translation.height)
+
+                        // Only enter visual drag mode after sufficient movement
+                        if !isDragging && dragAmount >= minimumDragDistance {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                isDragging = true
+                            }
                         }
 
-                        // Track global position for edge detection (auto-scroll)
-                        let globalY = drag.location.y
-                        detectEdgeProximity(globalY: globalY)
+                        // Update drag offset only when in drag mode
+                        if isDragging {
+                            dragOffset = drag.translation.height
+                            hasCollision = proposedHasCollision
+                            if hasCollision {
+                                HapticManager.shared.trigger(.warning)
+                            }
+
+                            // Track global position for edge detection (auto-scroll)
+                            let globalY = drag.location.y
+                            detectEdgeProximity(globalY: globalY)
+                        }
                     }
                 default:
                     break
@@ -293,12 +307,14 @@ struct PremiumTaskCard: View {
                     onDragNearEdge?(.none)
                 }
 
-                if case .second(true, let drag) = value, isDragEnabled {
+                if case .second(true, let drag) = value, isDragEnabled, isDragging {
+                    // User was actually dragging
                     if hasCollision {
                         // Bounce back on collision
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                             dragOffset = 0
                             isDragging = false
+                            isLongPressActive = false
                             hasCollision = false
                         }
                         HapticManager.shared.trigger(.error)
@@ -309,24 +325,27 @@ struct PremiumTaskCard: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             dragOffset = 0
                             isDragging = false
+                            isLongPressActive = false
                         }
                     } else {
                         // Reset
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             dragOffset = 0
                             isDragging = false
+                            isLongPressActive = false
                             hasCollision = false
                         }
                     }
                 } else {
-                    // Long press ended without drag - treat as tap
-                    if !isDragging {
+                    // Long press ended without actual drag movement - treat as tap
+                    if isLongPressActive && !isDragging {
                         onTap?()
                         HapticManager.shared.trigger(.light)
                     }
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         dragOffset = 0
                         isDragging = false
+                        isLongPressActive = false
                         hasCollision = false
                     }
                 }

@@ -58,6 +58,9 @@ enum AIActionResult {
     /// Available time query result
     case availableSlots(slots: [TimeSlot])
 
+    /// Schedule analysis with habit suggestions
+    case scheduleAnalysis(analysis: ScheduleAnalysis)
+
     // MARK: - Settings Results
 
     /// Nawafil toggled
@@ -233,6 +236,7 @@ extension AIActionResult {
         case .prayerList: return "أوقات الصلاة"
         case .schedule: return "الجدول"
         case .availableSlots: return "الأوقات المتاحة"
+        case .scheduleAnalysis: return "تحليل الجدول"
         case .nawafilToggled(_, let enabled): return enabled ? "تم تفعيل النوافل" : "تم تعطيل النوافل"
         case .settingChanged: return "تم تغيير الإعداد"
         case .needsClarification: return "أحتاج توضيح"
@@ -261,6 +265,7 @@ extension AIActionResult {
         case .prayerList: return "moon.stars.fill"
         case .schedule: return "calendar"
         case .availableSlots: return "clock"
+        case .scheduleAnalysis: return "chart.bar.doc.horizontal.fill"
         case .nawafilToggled: return "sparkles"
         case .settingChanged: return "gearshape.fill"
         case .needsClarification: return "questionmark.circle.fill"
@@ -345,7 +350,7 @@ extension AIActionResult {
             return .error
         case .confirmationRequired(let action):
             return action.isDestructive ? .error : .warning
-        case .taskList, .prayerList, .schedule, .availableSlots, .suggestions, .explanation:
+        case .taskList, .prayerList, .schedule, .availableSlots, .scheduleAnalysis, .suggestions, .explanation:
             return .info
         }
     }

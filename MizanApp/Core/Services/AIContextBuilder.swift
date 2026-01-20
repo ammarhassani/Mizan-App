@@ -173,7 +173,8 @@ final class AIContextBuilder {
     private func calculateAvailableSlots(
         tasks: [Task],
         prayers: [PrayerTime],
-        date: Date
+        date: Date,
+        futureOnly: Bool = false
     ) -> [TimeSlot] {
         var slots: [TimeSlot] = []
         let calendar = Calendar.current
@@ -182,15 +183,22 @@ final class AIContextBuilder {
         var dayStart = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: date)!
         let dayEnd = calendar.date(bySettingHour: 23, minute: 0, second: 0, of: date)!
 
-        // If it's past 6 AM, start from current time (rounded up to next 15 min)
+        // Only filter by current time if futureOnly is true and we're analyzing today
         let now = Date()
-        if now > dayStart {
+        if futureOnly && calendar.isDateInToday(date) && now > dayStart {
             let minute = calendar.component(.minute, from: now)
             let roundedMinute = ((minute / 15) + 1) * 15
-            dayStart = calendar.date(bySettingHour: calendar.component(.hour, from: now), minute: roundedMinute % 60, second: 0, of: now)!
+            // Use 'date' as base, not 'now', to ensure correct day
+            dayStart = calendar.date(bySettingHour: calendar.component(.hour, from: now), minute: roundedMinute % 60, second: 0, of: date)!
             if roundedMinute >= 60 {
                 dayStart = calendar.date(byAdding: .hour, value: 1, to: dayStart)!
             }
+        }
+
+        // Safety check: ensure dayStart is before dayEnd
+        guard dayStart < dayEnd else {
+            logger.warning("calculateAvailableSlots: dayStart >= dayEnd, returning empty slots")
+            return []
         }
 
         // Collect all blocked time ranges
@@ -198,29 +206,49 @@ final class AIContextBuilder {
 
         // Add prayer times with buffers
         for prayer in prayers {
-            let bufferBefore = TimeInterval(prayer.bufferBefore * 60)
-            let bufferAfter = TimeInterval(prayer.bufferAfter * 60)
+            // Cap buffer values to reasonable limits (max 30 min each)
+            let bufferBefore = TimeInterval(min(prayer.bufferBefore, 30) * 60)
+            let bufferAfter = TimeInterval(min(prayer.bufferAfter, 30) * 60)
             let duration = TimeInterval(prayer.duration * 60)
 
             let start = prayer.adhanTime.addingTimeInterval(-bufferBefore)
             let end = prayer.adhanTime.addingTimeInterval(duration + bufferAfter)
-            blockedRanges.append((start: start, end: end))
+
+            // Only include if within day bounds
+            if end > dayStart && start < dayEnd {
+                blockedRanges.append((start: max(start, dayStart), end: min(end, dayEnd)))
+            }
         }
 
         // Add task times
         for task in tasks {
             guard let startTime = task.scheduledStartTime,
                   let endTime = task.endTime else { continue }
-            blockedRanges.append((start: startTime, end: endTime))
+
+            // Only include if within day bounds
+            if endTime > dayStart && startTime < dayEnd {
+                blockedRanges.append((start: max(startTime, dayStart), end: min(endTime, dayEnd)))
+            }
         }
 
         // Sort blocked ranges by start time
         blockedRanges.sort { $0.start < $1.start }
 
+        // Merge overlapping ranges to avoid double-counting
+        var mergedRanges: [(start: Date, end: Date)] = []
+        for range in blockedRanges {
+            if let last = mergedRanges.last, range.start <= last.end {
+                // Overlapping - extend the last range
+                mergedRanges[mergedRanges.count - 1].end = max(last.end, range.end)
+            } else {
+                mergedRanges.append(range)
+            }
+        }
+
         // Find gaps
         var currentTime = dayStart
 
-        for blocked in blockedRanges {
+        for blocked in mergedRanges {
             if blocked.start > currentTime {
                 // There's a gap before this blocked range
                 let gap = TimeSlot(startTime: currentTime, endTime: blocked.start)
@@ -228,10 +256,8 @@ final class AIContextBuilder {
                     slots.append(gap)
                 }
             }
-            // Move current time to end of blocked range if it's later
-            if blocked.end > currentTime {
-                currentTime = blocked.end
-            }
+            // Move current time to end of blocked range
+            currentTime = max(currentTime, blocked.end)
         }
 
         // Check for gap after last blocked range
@@ -242,6 +268,7 @@ final class AIContextBuilder {
             }
         }
 
+        logger.debug("calculateAvailableSlots: found \(slots.count) slots, total \(slots.reduce(0) { $0 + $1.durationMinutes }) minutes")
         return slots
     }
 
