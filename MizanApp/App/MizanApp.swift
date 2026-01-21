@@ -38,11 +38,13 @@ struct MizanApp: App {
                 if isInitializing {
                     SplashScreen()
                         .environmentObject(appEnvironment.themeManager)
+                        .environmentObject(DarkMatterTheme.shared)
                         .transition(.opacity)
                 } else {
                     ContentView()
                         .environmentObject(appEnvironment)
                         .environmentObject(appEnvironment.themeManager)
+                        .environmentObject(DarkMatterTheme.shared)
                         .environmentObject(appEnvironment.locationManager)
                         .environmentObject(appEnvironment.prayerTimeService)
                         .modelContainer(appEnvironment.modelContainer)
@@ -827,5 +829,6 @@ struct AIChatView: View {
     ContentView()
         .environmentObject(AppEnvironment.preview())
         .environmentObject(AppEnvironment.preview().themeManager)
+        .environmentObject(DarkMatterTheme.shared)
         .modelContainer(AppEnvironment.preview().modelContainer)
 }
