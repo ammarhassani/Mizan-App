@@ -1,693 +1,112 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "themes": [
     {
-      "id": "noor",
-      "name": "Noor",
-      "name_arabic": "نور",
+      "id": "darkMatter",
+      "name": "Dark Matter",
+      "name_arabic": "المادة المظلمة",
       "is_pro": false,
       "colors": {
-        "background": "#F5F3EF",
-        "surface": "#FFFFFF",
-        "surface_secondary": "#F5F5F4",
-        "primary": "#14746F",
-        "primary_light": "#52B788",
-        "primary_dark": "#0E4F4A",
-        "secondary": "#0E8F8B",
-        "accent": "#D4A373",
-        "text_primary": "#1A1A1A",
-        "text_secondary": "#4B5563",
-        "text_tertiary": "#6B7280",
-        "text_on_primary": "#FFFFFF",
-        "placeholder_text": "#6B7280",
-        "prayer_gradient_start": "#14746F",
-        "prayer_gradient_end": "#52B788",
-        "success": "#059669",
-        "warning": "#92400E",
-        "error": "#EF4444",
-        "info": "#3B82F6",
-        "divider": "#9CA3AF",
-        "urgency_low": "#4B5563",
-        "urgency_medium": "#B45309",
-        "urgency_high": "#DC2626",
-        "urgency_critical": "#EF4444",
+        "background": "#000000",
+        "surface": "#0A0A0F",
+        "surface_secondary": "#12121A",
+        "primary": "#00E5CC",
+        "primary_light": "#4DFFF0",
+        "primary_dark": "#00B8A3",
+        "secondary": "#FF3CAC",
+        "accent": "#D4AF37",
+        "text_primary": "#FFFFFF",
+        "text_secondary": "#A0A0B0",
+        "text_tertiary": "#6B6B80",
+        "text_on_primary": "#000000",
+        "placeholder_text": "#6B6B80",
+        "prayer_gradient_start": "#D4AF37",
+        "prayer_gradient_end": "#00E5CC",
+        "success": "#00E676",
+        "warning": "#D4AF37",
+        "error": "#FF5252",
+        "info": "#00E5CC",
+        "divider": "#2A2A40",
+        "urgency_low": "#6B6B80",
+        "urgency_medium": "#D4AF37",
+        "urgency_high": "#FF3CAC",
+        "urgency_critical": "#FF5252",
         "task_colors": {
-          "work": "#3B82F6",
-          "personal": "#059669",
-          "study": "#8B5CF6",
-          "health": "#EF4444",
-          "social": "#92400E",
-          "worship": "#6366F1"
+          "work": "#00E5CC",
+          "personal": "#00E676",
+          "study": "#FF3CAC",
+          "health": "#FF5252",
+          "social": "#FF3CAC",
+          "worship": "#D4AF37"
         },
         "splash_text": "#FFFFFF",
-        "splash_moon": "#FFD700",
-        "splash_gradient": ["#0F4C3A", "#14746F", "#1E3A5F"],
+        "splash_moon": "#D4AF37",
+        "splash_gradient": ["#000000", "#0A0A0F", "#12121A"],
         "overlay": "#000000",
         "atmosphere": {
-          "fajr": ["#1a1a2e", "#16213e", "#0f3460"],
-          "sunrise": ["#14746F", "#52B788"],
-          "morning": ["#a8edea", "#fed6e3"],
-          "dhuhr": ["#ffecd2", "#fcb69f"],
-          "asr": ["#52B788", "#14746F"],
-          "maghrib": ["#fa709a", "#fee140"],
-          "isha": ["#2c3e50", "#4ca1af"],
-          "night": ["#0f0c29", "#302b63", "#24243e"]
+          "fajr": ["#1A1A2E", "#0A0A0F", "#000000"],
+          "sunrise": ["#D4AF37", "#00E5CC"],
+          "morning": ["#0A0A0F", "#12121A"],
+          "dhuhr": ["#00E5CC", "#0A0A0F"],
+          "asr": ["#FF3CAC", "#0A0A0F"],
+          "maghrib": ["#D4AF37", "#FF3CAC"],
+          "isha": ["#0A0A0F", "#000000"],
+          "night": ["#000000", "#0A0A0F", "#12121A"]
         },
         "particles": {
-          "fajr": "#E8D5B7",
-          "sunrise": "#FFE4B5",
-          "dhuhr": "#FFE4B5",
-          "asr": "#DDA0DD",
-          "maghrib": "#FF6B6B",
-          "isha": "#B8C4CE"
+          "fajr": "#D4AF37",
+          "sunrise": "#D4AF37",
+          "dhuhr": "#00E5CC",
+          "asr": "#FF3CAC",
+          "maghrib": "#D4AF37",
+          "isha": "#00E5CC"
         },
-        "disabled": "#6B7280",
-        "disabled_background": "#F3F4F6",
-        "border": "#D1D5DB",
-        "border_focused": "#14746F",
-        "pressed": "#0E4F4A"
+        "disabled": "#6B6B80",
+        "disabled_background": "#12121A",
+        "border": "#2A2A40",
+        "border_focused": "#00E5CC",
+        "pressed": "#00B8A3"
       },
       "glassmorphism": {
         "subtle": {
-          "blur_radius": 0.5,
-          "background_opacity": 0.7,
+          "blur_radius": 10,
+          "background_opacity": 0.04,
           "border_opacity_leading": 0.3,
           "border_opacity_trailing": 0.1,
           "accent_tint_opacity": 0.05,
-          "highlight_opacity": 0.1
+          "highlight_opacity": 0.1,
+          "glow_radius": 4,
+          "glow_opacity": 0.1
         },
         "standard": {
-          "blur_radius": 8,
-          "background_opacity": 0.5,
+          "blur_radius": 20,
+          "background_opacity": 0.06,
           "border_opacity_leading": 0.4,
           "border_opacity_trailing": 0.1,
           "accent_tint_opacity": 0.08,
-          "highlight_opacity": 0.15
-        },
-        "frosted": {
-          "blur_radius": 20,
-          "background_opacity": 0.3,
-          "border_opacity_leading": 0.5,
-          "border_opacity_trailing": 0.15,
-          "accent_tint_opacity": 0.1,
-          "highlight_opacity": 0.2
-        },
-        "prayer": {
-          "blur_radius": 12,
-          "background_opacity": 0.4,
-          "border_opacity_leading": 0.45,
-          "border_opacity_trailing": 0.12,
-          "accent_tint_opacity": 0.12,
-          "highlight_opacity": 0.18
-        }
-      },
-      "fonts": {
-        "body": "SF Pro Text",
-        "body_medium": "SF Pro Text Medium",
-        "body_semibold": "SF Pro Text Semibold",
-        "header": "SF Pro Display",
-        "header_bold": "SF Pro Display Bold",
-        "header_heavy": "SF Pro Display Heavy",
-        "arabic_body": "SF Arabic Text",
-        "arabic_body_medium": "SF Arabic Text Medium",
-        "arabic_body_semibold": "SF Arabic Text Semibold",
-        "arabic_header": "SF Arabic Display",
-        "arabic_header_bold": "SF Arabic Display Bold",
-        "arabic_header_heavy": "SF Arabic Display Heavy"
-      },
-      "shadows": {
-        "card": {
-          "color": "#00000015",
-          "radius": 8.0,
-          "x": 0.0,
-          "y": 2.0
-        },
-        "elevated": {
-          "color": "#00000025",
-          "radius": 12.0,
-          "x": 0.0,
-          "y": 4.0
-        },
-        "floating": {
-          "color": "#00000030",
-          "radius": 16.0,
-          "x": 0.0,
-          "y": 6.0
-        }
-      },
-      "corner_radius": {
-        "small": 8.0,
-        "medium": 12.0,
-        "large": 16.0,
-        "extra_large": 24.0
-      }
-    },
-    {
-      "id": "layl",
-      "name": "Layl",
-      "name_arabic": "ليل",
-      "is_pro": true,
-      "colors": {
-        "background": "#000000",
-        "surface": "#1A1A1A",
-        "surface_secondary": "#2A2A2A",
-        "primary": "#52B788",
-        "primary_light": "#74C69D",
-        "primary_dark": "#40916C",
-        "secondary": "#D4A373",
-        "accent": "#FFD700",
-        "text_primary": "#F5F5F5",
-        "text_secondary": "#A3A3A3",
-        "text_tertiary": "#9A9A9A",
-        "text_on_primary": "#000000",
-        "placeholder_text": "#8A8A8A",
-        "prayer_gradient_start": "#52B788",
-        "prayer_gradient_end": "#D4A373",
-        "success": "#52B788",
-        "warning": "#FFA500",
-        "error": "#FF6B6B",
-        "info": "#60A5FA",
-        "divider": "#6B7280",
-        "urgency_low": "#A3A3A3",
-        "urgency_medium": "#FFA500",
-        "urgency_high": "#F97316",
-        "urgency_critical": "#FF6B6B",
-        "task_colors": {
-          "work": "#60A5FA",
-          "personal": "#52B788",
-          "study": "#A78BFA",
-          "health": "#FF6B6B",
-          "social": "#FFA500",
-          "worship": "#818CF8"
-        },
-        "splash_text": "#F5F5F5",
-        "splash_moon": "#52B788",
-        "splash_gradient": ["#000000", "#1A1A1A", "#2A2A2A"],
-        "overlay": "#000000",
-        "atmosphere": {
-          "fajr": ["#0D1B2A", "#1B263B", "#2A3E50"],
-          "sunrise": ["#2A4F4F", "#52B788"],
-          "morning": ["#1A3A3A", "#2A5050"],
-          "dhuhr": ["#2A4040", "#3A5555"],
-          "asr": ["#1A3535", "#2A4545"],
-          "maghrib": ["#3A2020", "#5A3030"],
-          "isha": ["#0A1520", "#1A2530"],
-          "night": ["#050510", "#0A0A1A", "#101025"]
-        },
-        "particles": {
-          "fajr": "#52B788",
-          "sunrise": "#74C69D",
-          "dhuhr": "#D4A373",
-          "asr": "#52B788",
-          "maghrib": "#D4A373",
-          "isha": "#52B788"
-        },
-        "disabled": "#9CA3AF",
-        "disabled_background": "#1F2937",
-        "border": "#3F3F46",
-        "border_focused": "#74C69D",
-        "pressed": "#40916C"
-      },
-      "glassmorphism": {
-        "subtle": {
-          "blur_radius": 0.5,
-          "background_opacity": 0.6,
-          "border_opacity_leading": 0.35,
-          "border_opacity_trailing": 0.1,
-          "accent_tint_opacity": 0.08,
-          "highlight_opacity": 0.12,
-          "glow_radius": 4,
+          "highlight_opacity": 0.15,
+          "glow_radius": 8,
           "glow_opacity": 0.15
         },
-        "standard": {
-          "blur_radius": 10,
-          "background_opacity": 0.4,
-          "border_opacity_leading": 0.45,
-          "border_opacity_trailing": 0.12,
-          "accent_tint_opacity": 0.1,
-          "highlight_opacity": 0.18,
-          "glow_radius": 8,
-          "glow_opacity": 0.25
-        },
         "frosted": {
-          "blur_radius": 24,
-          "background_opacity": 0.25,
-          "border_opacity_leading": 0.55,
-          "border_opacity_trailing": 0.18,
-          "accent_tint_opacity": 0.12,
-          "highlight_opacity": 0.25,
-          "glow_radius": 12,
-          "glow_opacity": 0.35
-        },
-        "prayer": {
-          "blur_radius": 14,
-          "background_opacity": 0.35,
+          "blur_radius": 30,
+          "background_opacity": 0.08,
           "border_opacity_leading": 0.5,
           "border_opacity_trailing": 0.15,
-          "accent_tint_opacity": 0.15,
-          "highlight_opacity": 0.22,
-          "glow_radius": 10,
-          "glow_opacity": 0.3
-        }
-      },
-      "fonts": {
-        "body": "SF Pro Rounded",
-        "body_medium": "SF Pro Rounded Medium",
-        "body_semibold": "SF Pro Rounded Semibold",
-        "header": "SF Pro Display",
-        "header_bold": "SF Pro Display Bold",
-        "header_heavy": "SF Pro Display Heavy",
-        "arabic_body": "SF Arabic Rounded",
-        "arabic_body_medium": "SF Arabic Rounded Medium",
-        "arabic_body_semibold": "SF Arabic Rounded Semibold",
-        "arabic_header": "SF Arabic Display",
-        "arabic_header_bold": "SF Arabic Display Bold",
-        "arabic_header_heavy": "SF Arabic Display Heavy"
-      },
-      "shadows": {
-        "card": {
-          "color": "#52B78830",
-          "radius": 12.0,
-          "x": 0.0,
-          "y": 0.0
-        },
-        "elevated": {
-          "color": "#52B78840",
-          "radius": 16.0,
-          "x": 0.0,
-          "y": 0.0
-        },
-        "floating": {
-          "color": "#52B78850",
-          "radius": 20.0,
-          "x": 0.0,
-          "y": 0.0
-        }
-      },
-      "corner_radius": {
-        "small": 10.0,
-        "medium": 14.0,
-        "large": 18.0,
-        "extra_large": 26.0
-      },
-      "use_glow_instead_of_shadow": true
-    },
-    {
-      "id": "fajr",
-      "name": "Fajr",
-      "name_arabic": "فجر",
-      "is_pro": true,
-      "colors": {
-        "background_gradient": ["#E8DFF5", "#FCE1E4", "#FCF4DD"],
-        "background": "#E8DFF5",
-        "surface": "#FFFFFF",
-        "surface_secondary": "#FAF5FF",
-        "primary": "#6C63FF",
-        "primary_light": "#8B7FFF",
-        "primary_dark": "#5851DB",
-        "secondary": "#E879F9",
-        "accent": "#FCA5A5",
-        "text_primary": "#2D2A4A",
-        "text_secondary": "#4A4070",
-        "text_tertiary": "#3D3660",
-        "text_on_primary": "#FFFFFF",
-        "placeholder_text": "#6B5F8A",
-        "prayer_gradient_start": "#6C63FF",
-        "prayer_gradient_end": "#E879F9",
-        "success": "#7C3AED",
-        "warning": "#92400E",
-        "error": "#DC2626",
-        "info": "#1E40AF",
-        "divider": "#A78BFA",
-        "urgency_low": "#5B4F7A",
-        "urgency_medium": "#92400E",
-        "urgency_high": "#9A3412",
-        "urgency_critical": "#DC2626",
-        "task_colors": {
-          "work": "#6C63FF",
-          "personal": "#7C3AED",
-          "study": "#5851DB",
-          "health": "#DC2626",
-          "social": "#92400E",
-          "worship": "#4F46E5"
-        },
-        "splash_text": "#2D2A4A",
-        "splash_moon": "#E879F9",
-        "splash_gradient": ["#E8DFF5", "#FCE1E4", "#FCF4DD"],
-        "overlay": "#2D2A4A",
-        "atmosphere": {
-          "fajr": ["#1a1a2e", "#2D2A4A", "#6C63FF"],
-          "sunrise": ["#FCE1E4", "#E879F9"],
-          "morning": ["#FAF5FF", "#FCE1E4"],
-          "dhuhr": ["#FCF4DD", "#FCA5A5"],
-          "asr": ["#E8DFF5", "#A78BFA"],
-          "maghrib": ["#E879F9", "#FCA5A5"],
-          "isha": ["#2D2A4A", "#6C63FF"],
-          "night": ["#1a1a2e", "#2D2A4A", "#4A4070"]
-        },
-        "particles": {
-          "fajr": "#A78BFA",
-          "sunrise": "#E879F9",
-          "dhuhr": "#FCA5A5",
-          "asr": "#A78BFA",
-          "maghrib": "#E879F9",
-          "isha": "#6C63FF"
-        },
-        "disabled": "#6B5B95",
-        "disabled_background": "#E8DFF5",
-        "border": "#DDD6FE",
-        "border_focused": "#8B7FFF",
-        "pressed": "#5851DB"
-      },
-      "glassmorphism": {
-        "subtle": {
-          "blur_radius": 0.5,
-          "background_opacity": 0.75,
-          "border_opacity_leading": 0.25,
-          "border_opacity_trailing": 0.08,
-          "accent_tint_opacity": 0.06,
-          "highlight_opacity": 0.12
-        },
-        "standard": {
-          "blur_radius": 6,
-          "background_opacity": 0.55,
-          "border_opacity_leading": 0.35,
-          "border_opacity_trailing": 0.1,
           "accent_tint_opacity": 0.1,
-          "highlight_opacity": 0.18
-        },
-        "frosted": {
-          "blur_radius": 16,
-          "background_opacity": 0.35,
-          "border_opacity_leading": 0.45,
-          "border_opacity_trailing": 0.12,
-          "accent_tint_opacity": 0.12,
-          "highlight_opacity": 0.22
-        },
-        "prayer": {
-          "blur_radius": 10,
-          "background_opacity": 0.45,
-          "border_opacity_leading": 0.4,
-          "border_opacity_trailing": 0.1,
-          "accent_tint_opacity": 0.14,
-          "highlight_opacity": 0.2
-        }
-      },
-      "fonts": {
-        "body": "SF Pro Rounded",
-        "body_medium": "SF Pro Rounded Medium",
-        "body_semibold": "SF Pro Rounded Semibold",
-        "header": "New York",
-        "header_bold": "New York Bold",
-        "header_heavy": "New York Heavy",
-        "arabic_body": "SF Arabic Rounded",
-        "arabic_body_medium": "SF Arabic Rounded Medium",
-        "arabic_body_semibold": "SF Arabic Rounded Semibold",
-        "arabic_header": "SF Arabic Display",
-        "arabic_header_bold": "SF Arabic Display Bold",
-        "arabic_header_heavy": "SF Arabic Display Heavy"
-      },
-      "shadows": {
-        "card": {
-          "color": "#6C63FF25",
-          "radius": 10.0,
-          "x": 0.0,
-          "y": 4.0
-        },
-        "elevated": {
-          "color": "#6C63FF35",
-          "radius": 14.0,
-          "x": 0.0,
-          "y": 6.0
-        },
-        "floating": {
-          "color": "#6C63FF45",
-          "radius": 18.0,
-          "x": 0.0,
-          "y": 8.0
-        }
-      },
-      "corner_radius": {
-        "small": 12.0,
-        "medium": 16.0,
-        "large": 20.0,
-        "extra_large": 28.0
-      },
-      "use_gradient_background": true
-    },
-    {
-      "id": "sahara",
-      "name": "Sahara",
-      "name_arabic": "صحراء",
-      "is_pro": true,
-      "colors": {
-        "background": "#E9D5C1",
-        "surface": "#F5EAD8",
-        "surface_secondary": "#EFE2CF",
-        "primary": "#D4734C",
-        "primary_light": "#E89668",
-        "primary_dark": "#C45A30",
-        "secondary": "#8B6F47",
-        "accent": "#705437",
-        "text_primary": "#3D2817",
-        "text_secondary": "#4A3622",
-        "text_tertiary": "#5C4430",
-        "text_on_primary": "#FFFFFF",
-        "placeholder_text": "#6A5240",
-        "prayer_gradient_start": "#D4734C",
-        "prayer_gradient_end": "#C88F5C",
-        "success": "#6B5230",
-        "warning": "#9A3412",
-        "error": "#C45A30",
-        "info": "#705437",
-        "divider": "#9A7B5B",
-        "urgency_low": "#6B5230",
-        "urgency_medium": "#9A3412",
-        "urgency_high": "#9A3412",
-        "urgency_critical": "#C45A30",
-        "task_colors": {
-          "work": "#705437",
-          "personal": "#8B6F47",
-          "study": "#6B5230",
-          "health": "#C45A30",
-          "social": "#9A3412",
-          "worship": "#5C4430"
-        },
-        "splash_text": "#3D2817",
-        "splash_moon": "#D4734C",
-        "splash_gradient": ["#E9D5C1", "#D4B69C", "#C8A882"],
-        "overlay": "#3D2817",
-        "atmosphere": {
-          "fajr": ["#3D2817", "#4A3622", "#5C4430"],
-          "sunrise": ["#E89668", "#D4734C"],
-          "morning": ["#F5EAD8", "#EFE2CF"],
-          "dhuhr": ["#E9D5C1", "#D4B69C"],
-          "asr": ["#D4B69C", "#C88F5C"],
-          "maghrib": ["#D4734C", "#C45A30"],
-          "isha": ["#4A3622", "#3D2817"],
-          "night": ["#3D2817", "#2A1A0F", "#1A0F08"]
-        },
-        "particles": {
-          "fajr": "#C88F5C",
-          "sunrise": "#E89668",
-          "dhuhr": "#D4734C",
-          "asr": "#C88F5C",
-          "maghrib": "#D4734C",
-          "isha": "#8B6F47"
-        },
-        "disabled": "#7C5E3A",
-        "disabled_background": "#EFE2CF",
-        "border": "#D4B69C",
-        "border_focused": "#E89668",
-        "pressed": "#C45A30"
-      },
-      "glassmorphism": {
-        "subtle": {
-          "blur_radius": 0,
-          "background_opacity": 0.85,
-          "border_opacity_leading": 0.2,
-          "border_opacity_trailing": 0.05,
-          "accent_tint_opacity": 0.03,
-          "highlight_opacity": 0.08
-        },
-        "standard": {
-          "blur_radius": 4,
-          "background_opacity": 0.7,
-          "border_opacity_leading": 0.3,
-          "border_opacity_trailing": 0.08,
-          "accent_tint_opacity": 0.05,
-          "highlight_opacity": 0.12
-        },
-        "frosted": {
-          "blur_radius": 8,
-          "background_opacity": 0.55,
-          "border_opacity_leading": 0.4,
-          "border_opacity_trailing": 0.1,
-          "accent_tint_opacity": 0.08,
-          "highlight_opacity": 0.15
-        },
-        "prayer": {
-          "blur_radius": 6,
-          "background_opacity": 0.6,
-          "border_opacity_leading": 0.35,
-          "border_opacity_trailing": 0.08,
-          "accent_tint_opacity": 0.1,
-          "highlight_opacity": 0.14
-        }
-      },
-      "fonts": {
-        "body": "Avenir Next",
-        "body_medium": "Avenir Next Medium",
-        "body_semibold": "Avenir Next Demi Bold",
-        "header": "Avenir Next Bold",
-        "header_bold": "Avenir Next Bold",
-        "header_heavy": "Avenir Next Heavy",
-        "arabic_body": "SF Arabic Rounded",
-        "arabic_body_medium": "SF Arabic Rounded Medium",
-        "arabic_body_semibold": "SF Arabic Rounded Semibold",
-        "arabic_header": "SF Arabic Display",
-        "arabic_header_bold": "SF Arabic Display Bold",
-        "arabic_header_heavy": "SF Arabic Display Heavy"
-      },
-      "shadows": {
-        "card": {
-          "color": "#3D281720",
-          "radius": 6.0,
-          "x": 2.0,
-          "y": 2.0
-        },
-        "elevated": {
-          "color": "#3D281730",
-          "radius": 8.0,
-          "x": 3.0,
-          "y": 3.0
-        },
-        "floating": {
-          "color": "#3D281740",
-          "radius": 10.0,
-          "x": 4.0,
-          "y": 4.0
-        }
-      },
-      "corner_radius": {
-        "small": 8.0,
-        "medium": 12.0,
-        "large": 16.0,
-        "extra_large": 24.0
-      },
-      "special_effects": {
-        "arabesque_pattern": true,
-        "pattern_opacity": 0.05,
-        "hard_shadows": true
-      }
-    },
-    {
-      "id": "ramadan",
-      "name": "Ramadan",
-      "name_arabic": "رمضان",
-      "is_pro": true,
-      "auto_activate_during_ramadan": true,
-      "colors": {
-        "background": "#1E1B4B",
-        "surface": "#312E81",
-        "surface_secondary": "#3730A3",
-        "primary": "#FFD700",
-        "primary_light": "#FDE047",
-        "primary_dark": "#CC9B00",
-        "secondary": "#A78BFA",
-        "accent": "#F472B6",
-        "text_primary": "#FFFFFF",
-        "text_secondary": "#E0E7FF",
-        "text_tertiary": "#A5B4FC",
-        "text_on_primary": "#1E1B4B",
-        "placeholder_text": "#818CF8",
-        "prayer_gradient_start": "#FFD700",
-        "prayer_gradient_end": "#FFA500",
-        "success": "#A78BFA",
-        "warning": "#FDE047",
-        "error": "#F87171",
-        "info": "#60A5FA",
-        "divider": "#7C3AED",
-        "urgency_low": "#A5B4FC",
-        "urgency_medium": "#FDE047",
-        "urgency_high": "#FFA500",
-        "urgency_critical": "#F87171",
-        "task_colors": {
-          "work": "#818CF8",
-          "personal": "#A78BFA",
-          "study": "#C4B5FD",
-          "health": "#F87171",
-          "social": "#FDE047",
-          "worship": "#FFD700"
-        },
-        "splash_text": "#FFFFFF",
-        "splash_moon": "#FFD700",
-        "splash_gradient": ["#1E1B4B", "#312E81", "#3730A3"],
-        "overlay": "#1E1B4B",
-        "atmosphere": {
-          "fajr": ["#1E1B4B", "#312E81", "#4338CA"],
-          "sunrise": ["#FFD700", "#FFA500"],
-          "morning": ["#3730A3", "#4338CA"],
-          "dhuhr": ["#4338CA", "#6366F1"],
-          "asr": ["#312E81", "#4338CA"],
-          "maghrib": ["#FFD700", "#F472B6"],
-          "isha": ["#1E1B4B", "#312E81"],
-          "night": ["#0F0D2B", "#1E1B4B", "#312E81"]
-        },
-        "particles": {
-          "fajr": "#FFD700",
-          "sunrise": "#FDE047",
-          "dhuhr": "#A78BFA",
-          "asr": "#F472B6",
-          "maghrib": "#FFD700",
-          "isha": "#A78BFA"
-        },
-        "disabled": "#A1A1AA",
-        "disabled_background": "#312E81",
-        "border": "#4C1D95",
-        "border_focused": "#FDE047",
-        "pressed": "#FFA500"
-      },
-      "glassmorphism": {
-        "subtle": {
-          "blur_radius": 0.5,
-          "background_opacity": 0.55,
-          "border_opacity_leading": 0.4,
-          "border_opacity_trailing": 0.12,
-          "accent_tint_opacity": 0.1,
-          "highlight_opacity": 0.15,
-          "glow_radius": 6,
+          "highlight_opacity": 0.2,
+          "glow_radius": 12,
           "glow_opacity": 0.2
         },
-        "standard": {
-          "blur_radius": 12,
-          "background_opacity": 0.35,
-          "border_opacity_leading": 0.5,
-          "border_opacity_trailing": 0.15,
-          "accent_tint_opacity": 0.15,
-          "highlight_opacity": 0.22,
-          "glow_radius": 12,
-          "glow_opacity": 0.35
-        },
-        "frosted": {
-          "blur_radius": 28,
-          "background_opacity": 0.2,
-          "border_opacity_leading": 0.6,
-          "border_opacity_trailing": 0.2,
-          "accent_tint_opacity": 0.18,
-          "highlight_opacity": 0.28,
-          "glow_radius": 16,
-          "glow_opacity": 0.45
-        },
         "prayer": {
-          "blur_radius": 16,
-          "background_opacity": 0.3,
-          "border_opacity_leading": 0.55,
-          "border_opacity_trailing": 0.18,
-          "accent_tint_opacity": 0.2,
-          "highlight_opacity": 0.25,
-          "glow_radius": 14,
-          "glow_opacity": 0.4
+          "blur_radius": 20,
+          "background_opacity": 0.08,
+          "border_opacity_leading": 0.45,
+          "border_opacity_trailing": 0.12,
+          "accent_tint_opacity": 0.12,
+          "highlight_opacity": 0.18,
+          "glow_radius": 10,
+          "glow_opacity": 0.18
         }
       },
       "fonts": {
@@ -706,36 +125,31 @@
       },
       "shadows": {
         "card": {
-          "color": "#FFD70030",
-          "radius": 14.0,
+          "color": "#00E5CC15",
+          "radius": 8.0,
           "x": 0.0,
-          "y": 0.0
+          "y": 4.0
         },
         "elevated": {
-          "color": "#FFD70040",
-          "radius": 18.0,
+          "color": "#00E5CC25",
+          "radius": 16.0,
           "x": 0.0,
-          "y": 0.0
+          "y": 8.0
         },
         "floating": {
-          "color": "#FFD70050",
-          "radius": 22.0,
+          "color": "#00E5CC35",
+          "radius": 24.0,
           "x": 0.0,
-          "y": 0.0
+          "y": 12.0
         }
       },
       "corner_radius": {
-        "small": 10.0,
-        "medium": 14.0,
-        "large": 18.0,
-        "extra_large": 26.0
+        "small": 8.0,
+        "medium": 12.0,
+        "large": 16.0,
+        "extra_large": 24.0
       },
-      "special_effects": {
-        "crescent_moon_icon": true,
-        "festive_animations": true,
-        "star_particles": true,
-        "use_glow": true
-      }
+      "use_glow_instead_of_shadow": true
     }
   ]
 }

@@ -129,7 +129,7 @@ final class UserSettings {
         self.lastUpdated = Date()
 
         // App preferences
-        self.selectedTheme = "noor" // default free theme
+        self.selectedTheme = "darkMatter" // Dark Matter theme (single theme)
         self.language = .arabic
         self.useArabicNumerals = true
         self.showHijriDate = true

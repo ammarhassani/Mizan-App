@@ -361,7 +361,7 @@ struct UserPreferencesContext: Codable {
         isPro: Bool = false,
         nawafilEnabled: Bool = false,
         enabledNawafilTypes: [String] = [],
-        theme: String = "noor",
+        theme: String = "darkMatter",
         calculationMethod: String? = nil
     ) {
         self.language = language

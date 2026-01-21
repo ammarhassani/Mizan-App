@@ -342,33 +342,25 @@ struct ThemedMizanLogo: View {
     @Previewable @StateObject var themeManager = ThemeManager()
 
     VStack(spacing: 40) {
-        // Noor theme
-        if let colors = themeManager.colorsForTheme("noor") {
-            MizanLogo(size: 100, designColor: colors.primary, accentColor: colors.accent)
-                .background(colors.background)
-                .cornerRadius(20)
-        }
+        // Dark Matter - Standard
+        MizanLogo(size: 100, designColor: themeManager.primaryColor, accentColor: themeManager.accentMagentaColor)
+            .background(themeManager.backgroundColor)
+            .cornerRadius(20)
 
-        // Layl theme
-        if let colors = themeManager.colorsForTheme("layl") {
-            MizanLogo(size: 100, designColor: colors.primary, accentColor: colors.accent)
-                .background(colors.background)
-                .cornerRadius(20)
-        }
+        // Dark Matter - With glow
+        MizanLogo(size: 100, designColor: themeManager.primaryColor, glowIntensity: 0.8)
+            .background(themeManager.surfaceColor)
+            .cornerRadius(20)
 
-        // Ramadan theme with glow
-        if let colors = themeManager.colorsForTheme("ramadan") {
-            MizanLogo(size: 100, designColor: colors.primary, glowIntensity: 0.8)
-                .background(colors.background)
-                .cornerRadius(20)
-        }
+        // Dark Matter - Animated
+        MizanLogo(size: 100, designColor: themeManager.prayerGoldColor, animated: true)
+            .background(themeManager.surfaceSecondaryColor)
+            .cornerRadius(20)
 
-        // Fajr theme animated
-        if let colors = themeManager.colorsForTheme("fajr") {
-            MizanLogo(size: 100, designColor: themeManager.textOnPrimaryColor, animated: true)
-                .background(colors.primary)
-                .cornerRadius(20)
-        }
+        // Dark Matter - Inverted (for light surfaces)
+        MizanLogo(size: 100, designColor: themeManager.textOnPrimaryColor, accentColor: themeManager.primaryColor)
+            .background(themeManager.primaryColor)
+            .cornerRadius(20)
     }
     .padding()
     .background(themeManager.surfaceSecondaryColor.opacity(0.2))
