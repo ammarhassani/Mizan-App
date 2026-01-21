@@ -16,6 +16,7 @@ struct CinematicDateNavigator: View {
     @State private var transitionDirection: TransitionDirection = .forward
     @State private var dateScale: CGFloat = 1.0
     @State private var dateOpacity: Double = 1.0
+    @State private var showAIChat = false
     @EnvironmentObject var themeManager: ThemeManager
 
     enum TransitionDirection {
@@ -26,12 +27,19 @@ struct CinematicDateNavigator: View {
         // Transparent container - no background fill, just content
         contentLayer
             .frame(height: 56)
+            .sheet(isPresented: $showAIChat) {
+                AIChatSheet()
+                    .environmentObject(themeManager)
+            }
     }
 
     // MARK: - Content Layer
 
     private var contentLayer: some View {
         HStack(spacing: MZSpacing.sm) {
+            // AI Chat button
+            aiButton
+
             // Previous day (RTL: right arrow goes back)
             SimpleNavigationArrow(direction: .right) {
                 navigateBack()
@@ -58,6 +66,27 @@ struct CinematicDateNavigator: View {
         }
         .padding(.horizontal, MZSpacing.screenPadding)
         .padding(.vertical, MZSpacing.sm)
+    }
+
+    // MARK: - AI Button
+
+    private var aiButton: some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            showAIChat = true
+        } label: {
+            Image(systemName: "sparkles")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(themeManager.primaryColor)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("مساعد ميزان الذكي")
+        .accessibilityHint("اضغط لفتح المحادثة مع المساعد الذكي")
     }
 
     // MARK: - Date Display

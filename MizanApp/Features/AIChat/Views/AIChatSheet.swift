@@ -59,10 +59,10 @@ struct AIChatSheet: View {
                             actionResultSection(result)
                         }
 
-                        // V2: Clarification card (when AI needs more info)
-                        if let clarification = viewModel.currentClarification {
-                            clarificationSection(clarification)
-                        }
+                        // V2: Clarification card - DISABLED (per user request)
+                        // if let clarification = viewModel.currentClarification {
+                        //     clarificationSection(clarification)
+                        // }
 
                         // V2: Task disambiguation card (when multiple tasks match)
                         if let tasks = viewModel.disambiguationTasks,
@@ -73,11 +73,6 @@ struct AIChatSheet: View {
                         // All-in-one task creation card (when AI detected task with missing fields)
                         if viewModel.showTaskCreationCard, let taskData = viewModel.pendingTaskData {
                             taskCreationSection(taskData)
-                        }
-
-                        // Quick suggestions (when input is empty and not processing)
-                        if shouldShowQuickSuggestions {
-                            quickSuggestionsView
                         }
 
                         // Task preview card (when task is extracted - V1 compatible)
@@ -142,8 +137,9 @@ struct AIChatSheet: View {
 
     // MARK: - Computed Properties
 
-    private var shouldShowQuickSuggestions: Bool {
-        viewModel.inputText.isEmpty &&
+    /// Whether to show the welcome screen (empty state)
+    private var shouldShowWelcome: Bool {
+        viewModel.messages.isEmpty &&
         !viewModel.isProcessing &&
         !viewModel.showTaskReview &&
         !viewModel.showTaskCreationCard &&
@@ -152,36 +148,56 @@ struct AIChatSheet: View {
         viewModel.disambiguationTasks == nil
     }
 
+    /// Whether to show inline quick suggestions (legacy, now in welcome view)
+    private var shouldShowQuickSuggestions: Bool {
+        // Quick suggestions are now in the welcome view
+        false
+    }
+
     // MARK: - Chat Messages
 
     private var chatMessagesView: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: MZSpacing.sm) {
-                    ForEach(viewModel.messages) { message in
-                        ChatMessageBubble(message: message)
-                            .id(message.id)
-                    }
+                if shouldShowWelcome {
+                    // Welcome screen
+                    AIWelcomeView(
+                        suggestions: viewModel.quickSuggestions,
+                        onSuggestionTap: { suggestion in
+                            viewModel.useQuickSuggestion(suggestion)
+                            isInputFocused = true
+                        }
+                    )
+                    .frame(maxWidth: .infinity)
+                } else {
+                    // Chat messages
+                    LazyVStack(spacing: MZSpacing.md) {
+                        ForEach(viewModel.messages) { message in
+                            messageView(for: message)
+                                .id(message.id)
+                        }
 
-                    // Typing indicator
-                    if viewModel.isProcessing {
-                        TypingIndicator()
-                            .id("typing")
+                        // Modern typing indicator
+                        if viewModel.isProcessing {
+                            ModernTypingIndicator()
+                                .id("typing")
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
                     }
+                    .padding(MZSpacing.md)
                 }
-                .padding(MZSpacing.md)
             }
             .onChange(of: viewModel.messages.count) { _, _ in
                 // Scroll to bottom on new message
                 if let lastMessage = viewModel.messages.last {
-                    withAnimation {
+                    withAnimation(.easeOut(duration: 0.3)) {
                         proxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
             }
             .onChange(of: viewModel.isProcessing) { _, isProcessing in
                 if isProcessing {
-                    withAnimation {
+                    withAnimation(.easeOut(duration: 0.3)) {
                         proxy.scrollTo("typing", anchor: .bottom)
                     }
                 }
@@ -189,31 +205,49 @@ struct AIChatSheet: View {
         }
     }
 
-    // MARK: - Quick Suggestions
+    // MARK: - Message View Factory
+
+    @ViewBuilder
+    private func messageView(for message: ChatMessage) -> some View {
+        if message.role == .user {
+            UserMessageView(
+                message: message,
+                showTimestamp: shouldShowTimestamp(for: message)
+            )
+        } else {
+            AIMessageView(
+                message: message,
+                showTimestamp: shouldShowTimestamp(for: message)
+            )
+        }
+    }
+
+    /// Determine if timestamp should be shown (show for last message or if gap > 5 min)
+    private func shouldShowTimestamp(for message: ChatMessage) -> Bool {
+        guard let index = viewModel.messages.firstIndex(where: { $0.id == message.id }) else {
+            return true
+        }
+
+        // Always show for last message
+        if index == viewModel.messages.count - 1 {
+            return true
+        }
+
+        // Show if next message is more than 5 minutes later
+        let nextIndex = index + 1
+        if nextIndex < viewModel.messages.count {
+            let nextMessage = viewModel.messages[nextIndex]
+            let gap = nextMessage.timestamp.timeIntervalSince(message.timestamp)
+            return gap > 300 // 5 minutes
+        }
+
+        return false
+    }
+
+    // MARK: - Quick Suggestions (Legacy - now in welcome view)
 
     private var quickSuggestionsView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: MZSpacing.sm) {
-                ForEach(viewModel.quickSuggestions, id: \.self) { suggestion in
-                    Button {
-                        viewModel.useQuickSuggestion(suggestion)
-                        isInputFocused = true
-                    } label: {
-                        Text(suggestion)
-                            .font(MZTypography.labelMedium)
-                            .foregroundColor(themeManager.primaryColor)
-                            .padding(.horizontal, MZSpacing.sm)
-                            .padding(.vertical, MZSpacing.xs)
-                            .background(
-                                Capsule()
-                                    .fill(themeManager.primaryColor.opacity(0.1))
-                            )
-                    }
-                }
-            }
-            .padding(.horizontal, MZSpacing.md)
-            .padding(.vertical, MZSpacing.xs)
-        }
+        EmptyView()
     }
 
     // MARK: - V2 Action Result Section
@@ -386,38 +420,13 @@ struct AIChatSheet: View {
     // MARK: - Input Bar
 
     private var inputBarView: some View {
-        HStack(spacing: MZSpacing.sm) {
-            // Text field
-            TextField("اكتب مهمتك...", text: $viewModel.inputText)
-                .font(MZTypography.bodyLarge)
-                .foregroundColor(themeManager.textPrimaryColor)
-                .padding(.horizontal, MZSpacing.md)
-                .padding(.vertical, MZSpacing.sm)
-                .background(themeManager.surfaceSecondaryColor)
-                .cornerRadius(24)
-                .focused($isInputFocused)
-                .submitLabel(.send)
-                .onSubmit {
-                    sendMessage()
-                }
-                .disabled(viewModel.isProcessing)
-
-            // Send button
-            Button {
-                sendMessage()
-            } label: {
-                Image(systemName: viewModel.isProcessing ? "hourglass" : "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(
-                        viewModel.inputText.isEmpty || viewModel.isProcessing
-                            ? themeManager.textTertiaryColor
-                            : themeManager.primaryColor
-                    )
-            }
-            .disabled(viewModel.inputText.isEmpty || viewModel.isProcessing)
-        }
-        .padding(.horizontal, MZSpacing.md)
-        .padding(.vertical, MZSpacing.sm)
+        SimpleChatInputBar(
+            text: $viewModel.inputText,
+            isProcessing: viewModel.isProcessing,
+            placeholder: "اكتب رسالتك...",
+            onSend: sendMessage,
+            isFocused: $isInputFocused
+        )
     }
 
     // MARK: - Actions
@@ -430,107 +439,6 @@ struct AIChatSheet: View {
 
         _Concurrency.Task {
             await viewModel.sendMessage()
-        }
-    }
-}
-
-// MARK: - Chat Message Bubble
-
-struct ChatMessageBubble: View {
-    let message: ChatMessage
-    @EnvironmentObject var themeManager: ThemeManager
-
-    private var isUser: Bool {
-        message.role == .user
-    }
-
-    /// Parse markdown to AttributedString
-    private func markdownText(_ text: String) -> AttributedString {
-        do {
-            return try AttributedString(markdown: text)
-        } catch {
-            return AttributedString(text)
-        }
-    }
-
-    var body: some View {
-        HStack {
-            if isUser { Spacer(minLength: 50) }
-
-            VStack(alignment: isUser ? .trailing : .leading, spacing: MZSpacing.xxs) {
-                // Use markdown-aware text for assistant messages
-                if isUser {
-                    Text(message.content)
-                        .font(MZTypography.bodyMedium)
-                        .foregroundColor(themeManager.textOnPrimaryColor)
-                        .padding(.horizontal, MZSpacing.sm)
-                        .padding(.vertical, MZSpacing.xs)
-                        .background(themeManager.primaryColor)
-                        .cornerRadius(18)
-                } else {
-                    // Render markdown for assistant messages
-                    Text(markdownText(message.content))
-                        .font(MZTypography.bodyMedium)
-                        .foregroundColor(themeManager.textPrimaryColor)
-                        .padding(.horizontal, MZSpacing.sm)
-                        .padding(.vertical, MZSpacing.xs)
-                        .background(themeManager.surfaceSecondaryColor)
-                        .cornerRadius(18)
-                        .textSelection(.enabled)
-                }
-
-                // Timestamp
-                Text(message.timestamp.formatted(date: .omitted, time: .shortened))
-                    .font(MZTypography.labelSmall)
-                    .foregroundColor(themeManager.textTertiaryColor)
-            }
-
-            if !isUser { Spacer(minLength: 50) }
-        }
-        // Keep chat bubble alignment standard (user right, AI left) regardless of RTL
-        .environment(\.layoutDirection, .leftToRight)
-    }
-}
-
-// MARK: - Typing Indicator
-
-struct TypingIndicator: View {
-    @EnvironmentObject var themeManager: ThemeManager
-    @State private var dotScale: [CGFloat] = [1, 1, 1]
-
-    var body: some View {
-        HStack {
-            HStack(spacing: MZSpacing.xxs) {
-                ForEach(0..<3, id: \.self) { index in
-                    Circle()
-                        .fill(themeManager.textSecondaryColor)
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(dotScale[index])
-                }
-            }
-            .padding(.horizontal, MZSpacing.md)
-            .padding(.vertical, MZSpacing.sm)
-            .background(themeManager.surfaceSecondaryColor)
-            .cornerRadius(18)
-
-            Spacer()
-        }
-        // Keep typing indicator on left (AI side) regardless of RTL
-        .environment(\.layoutDirection, .leftToRight)
-        .onAppear {
-            animateDots()
-        }
-    }
-
-    private func animateDots() {
-        for i in 0..<3 {
-            withAnimation(
-                .easeInOut(duration: 0.5)
-                .repeatForever()
-                .delay(Double(i) * 0.15)
-            ) {
-                dotScale[i] = 1.3
-            }
         }
     }
 }

@@ -484,10 +484,10 @@ struct AIChatView: View {
                             actionResultSection(result)
                         }
 
-                        // V2: Clarification card
-                        if let clarification = viewModel.currentClarification {
-                            clarificationSection(clarification)
-                        }
+                        // V2: Clarification card - DISABLED (per user request)
+                        // if let clarification = viewModel.currentClarification {
+                        //     clarificationSection(clarification)
+                        // }
 
                         // V2: Task disambiguation card
                         if let tasks = viewModel.disambiguationTasks,
@@ -548,8 +548,16 @@ struct AIChatView: View {
 
     // MARK: - Computed Properties
 
+    /// Legacy - quick suggestions are now shown in the welcome view
     private var shouldShowQuickSuggestions: Bool {
-        viewModel.inputText.isEmpty &&
+        false
+    }
+
+    // MARK: - Chat Messages
+
+    /// Whether to show the welcome screen (empty state)
+    private var shouldShowWelcome: Bool {
+        viewModel.messages.isEmpty &&
         !viewModel.isProcessing &&
         !viewModel.showTaskReview &&
         !viewModel.showTaskCreationCard &&
@@ -558,34 +566,47 @@ struct AIChatView: View {
         viewModel.disambiguationTasks == nil
     }
 
-    // MARK: - Chat Messages
-
     private var chatMessagesView: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: MZSpacing.sm) {
-                    ForEach(viewModel.messages) { message in
-                        ChatMessageBubble(message: message)
-                            .id(message.id)
-                    }
+                if shouldShowWelcome {
+                    // Welcome screen
+                    AIWelcomeView(
+                        suggestions: viewModel.quickSuggestions,
+                        onSuggestionTap: { suggestion in
+                            viewModel.useQuickSuggestion(suggestion)
+                            isInputFocused = true
+                        }
+                    )
+                    .frame(maxWidth: .infinity)
+                } else {
+                    // Chat messages
+                    LazyVStack(spacing: MZSpacing.md) {
+                        ForEach(viewModel.messages) { message in
+                            messageView(for: message)
+                                .id(message.id)
+                        }
 
-                    if viewModel.isProcessing {
-                        TypingIndicator()
-                            .id("typing")
+                        // Modern typing indicator
+                        if viewModel.isProcessing {
+                            ModernTypingIndicator()
+                                .id("typing")
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
                     }
+                    .padding(MZSpacing.md)
                 }
-                .padding(MZSpacing.md)
             }
             .onChange(of: viewModel.messages.count) { _, _ in
                 if let lastMessage = viewModel.messages.last {
-                    withAnimation {
+                    withAnimation(.easeOut(duration: 0.3)) {
                         proxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
             }
             .onChange(of: viewModel.isProcessing) { _, isProcessing in
                 if isProcessing {
-                    withAnimation {
+                    withAnimation(.easeOut(duration: 0.3)) {
                         proxy.scrollTo("typing", anchor: .bottom)
                     }
                 }
@@ -593,31 +614,21 @@ struct AIChatView: View {
         }
     }
 
-    // MARK: - Quick Suggestions
+    // MARK: - Message View Factory
+
+    @ViewBuilder
+    private func messageView(for message: ChatMessage) -> some View {
+        if message.role == .user {
+            UserMessageView(message: message)
+        } else {
+            AIMessageView(message: message)
+        }
+    }
+
+    // MARK: - Quick Suggestions (Legacy - now in welcome view)
 
     private var quickSuggestionsView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: MZSpacing.sm) {
-                ForEach(viewModel.quickSuggestions, id: \.self) { suggestion in
-                    Button {
-                        viewModel.useQuickSuggestion(suggestion)
-                        isInputFocused = true
-                    } label: {
-                        Text(suggestion)
-                            .font(MZTypography.labelMedium)
-                            .foregroundColor(themeManager.primaryColor)
-                            .padding(.horizontal, MZSpacing.sm)
-                            .padding(.vertical, MZSpacing.xs)
-                            .background(
-                                Capsule()
-                                    .fill(themeManager.primaryColor.opacity(0.1))
-                            )
-                    }
-                }
-            }
-            .padding(.horizontal, MZSpacing.md)
-            .padding(.vertical, MZSpacing.xs)
-        }
+        EmptyView()
     }
 
     // MARK: - V2 Action Result Section
@@ -785,36 +796,13 @@ struct AIChatView: View {
     // MARK: - Input Bar
 
     private var inputBarView: some View {
-        HStack(spacing: MZSpacing.sm) {
-            TextField("اكتب مهمتك...", text: $viewModel.inputText)
-                .font(MZTypography.bodyLarge)
-                .foregroundColor(themeManager.textPrimaryColor)
-                .padding(.horizontal, MZSpacing.md)
-                .padding(.vertical, MZSpacing.sm)
-                .background(themeManager.surfaceSecondaryColor)
-                .cornerRadius(24)
-                .focused($isInputFocused)
-                .submitLabel(.send)
-                .onSubmit {
-                    sendMessage()
-                }
-                .disabled(viewModel.isProcessing)
-
-            Button {
-                sendMessage()
-            } label: {
-                Image(systemName: viewModel.isProcessing ? "hourglass" : "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(
-                        viewModel.inputText.isEmpty || viewModel.isProcessing
-                            ? themeManager.textTertiaryColor
-                            : themeManager.primaryColor
-                    )
-            }
-            .disabled(viewModel.inputText.isEmpty || viewModel.isProcessing)
-        }
-        .padding(.horizontal, MZSpacing.md)
-        .padding(.vertical, MZSpacing.sm)
+        SimpleChatInputBar(
+            text: $viewModel.inputText,
+            isProcessing: viewModel.isProcessing,
+            placeholder: "اكتب رسالتك...",
+            onSend: sendMessage,
+            isFocused: $isInputFocused
+        )
     }
 
     // MARK: - Actions

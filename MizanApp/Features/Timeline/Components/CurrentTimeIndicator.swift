@@ -15,6 +15,7 @@ struct CinematicCurrentTimeIndicator: View {
     var showDivineEffects: Bool = true // Kept for API compatibility
 
     @State private var pulseScale: CGFloat = 1.0
+    @State private var isAnimating: Bool = false
 
     // MARK: - Body
 
@@ -35,7 +36,12 @@ struct CinematicCurrentTimeIndicator: View {
         .accessibilityLabel("الوقت الحالي")
         .accessibilityValue(Date().formatted(date: .omitted, time: .shortened))
         .onAppear {
+            isAnimating = true
             startPulseAnimation()
+        }
+        .onDisappear {
+            isAnimating = false
+            pulseScale = 1.0
         }
     }
 
@@ -129,14 +135,27 @@ struct CinematicCurrentTimeIndicator: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Single Animation
+    // MARK: - Single Animation (Cancellable)
 
     private func startPulseAnimation() {
-        // SINGLE animation only - pulse
-        withAnimation(
-            Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true)
-        ) {
+        guard isAnimating else { return }
+
+        // Animate to expanded
+        withAnimation(.easeInOut(duration: 1.5)) {
             pulseScale = 1.15
+        }
+
+        // Schedule return to normal
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            guard isAnimating else { return }
+            withAnimation(.easeInOut(duration: 1.5)) {
+                pulseScale = 1.0
+            }
+
+            // Continue animation loop
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                startPulseAnimation()
+            }
         }
     }
 }
@@ -172,6 +191,7 @@ extension CinematicCurrentTimeIndicator {
 struct CinematicCurrentTimeIndicatorCompact: View {
     @EnvironmentObject var themeManager: ThemeManager
     @State private var isGlowing = false
+    @State private var isAnimating = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -188,9 +208,23 @@ struct CinematicCurrentTimeIndicatorCompact: View {
         }
         .opacity(isGlowing ? 1.0 : 0.7)
         .onAppear {
-            withAnimation(Animation.easeInOut(duration: 1.0).repeatForever()) {
-                isGlowing = true
-            }
+            isAnimating = true
+            startGlowAnimation()
+        }
+        .onDisappear {
+            isAnimating = false
+        }
+    }
+
+    private func startGlowAnimation() {
+        guard isAnimating else { return }
+
+        withAnimation(.easeInOut(duration: 1.0)) {
+            isGlowing.toggle()
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            startGlowAnimation()
         }
     }
 }

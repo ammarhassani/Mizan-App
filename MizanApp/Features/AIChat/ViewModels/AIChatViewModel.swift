@@ -235,7 +235,8 @@ final class AIChatViewModel: ObservableObject {
             HapticManager.shared.trigger(.light)
 
         case .explain(let topic):
-            currentActionResult = .explanation(topic)
+            // Don't set currentActionResult - explanation is already in the message
+            // This prevents the duplicate "توضيح" card from appearing
             addAssistantMessage(topic)
             HapticManager.shared.trigger(.light)
 

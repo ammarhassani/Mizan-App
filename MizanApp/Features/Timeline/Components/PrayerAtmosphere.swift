@@ -15,6 +15,7 @@ struct PrayerCountdownBadge: View {
     var seconds: Int = 0
     @EnvironmentObject var themeManager: ThemeManager
     @State private var pulseScale: CGFloat = 1.0
+    @State private var isAnimating: Bool = false
 
     private var countdownText: String {
         if minutes > 0 {
@@ -42,10 +43,25 @@ struct PrayerCountdownBadge: View {
         )
         .onAppear {
             if minutes <= 5 {
-                withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
-                    pulseScale = 1.1
-                }
+                isAnimating = true
+                startPulseAnimation()
             }
+        }
+        .onDisappear {
+            isAnimating = false
+            pulseScale = 1.0
+        }
+    }
+
+    private func startPulseAnimation() {
+        guard isAnimating else { return }
+
+        withAnimation(.easeInOut(duration: 0.8)) {
+            pulseScale = pulseScale == 1.0 ? 1.1 : 1.0
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            startPulseAnimation()
         }
     }
 
@@ -69,6 +85,7 @@ struct AtmosphericGlowBorder: View {
     let isActive: Bool
 
     @State private var pulsePhase: CGFloat = 0
+    @State private var isAnimating: Bool = false
 
     var body: some View {
         RoundedRectangle(cornerRadius: 16)
@@ -77,11 +94,27 @@ struct AtmosphericGlowBorder: View {
             .opacity(isActive ? 0.6 - pulsePhase * 0.3 : 0.3)
             .onAppear {
                 if isActive {
-                    withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                        pulsePhase = 1.0
-                    }
+                    isAnimating = true
+                    startPulseAnimation()
                 }
             }
+            .onDisappear {
+                isAnimating = false
+                pulsePhase = 0
+            }
+    }
+
+    private func startPulseAnimation() {
+        guard isAnimating else { return }
+
+        let targetPhase: CGFloat = pulsePhase == 0 ? 1.0 : 0
+        withAnimation(.easeInOut(duration: 2.0)) {
+            pulsePhase = targetPhase
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            startPulseAnimation()
+        }
     }
 }
 
