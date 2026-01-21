@@ -110,19 +110,6 @@ struct SettingsView: View {
                             .environmentObject(themeManager)
 
                         SettingsCard {
-                            NavigationLink {
-                                ThemeSelectionView()
-                                    .environmentObject(appEnvironment)
-                                    .environmentObject(themeManager)
-                            } label: {
-                                SettingsRow(icon: "circle.hexagongrid.fill", iconColor: themeManager.primaryColor, title: "اختيار الثيم", subtitle: themeManager.currentTheme.name)
-                                    .environmentObject(themeManager)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("settings_theme_link")
-
-                            SettingsDivider().environmentObject(themeManager)
-
                             // Hijri Date Toggle
                             HStack {
                                 HStack(spacing: MZSpacing.sm) {
