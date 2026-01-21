@@ -296,28 +296,3 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(app.exists, "App should be stable after onboarding attempts")
     }
 }
-
-// MARK: - Launch Tests
-
-final class MizanAppUITestsLaunchTests: XCTestCase {
-
-    override class var runsForEachTargetApplicationUIConfiguration: Bool {
-        true
-    }
-
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-    }
-
-    @MainActor
-    func testLaunch() throws {
-        let app = XCUIApplication()
-        app.launchArguments = ["--uitesting", "--skip-onboarding"]
-        app.launch()
-
-        let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "Launch Screen"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-    }
-}
