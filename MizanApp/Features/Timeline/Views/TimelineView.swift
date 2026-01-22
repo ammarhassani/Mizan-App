@@ -313,9 +313,12 @@ struct TimelineView: View {
                 // Timeline with swipe and pinch gestures
                 timelineScrollView
                     .safeAreaInset(edge: .top, spacing: 0) {
-                        // Invisible spacer - content scrolls under the date bar + countdown banner
-                        // 56pt for date navigator, +50pt when countdown banner is visible
-                        Color.clear.frame(height: approachingPrayer != nil ? 106 : 56)
+                        // Invisible spacer - content scrolls under overlays
+                        // 56pt for date navigator, +60pt for orbital header (Pro), +50pt for countdown banner
+                        let baseHeight: CGFloat = 56
+                        let orbitalHeight: CGFloat = appEnvironment.userSettings.isPro ? 60 : 0
+                        let countdownHeight: CGFloat = approachingPrayer != nil ? 50 : 0
+                        Color.clear.frame(height: baseHeight + orbitalHeight + countdownHeight)
                             .animation(.easeInOut(duration: 0.3), value: approachingPrayer != nil)
                     }
                     .offset(x: dragOffset)
@@ -334,6 +337,13 @@ struct TimelineView: View {
                         currentPrayerPeriod: divinePrayerPeriod
                     )
                     .environmentObject(themeManager)
+
+                    // Orbital Status Header - gamification progress
+                    if appEnvironment.userSettings.isPro {
+                        OrbitalStatusHeader(progressionService: appEnvironment.progressionService)
+                            .environmentObject(themeManager)
+                            .padding(.horizontal, MZSpacing.screenPadding)
+                    }
 
                     // Prayer Approaching Banner - below date navigator
                     if let approaching = approachingPrayer {
@@ -390,6 +400,25 @@ struct TimelineView: View {
                             .environmentObject(themeManager)
                             .padding(MZSpacing.md)
                     }
+                }
+
+                // Mass Counter overlay (for recent gains)
+                if appEnvironment.userSettings.isPro && appEnvironment.progressionService.recentMassGain > 0 {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            MassCounter(
+                                currentMass: appEnvironment.progressionService.currentMass,
+                                recentGain: appEnvironment.progressionService.recentMassGain
+                            )
+                            .environmentObject(themeManager)
+                            .padding(.leading, MZSpacing.md)
+                            Spacer()
+                        }
+                        .padding(.bottom, 80) // Above tab bar
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: appEnvironment.progressionService.recentMassGain)
                 }
             }
             .navigationBarHidden(true)
@@ -771,6 +800,13 @@ struct TimelineView: View {
                 task.uncomplete()
             } else {
                 task.complete()
+
+                // Award Mass for completing task (Pro feature)
+                if appEnvironment.userSettings.isPro {
+                    appEnvironment.progressionService.awardMassForTask(duration: task.duration)
+                    appEnvironment.achievementService.checkAchievements()
+                    appEnvironment.missionService.updateMissionProgress()
+                }
             }
             try? modelContext.save()
         }
