@@ -163,8 +163,9 @@ struct EventHorizonDock: View {
         let isSelected = selection == destination
 
         // Calculate position on ellipse
-        let x = cos(angle.radians) * (expandedWidth / 2 - iconSize)
-        let y = sin(angle.radians) * (expandedHeight / 2 - iconSize / 2)
+        let padding = iconSize * 0.75  // Consistent padding from ellipse edge
+        let x = cos(angle.radians) * (expandedWidth / 2 - padding)
+        let y = sin(angle.radians) * (expandedHeight / 2 - padding)
 
         return Button {
             selectDestination(destination)
