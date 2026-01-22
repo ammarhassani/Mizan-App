@@ -353,8 +353,9 @@ struct InboxView: View {
 
                     // Tasks in this section
                     LazyVStack(spacing: 10) {
-                        ForEach(group.tasks) { task in
+                        ForEach(Array(group.tasks.enumerated()), id: \.element.id) { taskIndex, task in
                             taskRow(for: task)
+                                .materialize(delay: Double(taskIndex) * 0.05)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -437,7 +438,8 @@ struct InboxView: View {
                 },
                 onTap: {
                     editTask(task)
-                }
+                },
+                showMass: appEnvironment.userSettings.isPro
             )
             .environmentObject(themeManager)
             .contextMenu {
@@ -517,6 +519,13 @@ struct InboxView: View {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
             task.complete()
             try? modelContext.save()
+
+            // Award Mass for completing task (Pro feature)
+            if appEnvironment.userSettings.isPro {
+                appEnvironment.progressionService.awardMassForTask(duration: task.duration)
+                appEnvironment.achievementService.checkAchievements()
+                appEnvironment.missionService.updateMissionProgress()
+            }
         }
         HapticManager.shared.trigger(.success)
     }
@@ -688,8 +697,17 @@ struct TaskRowWithCheckbox: View {
     let task: Task
     let onToggleComplete: () -> Void
     let onTap: () -> Void
+    var showMass: Bool = false
 
     @EnvironmentObject var themeManager: ThemeManager
+
+    // Calculate potential Mass based on duration
+    private var potentialMass: Int {
+        let duration = task.duration
+        guard duration > 0 else { return 10 }
+        let durationFactor = min(1.0, max(0.2, Double(duration) / 60.0))
+        return Int(10.0 + (40.0 * durationFactor))
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -788,10 +806,22 @@ struct TaskRowWithCheckbox: View {
 
                     Spacer()
 
-                    // Chevron
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14))
-                        .foregroundColor(themeManager.textTertiaryColor)
+                    // Mass badge (for Pro) or Chevron
+                    if showMass && !task.isCompleted {
+                        Text("+\(potentialMass)")
+                            .font(MZTypography.labelSmall)
+                            .foregroundColor(themeManager.successColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(themeManager.successColor.opacity(0.15))
+                            )
+                    } else {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14))
+                            .foregroundColor(themeManager.textTertiaryColor)
+                    }
                 }
             }
             .buttonStyle(.plain)
