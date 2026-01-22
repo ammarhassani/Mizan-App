@@ -123,6 +123,77 @@ final class UserSettings {
     var enableBackgroundAmbiance: Bool = true
     var ramadanModeEnabled: Bool = false
 
+    // MARK: - Gamification Properties
+
+    /// Total accumulated Mass points
+    var massTotalPoints: Double = 0
+
+    /// Current Orbit level (1-100+)
+    var orbitCurrentLevel: Int = 1
+
+    /// Current Light Velocity streak (consecutive days)
+    var lightVelocityStreak: Int = 0
+
+    /// Longest streak ever achieved
+    var lightVelocityLongestStreak: Int = 0
+
+    /// Last activity date for streak tracking
+    var lastActivityDate: Date?
+
+    /// Current combo count
+    var comboCurrentCount: Int = 0
+
+    /// Last combo activity timestamp
+    var comboLastActivityDate: Date?
+
+    /// Total tasks completed (for achievements)
+    var totalTasksCompleted: Int = 0
+
+    /// Total prayers completed on time (for achievements)
+    var totalPrayersOnTime: Int = 0
+
+    /// Total perfect days (all 5 prayers on time)
+    var totalPerfectDays: Int = 0
+
+    /// Total Fajr prayers completed on time
+    var totalFajrOnTime: Int = 0
+
+    /// JSON storage for unlocked achievement IDs
+    private var unlockedAchievementIDsJSON: String = "[]"
+
+    /// Unlocked achievement IDs
+    @Transient
+    var unlockedAchievementIDs: [String] {
+        get {
+            guard let data = unlockedAchievementIDsJSON.data(using: .utf8) else { return [] }
+            return (try? JSONDecoder().decode([String].self, from: data)) ?? []
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue),
+               let json = String(data: data, encoding: .utf8) {
+                unlockedAchievementIDsJSON = json
+            }
+        }
+    }
+
+    /// JSON storage for completed daily mission IDs with dates
+    private var completedMissionsJSON: String = "{}"
+
+    /// Completed missions mapped by date string (yyyy-MM-dd)
+    @Transient
+    var completedMissions: [String: [String]] {
+        get {
+            guard let data = completedMissionsJSON.data(using: .utf8) else { return [:] }
+            return (try? JSONDecoder().decode([String: [String]].self, from: data)) ?? [:]
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue),
+               let json = String(data: data, encoding: .utf8) {
+                completedMissionsJSON = json
+            }
+        }
+    }
+
     // MARK: - Initialization
     init() {
         self.id = UUID()
