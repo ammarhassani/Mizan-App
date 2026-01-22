@@ -23,6 +23,11 @@ struct MZTypography {
     static let titleMedium = Font.system(size: 18, weight: .semibold)
     static let titleSmall = Font.system(size: 16, weight: .semibold)
 
+    // MARK: - Data (Numbers, Stats, Mass Display)
+    static let dataLarge = Font.system(size: 32, weight: .medium, design: .monospaced)
+    static let dataMedium = Font.system(size: 20, weight: .medium, design: .monospaced)
+    static let dataSmall = Font.system(size: 14, weight: .medium, design: .monospaced)
+
     // MARK: - Body (Content)
     static let bodyLarge = Font.system(size: 17, weight: .regular)
     static let bodyMedium = Font.system(size: 15, weight: .regular)
