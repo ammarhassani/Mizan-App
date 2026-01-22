@@ -29,6 +29,11 @@ final class AppEnvironment: ObservableObject {
     let hapticManager: HapticManager
     let notificationManager: NotificationManager
 
+    // MARK: - Gamification Services
+    private(set) var progressionService: ProgressionService!
+    private(set) var achievementService: AchievementService!
+    private(set) var missionService: MissionService!
+
     // AI Service (lazy initialization)
     private(set) lazy var aiTaskService: AITaskService = {
         let service = AITaskService(config: ConfigurationManager.shared.aiConfig)
@@ -149,6 +154,15 @@ final class AppEnvironment: ObservableObject {
 
         // Migrate: Create default UserCategories if none exist
         migrateToUserCategories()
+
+        // Initialize gamification services
+        progressionService = ProgressionService(modelContext: modelContext)
+        achievementService = AchievementService(modelContext: modelContext)
+        missionService = MissionService(modelContext: modelContext)
+
+        // Wire up gamification dependencies
+        achievementService.setProgressionService(progressionService)
+        missionService.setProgressionService(progressionService)
 
         // Set up notification observers
         setupNotificationObservers()
