@@ -134,6 +134,7 @@ struct CinematicContainer<Content: View>: View {
             GrainTextureView()
                 .opacity(0.03)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .drawingGroup() // Rasterize to avoid per-frame pixel rendering
         }
     }
 
