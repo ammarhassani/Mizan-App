@@ -1,0 +1,216 @@
+{
+  "version": "1.0",
+  "mass_system": {
+    "base_earnings": {
+      "task_completion_min": 10,
+      "task_completion_max": 50,
+      "prayer_in_window": 150,
+      "prayer_outside_window": 50,
+      "nawafil_completion": 75,
+      "daily_login": 25
+    },
+    "bonuses": {
+      "dawn_bonus": 50,
+      "night_seal": 50,
+      "full_week": 200,
+      "orbit_advancement": 500
+    }
+  },
+  "combo_system": {
+    "multiplier_increment": 0.05,
+    "max_multiplier": 1.20,
+    "timeout_seconds": 3600
+  },
+  "light_velocity": {
+    "tiers": [
+      { "min_days": 1, "max_days": 6, "name": "Drift", "multiplier": 1.0 },
+      { "min_days": 7, "max_days": 13, "name": "Cruise", "multiplier": 1.7 },
+      { "min_days": 14, "max_days": 29, "name": "Warp", "multiplier": 1.9 },
+      { "min_days": 30, "max_days": 59, "name": "Hyperwarp", "multiplier": 2.0 },
+      { "min_days": 60, "max_days": 999, "name": "Lightspeed", "multiplier": 2.0 }
+    ]
+  },
+  "orbits": [
+    { "level": 1, "mass_required": 0, "title_en": "Dust", "title_ar": "غبار", "unlock": null },
+    { "level": 2, "mass_required": 500, "title_en": "Particle", "title_ar": "جسيم", "unlock": "subtle_particles" },
+    { "level": 3, "mass_required": 1200, "title_en": "Fragment", "title_ar": "شظية", "unlock": "card_glow" },
+    { "level": 4, "mass_required": 2000, "title_en": "Asteroid", "title_ar": "كويكب", "unlock": "dock_pulse" },
+    { "level": 5, "mass_required": 3000, "title_en": "Voyager", "title_ar": "رحالة", "unlock": "enhanced_implosion" },
+    { "level": 7, "mass_required": 5000, "title_en": "Moon", "title_ar": "قمر", "unlock": "orbital_ring" },
+    { "level": 10, "mass_required": 8000, "title_en": "Navigator", "title_ar": "ملاح", "unlock": "accent_colors" },
+    { "level": 15, "mass_required": 15000, "title_en": "Planet", "title_ar": "كوكب", "unlock": "gravity_distortion" },
+    { "level": 20, "mass_required": 25000, "title_en": "Giant", "title_ar": "عملاق", "unlock": "particle_trail" },
+    { "level": 25, "mass_required": 40000, "title_en": "Pilot", "title_ar": "طيار", "unlock": "premium_borders" },
+    { "level": 30, "mass_required": 60000, "title_en": "Star", "title_ar": "نجم", "unlock": "nebula_shift" },
+    { "level": 40, "mass_required": 100000, "title_en": "Supernova", "title_ar": "مستعر أعظم", "unlock": "edge_glow" },
+    { "level": 50, "mass_required": 150000, "title_en": "Commander", "title_ar": "قائد", "unlock": "exclusive_particles" },
+    { "level": 75, "mass_required": 300000, "title_en": "Black Hole", "title_ar": "ثقب أسود", "unlock": "gravitational_lensing" },
+    { "level": 100, "mass_required": 500000, "title_en": "Singularity", "title_ar": "تفرد", "unlock": "ultimate_suite" }
+  ],
+  "achievements": [
+    {
+      "id": "first_light",
+      "title_en": "First Light",
+      "title_ar": "النور الأول",
+      "description_en": "Complete your first Fajr prayer",
+      "description_ar": "أكمل صلاة الفجر الأولى",
+      "icon": "sunrise.fill",
+      "requirement_type": "prayer_fajr_count",
+      "requirement_value": 1,
+      "mass_reward": 100,
+      "rarity": "common"
+    },
+    {
+      "id": "solar_collector",
+      "title_en": "Solar Collector",
+      "title_ar": "جامع الشمس",
+      "description_en": "Complete all 5 prayers on time in one day",
+      "description_ar": "أكمل الصلوات الخمس في وقتها في يوم واحد",
+      "icon": "sun.max.fill",
+      "requirement_type": "perfect_day_count",
+      "requirement_value": 1,
+      "mass_reward": 300,
+      "rarity": "rare"
+    },
+    {
+      "id": "light_keeper",
+      "title_en": "Light Keeper",
+      "title_ar": "حارس النور",
+      "description_en": "7 consecutive days with all prayers on time",
+      "description_ar": "7 أيام متتالية مع جميع الصلوات في وقتها",
+      "icon": "sparkles",
+      "requirement_type": "perfect_streak",
+      "requirement_value": 7,
+      "mass_reward": 1000,
+      "rarity": "epic"
+    },
+    {
+      "id": "ignition",
+      "title_en": "Ignition",
+      "title_ar": "الاشتعال",
+      "description_en": "Achieve a 3-day streak",
+      "description_ar": "حقق سلسلة 3 أيام",
+      "icon": "flame.fill",
+      "requirement_type": "streak_days",
+      "requirement_value": 3,
+      "mass_reward": 50,
+      "rarity": "common"
+    },
+    {
+      "id": "momentum",
+      "title_en": "Momentum",
+      "title_ar": "الزخم",
+      "description_en": "Achieve a 7-day streak",
+      "description_ar": "حقق سلسلة 7 أيام",
+      "icon": "bolt.fill",
+      "requirement_type": "streak_days",
+      "requirement_value": 7,
+      "mass_reward": 200,
+      "rarity": "rare"
+    },
+    {
+      "id": "event_horizon",
+      "title_en": "Event Horizon",
+      "title_ar": "أفق الحدث",
+      "description_en": "Achieve a 30-day streak",
+      "description_ar": "حقق سلسلة 30 يوم",
+      "icon": "circle.hexagongrid.fill",
+      "requirement_type": "streak_days",
+      "requirement_value": 30,
+      "mass_reward": 2000,
+      "rarity": "epic"
+    },
+    {
+      "id": "first_step",
+      "title_en": "First Step",
+      "title_ar": "الخطوة الأولى",
+      "description_en": "Complete your first task",
+      "description_ar": "أكمل مهمتك الأولى",
+      "icon": "checkmark.circle.fill",
+      "requirement_type": "task_count",
+      "requirement_value": 1,
+      "mass_reward": 25,
+      "rarity": "common"
+    },
+    {
+      "id": "centurion",
+      "title_en": "Centurion",
+      "title_ar": "القائد المئوي",
+      "description_en": "Complete 100 tasks",
+      "description_ar": "أكمل 100 مهمة",
+      "icon": "trophy.fill",
+      "requirement_type": "task_count",
+      "requirement_value": 100,
+      "mass_reward": 1000,
+      "rarity": "epic"
+    },
+    {
+      "id": "mass_accumulator",
+      "title_en": "Mass Accumulator",
+      "title_ar": "مجمع الكتلة",
+      "description_en": "Earn 10,000 total Mass",
+      "description_ar": "اكسب 10,000 كتلة إجمالية",
+      "icon": "atom",
+      "requirement_type": "total_mass",
+      "requirement_value": 10000,
+      "mass_reward": 500,
+      "rarity": "rare"
+    },
+    {
+      "id": "gravity_well",
+      "title_en": "Gravity Well",
+      "title_ar": "بئر الجاذبية",
+      "description_en": "Earn 50,000 total Mass",
+      "description_ar": "اكسب 50,000 كتلة إجمالية",
+      "icon": "circle.dotted",
+      "requirement_type": "total_mass",
+      "requirement_value": 50000,
+      "mass_reward": 2500,
+      "rarity": "epic"
+    },
+    {
+      "id": "cosmic_entity",
+      "title_en": "Cosmic Entity",
+      "title_ar": "كيان كوني",
+      "description_en": "Earn 100,000 total Mass",
+      "description_ar": "اكسب 100,000 كتلة إجمالية",
+      "icon": "sparkle",
+      "requirement_type": "total_mass",
+      "requirement_value": 100000,
+      "mass_reward": 10000,
+      "rarity": "legendary"
+    }
+  ],
+  "daily_missions": [
+    {
+      "id": "prayer_streak",
+      "title_en": "Celestial Alignment",
+      "title_ar": "المحاذاة السماوية",
+      "description_en": "Complete 3 prayers on time today",
+      "description_ar": "أكمل 3 صلوات في الوقت اليوم",
+      "requirement_type": "prayers_on_time_today",
+      "requirement_value": 3,
+      "mass_reward": 75
+    },
+    {
+      "id": "task_burst",
+      "title_en": "Mass Burst",
+      "title_ar": "انفجار الكتلة",
+      "description_en": "Complete 5 tasks today",
+      "description_ar": "أكمل 5 مهام اليوم",
+      "requirement_type": "tasks_completed_today",
+      "requirement_value": 5,
+      "mass_reward": 100
+    },
+    {
+      "id": "fajr_hero",
+      "title_en": "Dawn Guardian",
+      "title_ar": "حارس الفجر",
+      "description_en": "Complete Fajr prayer on time",
+      "description_ar": "أكمل صلاة الفجر في وقتها",
+      "requirement_type": "fajr_on_time_today",
+      "requirement_value": 1,
+      "mass_reward": 50
+    }
+  ]
+}
