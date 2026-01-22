@@ -143,7 +143,8 @@ struct WarpTransitionContainer<Content: View>: View {
         transitionDirection = newIndex > oldIndex ? .left : .right
         isTransitioning = true
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        // Wait for warp-out animation to complete (0.1s blur + 0.15s slide = 0.25s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             currentSelection = newIndex
             isTransitioning = false
         }
