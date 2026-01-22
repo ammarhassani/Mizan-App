@@ -106,6 +106,27 @@ struct CinematicAnimation {
     }
 }
 
+// MARK: - Reduce Motion Support
+
+/// Utility for checking system reduce motion preference
+struct ReduceMotion {
+    /// Check if user prefers reduced motion
+    static var isEnabled: Bool {
+        UIAccessibility.isReduceMotionEnabled
+    }
+
+    /// Get animation respecting reduce motion preference with custom fallback duration
+    /// When reduce motion is enabled, returns a fast simple animation
+    static func animation(_ animation: Animation, reducedDuration: Double = 0.1) -> Animation {
+        isEnabled ? .easeInOut(duration: reducedDuration) : animation
+    }
+
+    /// Get animation respecting reduce motion preference with custom reduced animation
+    static func animation(_ animation: Animation, reducedTo reduced: Animation) -> Animation {
+        isEnabled ? reduced : animation
+    }
+}
+
 // MARK: - View Extension for Cinematic Transitions
 
 extension View {
@@ -117,5 +138,27 @@ extension View {
                 removal: .opacity
             ))
             .animation(CinematicAnimation.enter.delay(delay), value: UUID())
+    }
+
+    /// Apply animation respecting reduce motion preference
+    func accessibleAnimation<V: Equatable>(_ animation: Animation, value: V) -> some View {
+        self.animation(ReduceMotion.animation(animation), value: value)
+    }
+
+    /// Apply spring animation with reduce motion fallback
+    func accessibleSpring<V: Equatable>(response: Double = 0.5, dampingFraction: Double = 0.8, value: V) -> some View {
+        let animation = Animation.spring(response: response, dampingFraction: dampingFraction)
+        return self.animation(ReduceMotion.animation(animation, reducedDuration: 0.15), value: value)
+    }
+
+    /// Conditional glow effect respecting reduce motion
+    func accessibleGlow(color: Color, radius: CGFloat, condition: Bool = true) -> some View {
+        Group {
+            if condition && !ReduceMotion.isEnabled {
+                self.shadow(color: color, radius: radius)
+            } else {
+                self
+            }
+        }
     }
 }

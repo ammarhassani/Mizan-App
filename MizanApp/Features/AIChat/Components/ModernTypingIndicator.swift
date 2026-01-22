@@ -33,29 +33,66 @@ struct ModernTypingIndicator: View {
                     .font(MZTypography.bodyMedium)
                     .foregroundColor(themeManager.textSecondaryColor)
 
-                // Animated dots
+                // Animated dots with cosmic glow
                 HStack(spacing: MZSpacing.xxs) {
                     ForEach(0..<3, id: \.self) { index in
-                        Circle()
-                            .fill(themeManager.textTertiaryColor)
-                            .frame(width: 5, height: 5)
-                            .opacity(activeDot == index ? 1.0 : 0.3)
-                            .scaleEffect(activeDot == index ? 1.2 : 1.0)
+                        ZStack {
+                            // Glow when active
+                            if activeDot == index && !ReduceMotion.isEnabled {
+                                Circle()
+                                    .fill(themeManager.primaryColor.opacity(0.4))
+                                    .frame(width: 8, height: 8)
+                                    .blur(radius: 3)
+                            }
+
+                            Circle()
+                                .fill(activeDot == index ? themeManager.primaryColor : themeManager.textTertiaryColor)
+                                .frame(width: 5, height: 5)
+                                .opacity(activeDot == index ? 1.0 : 0.4)
+                                .scaleEffect(activeDot == index ? 1.2 : 1.0)
+                        }
                     }
                 }
             }
             .padding(.horizontal, MZSpacing.md)
             .padding(.vertical, MZSpacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
-                    .fill(themeManager.surfaceColor)
+                ZStack {
+                    // Glass-like background
+                    RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
+                        .fill(themeManager.surfaceColor)
+
+                    // Subtle cosmic gradient overlay
+                    RoundedRectangle(cornerRadius: themeManager.cornerRadius(.medium))
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    themeManager.primaryColor.opacity(0.03),
+                                    Color.clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
             )
             .overlay(
-                // Leading accent border (= RIGHT side in RTL)
+                // Leading accent border (= RIGHT side in RTL) with glow
                 HStack {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(themeManager.primaryColor.opacity(0.4))
-                        .frame(width: 3)
+                    ZStack {
+                        // Glow effect (respects reduce motion)
+                        if !ReduceMotion.isEnabled {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(themeManager.primaryColor.opacity(0.3))
+                                .frame(width: 5)
+                                .blur(radius: 4)
+                        }
+
+                        // Solid border
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(themeManager.primaryColor.opacity(0.5))
+                            .frame(width: 3)
+                    }
                     Spacer()
                 }
                 .padding(.vertical, MZSpacing.xs)

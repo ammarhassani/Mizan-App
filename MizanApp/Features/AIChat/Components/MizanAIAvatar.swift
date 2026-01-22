@@ -25,6 +25,15 @@ struct MizanAIAvatar: View {
 
     var body: some View {
         ZStack {
+            // Outer glow (subtle cosmic effect)
+            if !ReduceMotion.isEnabled {
+                RoundedRectangle(cornerRadius: size * 0.25)
+                    .fill(themeManager.primaryColor.opacity(0.3))
+                    .frame(width: size + 4, height: size + 4)
+                    .blur(radius: isThinking ? 6 : 3)
+                    .animation(.easeInOut(duration: 0.6), value: isThinking)
+            }
+
             // Background
             RoundedRectangle(cornerRadius: size * 0.25)
                 .fill(themeManager.primaryColor)
@@ -93,9 +102,26 @@ struct MizanAIAvatarLarge: View {
     var size: CGFloat = 64
 
     @State private var appeared = false
+    @State private var glowPulse = false
 
     var body: some View {
         ZStack {
+            // Cosmic glow effect (respects reduce motion)
+            if !ReduceMotion.isEnabled {
+                // Outer glow ring
+                RoundedRectangle(cornerRadius: size * 0.3)
+                    .fill(themeManager.primaryColor.opacity(0.2))
+                    .frame(width: size + 16, height: size + 16)
+                    .blur(radius: glowPulse ? 12 : 8)
+                    .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: glowPulse)
+
+                // Inner glow ring
+                RoundedRectangle(cornerRadius: size * 0.25)
+                    .fill(themeManager.primaryColor.opacity(0.3))
+                    .frame(width: size + 6, height: size + 6)
+                    .blur(radius: 4)
+            }
+
             // Background with gradient
             RoundedRectangle(cornerRadius: size * 0.25)
                 .fill(
@@ -118,8 +144,12 @@ struct MizanAIAvatarLarge: View {
         .scaleEffect(appeared ? 1.0 : 0.8)
         .opacity(appeared ? 1.0 : 0.0)
         .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+            withAnimation(ReduceMotion.animation(.spring(response: 0.6, dampingFraction: 0.7))) {
                 appeared = true
+            }
+            // Start glow pulse after appear animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                glowPulse = true
             }
         }
     }
