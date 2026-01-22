@@ -84,6 +84,10 @@ struct EventHorizonDock: View {
         .onAppear {
             startPulseAnimation()
         }
+        .onDisappear {
+            autoCollapseTask?.cancel()
+            autoCollapseTask = nil
+        }
     }
 
     // MARK: - Collapsed View
@@ -125,6 +129,7 @@ struct EventHorizonDock: View {
 
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.prepare()
         generator.impactOccurred()
 
         scheduleAutoCollapse()
@@ -137,6 +142,9 @@ struct EventHorizonDock: View {
         withAnimation(CinematicAnimation.dockCollapse) {
             isExpanded = false
         }
+
+        // Reset rotation for next expansion
+        orbitRotation = 0
     }
 
     private func scheduleAutoCollapse() {
