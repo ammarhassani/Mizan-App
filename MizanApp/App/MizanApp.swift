@@ -288,47 +288,67 @@ struct ParticleStarsView: View {
 struct MainTabView: View {
     @EnvironmentObject var appEnvironment: AppEnvironment
     @EnvironmentObject var themeManager: ThemeManager
-    @State private var selectedTab = 0
+    @State private var selectedDestination: DockDestination = .timeline
+
+    // Prayer period for background (computed from current time)
+    private var currentPrayerPeriod: Int {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 4..<6: return 0   // Fajr
+        case 6..<7: return 1   // Sunrise
+        case 12..<15: return 2 // Dhuhr
+        case 15..<17: return 3 // Asr
+        case 17..<19: return 4 // Maghrib
+        default: return 5      // Isha
+        }
+    }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // Timeline Tab
+        ZStack {
+            // Dark Matter background
+            DarkMatterBackground(prayerPeriod: currentPrayerPeriod)
+
+            // Main content area
+            VStack(spacing: 0) {
+                currentView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                Spacer(minLength: 0)
+            }
+
+            // Dock at bottom
+            VStack {
+                Spacer()
+                EventHorizonDock(selection: $selectedDestination)
+                    .padding(.bottom, 24)
+            }
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    @ViewBuilder
+    private var currentView: some View {
+        switch selectedDestination {
+        case .timeline:
             TimelineView()
                 .environmentObject(appEnvironment)
                 .environmentObject(themeManager)
-                .tabItem {
-                    Label("الجدول", systemImage: "calendar")
-                }
-                .tag(0)
 
-            // Inbox Tab
+        case .inbox:
             InboxView()
                 .environmentObject(appEnvironment)
                 .environmentObject(themeManager)
-                .tabItem {
-                    Label("المهام", systemImage: "tray.fill")
-                }
-                .tag(1)
 
-            // Mizan AI Tab
+        case .mizanAI:
             MizanAITab()
                 .environmentObject(appEnvironment)
                 .environmentObject(themeManager)
-                .tabItem {
-                    Label("Mizan AI", systemImage: "sparkles")
-                }
-                .tag(2)
 
-            // Settings Tab
+        case .settings:
             SettingsView()
                 .environmentObject(appEnvironment)
                 .environmentObject(themeManager)
-                .tabItem {
-                    Label("الإعدادات", systemImage: "gearshape.fill")
-                }
-                .tag(3)
         }
-        .accentColor(themeManager.primaryColor)
     }
 }
 
