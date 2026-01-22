@@ -20,6 +20,7 @@ final class ConfigurationManager {
     private(set) var notificationConfig: NotificationConfiguration!
     private(set) var localizationConfig: LocalizationConfiguration!
     private(set) var aiConfig: AIConfiguration!
+    private(set) var gamificationConfig: GamificationConfiguration!
 
     private init() {
         loadConfigurations()
@@ -38,6 +39,7 @@ final class ConfigurationManager {
             notificationConfig = try loadJSON("NotificationConfig")
             localizationConfig = try loadJSON("LocalizationConfig")
             aiConfig = try loadJSON("AIConfig")
+            gamificationConfig = try loadJSON("GamificationConfig")
 
             MizanLogger.shared.lifecycle.info("All configurations loaded successfully")
         } catch {
@@ -73,6 +75,9 @@ final class ConfigurationManager {
         }
         if aiConfig == nil {
             aiConfig = try? loadJSON("AIConfig")
+        }
+        if gamificationConfig == nil {
+            gamificationConfig = try? loadJSON("GamificationConfig")
         }
     }
 
