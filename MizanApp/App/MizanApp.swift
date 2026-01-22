@@ -289,6 +289,8 @@ struct MainTabView: View {
     @EnvironmentObject var appEnvironment: AppEnvironment
     @EnvironmentObject var themeManager: ThemeManager
     @State private var selectedDestination: DockDestination = .timeline
+    @State private var previousDestination: DockDestination = .timeline
+    @State private var isTransitioning = false
 
     // Prayer period for background (computed from current time)
     private var currentPrayerPeriod: Int {
@@ -301,6 +303,11 @@ struct MainTabView: View {
         case 17..<19: return 4 // Maghrib
         default: return 5      // Isha
         }
+    }
+
+    // Transition offset based on navigation direction
+    private var transitionOffset: CGFloat {
+        selectedDestination.rawValue > previousDestination.rawValue ? 50 : -50
     }
 
     var body: some View {
@@ -324,31 +331,53 @@ struct MainTabView: View {
             }
         }
         .ignoresSafeArea(edges: .bottom)
+        .onChange(of: selectedDestination) { oldValue, newValue in
+            previousDestination = oldValue
+        }
     }
 
     @ViewBuilder
     private var currentView: some View {
-        switch selectedDestination {
-        case .timeline:
-            TimelineView()
-                .environmentObject(appEnvironment)
-                .environmentObject(themeManager)
+        ZStack {
+            switch selectedDestination {
+            case .timeline:
+                TimelineView()
+                    .environmentObject(appEnvironment)
+                    .environmentObject(themeManager)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(x: transitionOffset)),
+                        removal: .opacity.combined(with: .offset(x: -transitionOffset))
+                    ))
 
-        case .inbox:
-            InboxView()
-                .environmentObject(appEnvironment)
-                .environmentObject(themeManager)
+            case .inbox:
+                InboxView()
+                    .environmentObject(appEnvironment)
+                    .environmentObject(themeManager)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(x: transitionOffset)),
+                        removal: .opacity.combined(with: .offset(x: -transitionOffset))
+                    ))
 
-        case .mizanAI:
-            MizanAITab()
-                .environmentObject(appEnvironment)
-                .environmentObject(themeManager)
+            case .mizanAI:
+                MizanAITab()
+                    .environmentObject(appEnvironment)
+                    .environmentObject(themeManager)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(x: transitionOffset)),
+                        removal: .opacity.combined(with: .offset(x: -transitionOffset))
+                    ))
 
-        case .settings:
-            SettingsView()
-                .environmentObject(appEnvironment)
-                .environmentObject(themeManager)
+            case .settings:
+                SettingsView()
+                    .environmentObject(appEnvironment)
+                    .environmentObject(themeManager)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(x: transitionOffset)),
+                        removal: .opacity.combined(with: .offset(x: -transitionOffset))
+                    ))
+            }
         }
+        .animation(CinematicAnimation.warp, value: selectedDestination)
     }
 }
 
