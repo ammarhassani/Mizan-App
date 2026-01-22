@@ -73,9 +73,7 @@ struct EventHorizonDock: View {
     var body: some View {
         ZStack {
             if isExpanded {
-                // Placeholder - will be implemented in Task 3
-                Text("Expanded")
-                    .foregroundColor(CinematicColors.textPrimary)
+                expandedView
             } else {
                 collapsedView
             }
@@ -116,6 +114,110 @@ struct EventHorizonDock: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
+    }
+
+    // MARK: - Expanded View
+
+    private var expandedView: some View {
+        ZStack {
+            // Elliptical orbit ring
+            orbitRing
+
+            // Orbiting icons
+            ForEach(DockDestination.allCases) { destination in
+                dockIcon(for: destination)
+            }
+
+            // Center tap area to collapse
+            Circle()
+                .fill(Color.clear)
+                .frame(width: 40, height: 40)
+                .contentShape(Circle())
+                .onTapGesture {
+                    collapseDock()
+                }
+        }
+        .frame(width: expandedWidth, height: expandedHeight)
+    }
+
+    private var orbitRing: some View {
+        Ellipse()
+            .stroke(
+                LinearGradient(
+                    colors: [
+                        CinematicColors.accentCyan.opacity(0.6),
+                        CinematicColors.accentCyan.opacity(0.2),
+                        CinematicColors.accentCyan.opacity(0.6)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ),
+                lineWidth: 1.5
+            )
+            .frame(width: expandedWidth, height: expandedHeight)
+            .shadow(color: CinematicColors.accentCyan.opacity(0.3), radius: 4)
+    }
+
+    private func dockIcon(for destination: DockDestination) -> some View {
+        let angle = Angle(degrees: destination.orbitAngle + orbitRotation)
+        let isSelected = selection == destination
+
+        // Calculate position on ellipse
+        let x = cos(angle.radians) * (expandedWidth / 2 - iconSize)
+        let y = sin(angle.radians) * (expandedHeight / 2 - iconSize / 2)
+
+        return Button {
+            selectDestination(destination)
+        } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    // Glow for selected item
+                    if isSelected {
+                        Circle()
+                            .fill(CinematicColors.accentCyan.opacity(0.3))
+                            .frame(width: iconSize * 1.8, height: iconSize * 1.8)
+                            .blur(radius: 8)
+                    }
+
+                    // Icon background
+                    Circle()
+                        .fill(isSelected ? CinematicColors.accentCyan : CinematicColors.surface)
+                        .frame(width: iconSize * 1.5, height: iconSize * 1.5)
+
+                    // Icon
+                    Image(systemName: destination.icon)
+                        .font(.system(size: iconSize * 0.6, weight: .medium))
+                        .foregroundColor(isSelected ? CinematicColors.textOnAccent : CinematicColors.textPrimary)
+                }
+
+                // Label
+                Text(destination.label)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(isSelected ? CinematicColors.accentCyan : CinematicColors.textSecondary)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .offset(x: x, y: y)
+    }
+
+    private func selectDestination(_ destination: DockDestination) {
+        // Reset auto-collapse timer
+        autoCollapseTask?.cancel()
+
+        // Update selection
+        withAnimation(CinematicAnimation.snappy) {
+            selection = destination
+        }
+
+        // Haptic feedback
+        let generator = UISelectionFeedbackGenerator()
+        generator.prepare()
+        generator.selectionChanged()
+
+        // Collapse after selection
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            collapseDock()
+        }
     }
 
     // MARK: - Expand/Collapse Functions
