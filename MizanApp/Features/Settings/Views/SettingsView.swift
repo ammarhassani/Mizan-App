@@ -53,6 +53,63 @@ struct SettingsView: View {
                         }
                         .environmentObject(themeManager)
                         .accessibilityIdentifier("settings_pro_badge")
+
+                        // Gamification Section (Pro only)
+                        VStack(alignment: .leading, spacing: MZSpacing.sm) {
+                            SettingsSectionHeader(icon: "chart.line.uptrend.xyaxis", title: "التقدم", iconColor: themeManager.successColor)
+                                .environmentObject(themeManager)
+
+                            SettingsCard {
+                                NavigationLink {
+                                    GamificationDashboardView()
+                                        .environmentObject(appEnvironment)
+                                        .environmentObject(themeManager)
+                                } label: {
+                                    HStack(spacing: MZSpacing.md) {
+                                        // Orbit level badge
+                                        ZStack {
+                                            Circle()
+                                                .fill(themeManager.primaryColor)
+                                                .frame(width: 32, height: 32)
+                                            Text("\(appEnvironment.progressionService.currentOrbit)")
+                                                .font(MZTypography.labelMedium)
+                                                .foregroundColor(themeManager.textOnPrimaryColor)
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("المدار والتقدم")
+                                                .font(MZTypography.bodyLarge)
+                                                .foregroundColor(themeManager.textPrimaryColor)
+
+                                            if let orbit = appEnvironment.progressionService.getCurrentOrbitConfig() {
+                                                Text(orbit.localizedTitle)
+                                                    .font(MZTypography.labelSmall)
+                                                    .foregroundColor(themeManager.textSecondaryColor)
+                                            }
+                                        }
+
+                                        Spacer()
+
+                                        // Mass display
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text("\(Int(appEnvironment.progressionService.currentMass))")
+                                                .font(MZTypography.dataMedium)
+                                                .foregroundColor(themeManager.primaryColor)
+                                            Text("Mass")
+                                                .font(MZTypography.labelSmall)
+                                                .foregroundColor(themeManager.textTertiaryColor)
+                                        }
+
+                                        Image(systemName: "chevron.left")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(themeManager.textTertiaryColor)
+                                    }
+                                    .padding(MZSpacing.md)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .environmentObject(themeManager)
+                        }
                     }
 
                     // Prayer & Notifications Section
