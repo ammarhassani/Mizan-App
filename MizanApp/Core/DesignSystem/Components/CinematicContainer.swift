@@ -33,6 +33,10 @@ struct CinematicContainer<Content: View>: View {
     /// The content to display inside the container
     @ViewBuilder let content: () -> Content
 
+    // MARK: - Environment
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     // MARK: - State
 
     @State private var borderGlow: Double = 0.4
@@ -151,6 +155,9 @@ struct CinematicContainer<Content: View>: View {
     // MARK: - Animation
 
     private func startBorderAnimation() {
+        // Skip animation for reduced motion
+        guard !reduceMotion else { return }
+
         withAnimation(CinematicAnimation.pulse) {
             borderGlow = 0.6
         }

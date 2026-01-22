@@ -55,6 +55,12 @@ enum DockDestination: Int, CaseIterable, Identifiable {
 struct EventHorizonDock: View {
     @Binding var selection: DockDestination
 
+    // MARK: - Environment
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // MARK: - State
+
     @State private var isExpanded = false
     @State private var pulseScale: CGFloat = 1.0
     @State private var orbitRotation: Double = 0
@@ -226,24 +232,38 @@ struct EventHorizonDock: View {
     private func expandDock() {
         autoCollapseTask?.cancel()
 
-        withAnimation(CinematicAnimation.dockExpand) {
+        if reduceMotion {
+            // Instant state change for reduced motion
             isExpanded = true
+        } else {
+            withAnimation(CinematicAnimation.dockExpand) {
+                isExpanded = true
+            }
         }
 
-        // Haptic feedback
+        // Haptic feedback (always trigger)
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.prepare()
         generator.impactOccurred()
 
         scheduleAutoCollapse()
-        startOrbitRotation()
+
+        // Skip orbit rotation for reduced motion
+        if !reduceMotion {
+            startOrbitRotation()
+        }
     }
 
     private func collapseDock() {
         autoCollapseTask?.cancel()
 
-        withAnimation(CinematicAnimation.dockCollapse) {
+        if reduceMotion {
+            // Instant state change for reduced motion
             isExpanded = false
+        } else {
+            withAnimation(CinematicAnimation.dockCollapse) {
+                isExpanded = false
+            }
         }
 
         // Reset rotation for next expansion
@@ -268,6 +288,9 @@ struct EventHorizonDock: View {
     }
 
     private func startPulseAnimation() {
+        // Skip pulse animation for reduced motion
+        guard !reduceMotion else { return }
+
         withAnimation(CinematicAnimation.pulse) {
             pulseScale = 1.2
         }

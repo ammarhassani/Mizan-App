@@ -53,22 +53,30 @@ struct WarpTransitionModifier: ViewModifier {
     let direction: WarpDirection
     let isActive: Bool
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var blur: CGFloat = 0
     @State private var offset: CGSize = .zero
     @State private var scale: CGFloat = 1.0
 
     func body(content: Content) -> some View {
-        content
-            .blur(radius: blur)
-            .offset(offset)
-            .scaleEffect(scale)
-            .onChange(of: isActive) { _, active in
-                if active {
-                    performWarpOut()
-                } else {
-                    performWarpIn()
+        if reduceMotion {
+            // Simple cross-fade for reduced motion
+            content
+                .opacity(isActive ? 0 : 1)
+        } else {
+            content
+                .blur(radius: blur)
+                .offset(offset)
+                .scaleEffect(scale)
+                .onChange(of: isActive) { _, active in
+                    if active {
+                        performWarpOut()
+                    } else {
+                        performWarpIn()
+                    }
                 }
-            }
+        }
     }
 
     private func performWarpOut() {
